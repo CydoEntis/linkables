@@ -5,6 +5,7 @@
   "exports": {
     "./http": "./src/http/index.ts",
     "./auth": "./src/auth/index.ts",
+    "./collections": "./src/collections/index.ts",
     "./links": "./src/links/index.ts",
     "./url": "./src/url/index.ts"
   },
