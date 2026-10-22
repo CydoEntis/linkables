@@ -1,5 +1,10 @@
 import { HTTP_STATUS } from "@linkaroo/shared/http";
-import { listLinksQuerySchema, saveLinkRequestSchema, URL_MAX_LENGTH } from "@linkaroo/shared/links";
+import {
+  listLinksQuerySchema,
+  saveLinkRequestSchema,
+  updateLinkRequestSchema,
+  URL_MAX_LENGTH,
+} from "@linkaroo/shared/links";
 import { canonicalize } from "@linkaroo/shared/url";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
@@ -12,6 +17,7 @@ import { decodeCursor } from "./cursor";
 import { listLinks } from "./list-links";
 import { rateLimitPerUser } from "./rate-limit";
 import { saveLink } from "./save-link";
+import { updateLink } from "./update-link";
 
 const SAVES_PER_MINUTE = 60;
 
@@ -34,6 +40,8 @@ function canonicalUrlFor(url: string): string {
   }
   return result.url;
 }
+
+const linkParamSchema = z.object({ id: z.uuid() });
 
 export type LinkRoutesDeps = { db: Db; now: () => number };
 
@@ -60,6 +68,19 @@ export function linkRoutes({ db, now }: LinkRoutesDeps) {
         const canonicalUrl = canonicalUrlFor(url);
         const saved = await saveLink(db, { userId: c.get("userId"), originalUrl: url, canonicalUrl, collectionId });
         return ok(c, saved, saved.duplicate ? HTTP_STATUS.OK : HTTP_STATUS.CREATED);
+      },
+    )
+    .patch(
+      "/links/:id",
+      validator("param", parseWith(linkParamSchema, "Invalid link id")),
+      validator("json", parseWith(updateLinkRequestSchema, "Invalid request body")),
+      async (c) => {
+        const link = await updateLink(db, {
+          userId: c.get("userId"),
+          linkId: c.req.valid("param").id,
+          changes: c.req.valid("json"),
+        });
+        return ok(c, link);
       },
     );
 }
