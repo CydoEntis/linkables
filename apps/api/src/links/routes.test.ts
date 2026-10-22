@@ -111,6 +111,10 @@ describe("GET /links validation", () => {
     await expectValidationError(await list("view=inbox&collectionId=3f2b8c1e-9d4a-4b6e-8f1a-2c3d4e5f6a7b"));
   });
 
+  it("rejects a search query longer than 200 characters", async () => {
+    await expectValidationError(await list(`q=${"a".repeat(201)}`));
+  });
+
   it("rejects a request without a token", async () => {
     const res = await list("", {});
 
