@@ -1,0 +1,14 @@
+{
+  "keys": [
+    {
+      "kid": "linkaroo-test-es256",
+      "alg": "ES256",
+      "use": "sig",
+      "kty": "EC",
+      "x": "XTCDK_VpGqncA6kqolqwzZTt00FqNN5FpuCsSgZXbSY",
+      "y": "mLP41ExHN5-8N9kO7XXj3yoirL5QQBiUqq6JkwvcVl8",
+      "crv": "P-256",
+      "d": "ZKVhjRuOdmSTD7uB2ktzkm09wSXl5-ALu-kXHp_xMDs"
+    }
+  ]
+}
