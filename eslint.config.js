@@ -5,13 +5,14 @@ import tseslint from "typescript-eslint";
 // Rule 2: only the SSRF-guarded fetcher makes outbound HTTP from the API.
 const GUARDED_FETCHER = "apps/api/src/metadata/fetcher.ts";
 const OUTBOUND_HTTP_MESSAGE = "Outbound HTTP goes through apps/api/src/metadata/fetcher.ts (ADR-0003).";
-const restrictImports = (names) => [
+const restrictImports = (names, patterns = []) => [
   "error",
   {
     paths: names.map((name) => ({ name, message: OUTBOUND_HTTP_MESSAGE })),
-    patterns: [{ group: ["undici/*"], message: OUTBOUND_HTTP_MESSAGE }],
+    patterns: [{ group: ["undici/*"], message: OUTBOUND_HTTP_MESSAGE }, ...patterns],
   },
 ];
+const API_OUTBOUND_MODULES = ["undici", "http", "https", "http2", "node:http", "node:https", "node:http2"];
 
 export default defineConfig(
   { ignores: ["**/dist/", "**/node_modules/"] },
@@ -43,15 +44,7 @@ export default defineConfig(
           message: OUTBOUND_HTTP_MESSAGE,
         },
       ],
-      "no-restricted-imports": restrictImports([
-        "undici",
-        "http",
-        "https",
-        "http2",
-        "node:http",
-        "node:https",
-        "node:http2",
-      ]),
+      "no-restricted-imports": restrictImports(API_OUTBOUND_MODULES),
     },
   },
   {
@@ -59,6 +52,17 @@ export default defineConfig(
     files: ["apps/api/**/*.test.ts", "apps/api/test/**"],
     rules: {
       "no-restricted-imports": restrictImports(["undici", "https", "http2", "node:https", "node:http2"]),
+    },
+  },
+  {
+    // Rule 5: saving never waits on a network fetch, so the save path cannot
+    // reach the fetcher or extractor. This block replaces the options above, so
+    // it repeats the outbound bans.
+    files: ["apps/api/src/links/**"],
+    rules: {
+      "no-restricted-imports": restrictImports(API_OUTBOUND_MODULES, [
+        { regex: "(^|/)metadata(/|$)", message: "links/ must not import metadata/: saving never fetches (Rule 5)." },
+      ]),
     },
   },
   {
