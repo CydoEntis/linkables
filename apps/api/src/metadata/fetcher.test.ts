@@ -357,6 +357,12 @@ describe("fetcher against a local server", () => {
     });
   });
 
+  it("strips credentials from the final URL", async () => {
+    const target = encodeURIComponent(`http://user:secret@127.0.0.1:${String(server.port)}/html`);
+    const page = await fetcher.fetchHtml(`http://a:b@127.0.0.1:${String(server.port)}/redirect?to=${target}`);
+    expect(page.url).toBe(`${server.origin}/html`);
+  });
+
   it.each([
     ["http://10.0.0.1/", /10\.0\.0\.1/],
     ["http://169.254.169.254/", /169\.254\.169\.254/],
