@@ -4,7 +4,8 @@ import { ValidationError } from "../http/errors";
 // savedAt keeps Postgres' microseconds: a millisecond Date would skip rows saved
 // within the same millisecond as the last row of a page.
 const cursorSchema = z.strictObject({
-  savedAt: z.iso.datetime({ precision: 6 }),
+  // Postgres has no year 0, so the ::timestamptz cast would throw a 500.
+  savedAt: z.iso.datetime({ precision: 6 }).refine((value) => !value.startsWith("0000-")),
   id: z.uuid(),
 });
 

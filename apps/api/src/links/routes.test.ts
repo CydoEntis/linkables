@@ -87,6 +87,14 @@ describe("GET /links validation", () => {
     await expectValidationError(await list(`cursor=${cursor}`));
   });
 
+  it("rejects a cursor dated in year 0, which Postgres cannot store", async () => {
+    const cursor = Buffer.from(
+      JSON.stringify({ savedAt: "0000-01-01T00:00:00.000000Z", id: "3f2b8c1e-9d4a-4b6e-8f1a-2c3d4e5f6a7b" }),
+    ).toString("base64url");
+
+    await expectValidationError(await list(`cursor=${cursor}`));
+  });
+
   it.each(["0", "101", "ten", "2.5"])("rejects limit=%s", async (limit) => {
     await expectValidationError(await list(`limit=${limit}`));
   });
