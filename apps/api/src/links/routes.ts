@@ -3,11 +3,11 @@ import { listLinksQuerySchema, saveLinkRequestSchema, URL_MAX_LENGTH } from "@li
 import { canonicalize } from "@linkaroo/shared/url";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
-import { z } from "zod";
 import type { AuthEnv } from "../auth/require-auth";
 import type { Db } from "../db/client";
 import { ok } from "../http/envelope";
 import { ValidationError } from "../http/errors";
+import { parseWith } from "../http/validate";
 import { decodeCursor } from "./cursor";
 import { listLinks } from "./list-links";
 import { rateLimitPerUser } from "./rate-limit";
@@ -22,23 +22,6 @@ const CANONICALIZE_ERRORS = {
 
 function invalid(field: string, message: string): ValidationError {
   return new ValidationError(message, { fieldErrors: { [field]: message } });
-}
-
-function firstErrorPerField(error: z.ZodError): Record<string, string> {
-  const fieldErrors: Record<string, string> = {};
-  for (const { path, message } of error.issues) {
-    const [field] = path;
-    if (field !== undefined) fieldErrors[String(field)] ??= message;
-  }
-  return fieldErrors;
-}
-
-function parseWith<T extends z.ZodType>(schema: T, message: string) {
-  return (value: unknown): z.output<T> => {
-    const parsed = schema.safeParse(value);
-    if (parsed.success) return parsed.data;
-    throw new ValidationError(message, { fieldErrors: firstErrorPerField(parsed.error) });
-  };
 }
 
 // shortcut: the collection filter is a later feature; reject it rather than
