@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLogger, type LogLevel } from "./logger";
+import { createLogger, redactUrls, type LogLevel } from "./logger";
 
 function capture(level: LogLevel = "debug") {
   const lines: string[] = [];
@@ -54,6 +54,97 @@ describe("logger", () => {
     expect(line).not.toContain("frag");
     expect(JSON.parse(line)).toMatchObject({
       err: { name: "Error", message: "GET https://example.com/a failed", cause: { message: "redirect to /b" } },
+    });
+  });
+
+  it.each([
+    ["a query value up to the next space", "GET https://a.test/p?q=SECRET x"],
+    ["a quoted query value", 'GET https://a.test/p?token="SECRET" x'],
+    ["an angle-bracketed query value", "GET https://a.test/p?x=<SECRET> x"],
+    ["an encoded ? separator", "GET https://a.test/p%3Ftoken=SECRET x"],
+    ["an encoded # separator", "GET https://a.test/p%23SECRET x"],
+    ["a lowercase encoded separator", "GET /p%3ftoken=SECRET x"],
+    ["a query after a bare host", "GET a.test?token=SECRET x"],
+    ["a query after a host and port", "GET a.test:8080?token=SECRET x"],
+    ["a bare leading query", "?token=SECRET x"],
+    ["an opaque mailto URL with a dotted host", "mailto:me@a.test?body=SECRET x"],
+  ])("strips %s", (_label, text) => {
+    const redacted = redactUrls(text);
+
+    expect(redacted).not.toContain("SECRET");
+    expect(redacted).toMatch(/ x$/);
+  });
+
+  it("masks the password in a URL's userinfo", () => {
+    expect(redactUrls("connect postgresql://user:SECRET@db.test:5432/app failed")).toBe(
+      "connect postgresql://user:***@db.test:5432/app failed",
+    );
+  });
+
+  it("masks userinfo without a password", () => {
+    expect(redactUrls("https://SECRET@a.test/p")).toBe("https://***@a.test/p");
+  });
+
+  it("redacts field keys", () => {
+    const { logger, lines } = capture();
+
+    logger.info("seen", { "/x?token=SECRET": 1 });
+
+    expect(lines[0]).not.toContain("SECRET");
+  });
+
+  it("does not let fields overwrite level or msg", () => {
+    const { logger, lines } = capture();
+
+    logger.error("real", { level: "debug", msg: "fake" });
+
+    expect(JSON.parse(lines[0] ?? "")).toMatchObject({ level: "error", msg: "real" });
+  });
+
+  it("logs an error whose cause is itself", () => {
+    const { logger, lines } = capture();
+    const err = new Error("loop at /x?token=SECRET");
+    err.cause = err;
+
+    logger.error("unexpected error", { err });
+
+    const line = lines[0] ?? "";
+    expect(line).not.toContain("SECRET");
+    expect(JSON.parse(line)).toMatchObject({ err: { message: "loop at /x", cause: "[Circular]" } });
+  });
+
+  it("logs a circular object", () => {
+    const { logger, lines } = capture();
+    const node: Record<string, unknown> = { name: "node" };
+    node.self = node;
+
+    logger.info("cycle", { node });
+
+    expect(JSON.parse(lines[0] ?? "")).toMatchObject({ node: { name: "node", self: "[Circular]" } });
+  });
+
+  it("logs a BigInt field as a string", () => {
+    const { logger, lines } = capture();
+
+    logger.info("big", { count: 10n });
+
+    expect(JSON.parse(lines[0] ?? "")).toMatchObject({ count: "10" });
+  });
+
+  it("writes a fallback line when a field cannot be serialized", () => {
+    const { logger, lines } = capture();
+    const hostile = {
+      get boom(): never {
+        throw new Error("getter failed");
+      },
+    };
+
+    logger.error("unexpected error at /x?token=SECRET", { hostile });
+
+    expect(JSON.parse(lines[0] ?? "")).toMatchObject({
+      level: "error",
+      msg: "unexpected error at /x",
+      error: "serialization failed",
     });
   });
 });
