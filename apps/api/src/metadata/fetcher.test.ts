@@ -248,6 +248,13 @@ describe("fetcher with production defaults", () => {
     await expect(guarded.fetchHtml("http://mixed.test/")).rejects.toBeInstanceOf(BlockedAddressError);
   });
 
+  it("reports a DNS name with no addresses as a network failure", async () => {
+    const guarded = createFetcher({ lookup: staticLookup({ "empty.test": [] }) });
+    const result = guarded.fetchHtml("http://empty.test/");
+    await expect(result).rejects.toMatchObject({ reason: "network" });
+    await expect(result).rejects.toHaveProperty("cause.code", "ENOTFOUND");
+  });
+
   it("reports an unparseable URL as invalid_url", async () => {
     await expect(fetcher.fetchHtml("not a url")).rejects.toMatchObject({ reason: "invalid_url" });
   });

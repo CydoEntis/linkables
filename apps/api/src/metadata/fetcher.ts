@@ -150,6 +150,10 @@ export function guardLookup(lookup: LookupFunction, isAllowed: (address: string)
         return;
       }
       const addresses = typeof address === "string" ? [address] : address.map((entry) => entry.address);
+      if (addresses.length === 0) {
+        callback(Object.assign(new Error(`getaddrinfo ENOTFOUND ${hostname}`), { code: "ENOTFOUND" }), address, family);
+        return;
+      }
       const refused = addresses.find((candidate) => !isAllowed(candidate));
       if (refused === undefined) callback(null, address, family);
       else callback(new BlockedAddressError(`${hostname} resolves to blocked address ${refused}`), address, family);
