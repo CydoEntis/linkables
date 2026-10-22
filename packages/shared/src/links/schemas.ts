@@ -10,6 +10,7 @@ import {
 
 export const saveLinkRequestSchema = z.object({
   url: z.string().trim().max(URL_MAX_LENGTH, { error: `url must be at most ${String(URL_MAX_LENGTH)} characters` }),
+  collectionId: z.uuid().optional(),
 });
 
 export const resourceSummarySchema = z.strictObject({

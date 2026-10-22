@@ -61,6 +61,10 @@ describe("POST /links validation", () => {
     });
   });
 
+  it("rejects a collectionId that is not a uuid", async () => {
+    await expectValidationError(await post(JSON.stringify({ url: "https://example.com", collectionId: "reading" })));
+  });
+
   it("rejects a url that is only whitespace", async () => {
     await expectValidationError(await post(JSON.stringify({ url: "   " })));
   });

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
-import { job, resource, savedLink } from "../db/schema";
+import { collection, collectionItem, job, resource, savedLink } from "../db/schema";
 
 const { db, close } = connectTestDb();
 const { a, b } = await testUsers();
@@ -140,5 +140,60 @@ describe("POST /links rate limit", () => {
     const res = await save(app, b, "https://example.com/post");
 
     expect(res.status).toBe(201);
+  });
+});
+
+describe("POST /links with a collectionId", () => {
+  async function createCollection(user: TestUser): Promise<string> {
+    const [col] = await db.insert(collection).values({ userId: user.id, name: "Reading" }).returning();
+    if (col === undefined) throw new Error("insert returned no row");
+    return col.id;
+  }
+
+  function saveInto(user: TestUser, url: string, collectionId: string) {
+    return createTestApp({ db }).request("/api/v1/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...user.headers },
+      body: JSON.stringify({ url, collectionId }),
+    });
+  }
+
+  async function members(collectionId: string) {
+    const rows = await db
+      .select({ savedLinkId: collectionItem.savedLinkId })
+      .from(collectionItem)
+      .where(eq(collectionItem.collectionId, collectionId));
+    return rows.map((row) => row.savedLinkId);
+  }
+
+  it("adds the new link to the caller's collection", async () => {
+    const col = await createCollection(a);
+
+    const res = await saveInto(a, "https://example.com/post", col);
+
+    expect(res.status).toBe(201);
+    expect(await members(col)).toEqual([(await saved(res)).id]);
+  });
+
+  it("adds an already saved link to the collection", async () => {
+    const col = await createCollection(a);
+    const first = await saved(await save(createTestApp({ db }), a, "https://example.com/post"));
+
+    const res = await saveInto(a, "https://example.com/post", col);
+
+    expect(res.status).toBe(200);
+    expect(await members(col)).toEqual([first.id]);
+  });
+
+  it("returns NOT_FOUND for another user's collection and saves nothing", async () => {
+    const col = await createCollection(a);
+
+    const res = await saveInto(b, "https://example.com/post", col);
+
+    expect(res.status).toBe(404);
+    expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("NOT_FOUND");
+    expect(await db.$count(savedLink)).toBe(0);
+    expect(await db.$count(resource)).toBe(0);
+    expect(await db.$count(job)).toBe(0);
   });
 });
