@@ -115,6 +115,10 @@ describe("GET /links validation", () => {
     await expectValidationError(await list(`q=${"a".repeat(201)}`));
   });
 
+  it.each(["%00", "a%00b", "a%0Ab", "%1B"])("rejects a search query with control character q=%s", async (q) => {
+    await expectValidationError(await list(`q=${q}`));
+  });
+
   it("rejects a request without a token", async () => {
     const res = await list("", {});
 
