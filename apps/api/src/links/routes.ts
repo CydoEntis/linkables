@@ -8,6 +8,7 @@ import {
 import { canonicalize } from "@linkaroo/shared/url";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
+import { z } from "zod";
 import type { AuthEnv } from "../auth/require-auth";
 import type { Db } from "../db/client";
 import { ok } from "../http/envelope";
