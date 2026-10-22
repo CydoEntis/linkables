@@ -1,9 +1,11 @@
 # linkaroo — Plan
 
 Source of truth for scope and order. Records (ADRs, glossary, tickets) are linked
-here, never copied in. Last checked against code: not yet (no code exists).
+here, never copied in. Last checked against code: 2026-10-22, after P1-01, P1-02, P1-03a, P1-04,
+P1-06, P1-08 and P1-17 merged.
 
-**Verify:** `pnpm verify` — not yet: P1-01 creates it.
+**Verify:** `pnpm verify` (DB tests need `docker compose up -d` and
+`TEST_DATABASE_URL`; see README).
 **Base branch:** `main` (origin `CydoEntis/linkaroo`).
 
 ## Goal
@@ -45,26 +47,27 @@ from the work computer, with no Discord message and no open tab.
 
 ## Rules
 
-Each rule names a check. None can pass yet because no code exists.
+Each rule names a check. A `not yet:` marker names the ticket that makes it true.
 
 1. Outbound fetches refuse private, loopback, link-local, CGNAT, multicast and
    IPv4-mapped addresses, on every redirect hop.
-   Check: `pnpm --filter api test fetcher`. not yet: P1-06
+   Check: `pnpm --filter api test fetcher`.
 2. No code outside `apps/api/src/metadata/fetcher.ts` makes outbound HTTP, except
    the Supabase JWKS fetch inside the auth middleware (ADR-0002).
-   Check: ESLint `no-restricted-globals: fetch` and `no-restricted-imports:
-   undici, http, https, node:http, node:https` in `apps/api` excluding that file
-   (test files may import `http` for local test servers); `pnpm lint`.
-   not yet: P1-06
+   Check: ESLint in `apps/api` excluding that file bans `fetch` and
+   `globalThis.fetch`, and static or dynamic imports of `undici` (and subpaths),
+   `http`, `https` and `http2` (test files may import `http` for local test
+   servers); `pnpm lint`.
 3. Every route except `/health` needs a valid Supabase JWT, and every query is
-   scoped to `sub`. Check: `apps/api/test/authz.test.ts`. not yet: P1-03a, P1-19
+   scoped to `sub`. Check: `apps/api/test/authz.test.ts` (fails if a route is
+   missing from it). not yet: P1-19 (per-route two-user checks)
 4. The database is reachable only through the API.
    Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
-   project. not yet: P1-02 (SQL), P1-21 (Data API off)
+   project. not yet: P1-21 (Data API off)
 5. Saving never waits on a network fetch.
    Check: the P1-07 test with the fetcher hanging. not yet: P1-07
 6. Logs never contain a URL's query string or fragment.
-   Check: the logger test from P1-17. not yet: P1-17
+   Check: the logger tests in `apps/api/src/log/logger.test.ts`.
 
 ## Glossary
 

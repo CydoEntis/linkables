@@ -21,7 +21,8 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
   then the Dev Deck conventions, then the playbook.
 - **Commits:** `feat(scope): ...` / `fix(scope): ...`, one logical change per
   commit, no `git add -A`, no ticket IDs in commit messages.
-- **Verify:** `pnpm verify` (typecheck + lint + test). not yet: P1-01 creates it.
+- **Verify:** `pnpm verify` (typecheck + lint + test). DB tests need
+  `docker compose up -d` and `TEST_DATABASE_URL` (README).
 
 ## Layout
 
