@@ -1,6 +1,6 @@
 # ADR-0003: Metadata fetching in the Node API, behind an SSRF guard, with a DB-backed job table
 
-**Status:** accepted (2026-10-21)
+**Status:** accepted (2026-10-21; amended 2026-10-21 after the second Opus 5.5 audit, before any code)
 
 ## Problem
 
@@ -26,33 +26,51 @@ the resource.
 
 **Guard rules**
 - Address checks run **inside the connection's DNS lookup** (undici
-  `connect.lookup`), so the IP that is checked is the IP that is connected. Every
-  redirect hop opens a connection through the same agent and is checked again.
+  `connect.lookup`) for host names, so the IP that is checked is the IP that is
+  connected, and **directly on the parsed host** for IP-literal URLs, because Node
+  skips the lookup for IP literals. The lookup handles `all: true` and refuses if
+  any returned address is blocked. Every redirect hop opens a connection through
+  the same agent and is checked again, with the scheme and port checks.
 - Refused ranges: 0.0.0.0/8, 10/8, 100.64/10, 127/8, 169.254/16, 172.16/12,
   192.168/16, 224/4 and up, ::, ::1, fc00::/7, fe80::/10, IPv4-mapped IPv6
-  (`::ffff:a.b.c.d` is checked as IPv4), and multicast.
+  (`::ffff:a.b.c.d` and its hex form are checked as IPv4), 64:ff9b::/96 and
+  2002::/16 (embedded IPv4 checked as IPv4), 198.18/15, 192.0.0/24, and multicast.
 - Allow only http and https, only ports 80 and 443, at most 5 redirects. Proxy
   environment variables are ignored.
 - 2 s connect timeout, 10 s total timeout. Stream the body; stop at `</head>` or
-  512 KB, whichever comes first, and hard-abort at 2 MB. Accept only `text/html`;
-  any other content type records the type with no title.
+  512 KB, whichever comes first, and hard-abort at 2 MB. `fetchHtml` accepts only
+  `text/html`; any other content type records the type with no title. `fetchJson`
+  accepts only `application/json` and is used only for the YouTube oEmbed endpoint.
+- Tests may inject a DNS lookup, allowed ports, and an exact-IP allow list (for the
+  local test server only) to run size, timeout, redirect and content-type tests.
+  The blocked-address check always runs; production builds the fetcher with no
+  overrides. Refusals throw a distinct error type so tests cannot pass on a plain
+  connection failure.
 - Failures are recorded on the resource (`fetch_failed`, with reason). The user
   can still save and edit it.
 
 **Dedupe key.** The normalised submitted URL (canonicalisation rules in P1-04:
 tracking parameters stripped, host lowercased, default port dropped). The page's
-`<link rel=canonical>` and the final redirect URL are stored but **not** used to
-merge records in Phase 1.
+`<link rel=canonical>` (`resource.rel_canonical_url`) and the final redirect URL
+(`resource.final_url`) are stored but **not** used to merge records in Phase 1.
+The submitted URL is kept per user on `saved_link.original_url`, never on the shared
+resource.
 
 **YouTube.** YouTube URLs (`youtube.com/watch`, `youtu.be`, `/shorts`) use the
-oEmbed endpoint (title, author, thumbnail) instead of scraping the HTML. oEmbed
-reliability from a server is unverified, so P1-08 includes a live smoke test.
+oEmbed endpoint (title, author, thumbnail) instead of scraping the HTML. The oEmbed
+request goes through the guarded fetcher (`fetchJson`) like any other fetch. P1-08
+builds the URL and parses the JSON as pure functions; P1-07 makes the call. oEmbed
+reliability from a server is unverified, so P1-07 includes a live smoke test gated
+by `LIVE_TESTS=1`.
 
 **Job claiming.** Claim with
 `UPDATE job SET locked_until = now() + 60s, attempts = attempts + 1 WHERE id = (SELECT id FROM job WHERE run_after <= now() AND (locked_until IS NULL OR locked_until < now()) ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`.
-Retry at most 3 times with backoff. Process at most 4 fetches at once and at most
-1 per host. Behaviour through the transaction pooler is unverified, so it gets an
-integration test.
+At most 3 attempts in total, with backoff of 30 s then 2 min via `run_after`. The
+job row is deleted on success or after the last failed attempt; final failure sets
+`fetch_status = 'fetch_failed'` and `fetch_error`. Poll every 1 s when idle.
+Process at most 4 fetches at once and at most 1 per host. Only a save that creates
+the resource row inserts a job. Behaviour through the transaction pooler is
+unverified; the P1-18 production check proves it.
 
 ## Reasoning
 

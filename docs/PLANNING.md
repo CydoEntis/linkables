@@ -46,17 +46,19 @@ Each rule names a check. None can pass yet because no code exists.
 1. Outbound fetches refuse private, loopback, link-local, CGNAT, multicast and
    IPv4-mapped addresses, on every redirect hop.
    Check: `pnpm --filter api test fetcher`. not yet: P1-06
-2. No code outside `apps/api/src/metadata/fetcher.ts` makes outbound HTTP.
+2. No code outside `apps/api/src/metadata/fetcher.ts` makes outbound HTTP, except
+   the Supabase JWKS fetch inside the auth middleware (ADR-0002).
    Check: ESLint `no-restricted-globals: fetch` and `no-restricted-imports:
-   undici, node:http, node:https` in `apps/api` excluding that file; `pnpm lint`.
+   undici, http, https, node:http, node:https` in `apps/api` excluding that file
+   (test files may import `http` for local test servers); `pnpm lint`.
    not yet: P1-06
 3. Every route except `/health` needs a valid Supabase JWT, and every query is
    scoped to `sub`. Check: `apps/api/test/authz.test.ts`. not yet: P1-03a, P1-19
 4. The database is reachable only through the API.
    Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
-   project. not yet: P1-02
+   project. not yet: P1-02 (SQL), P1-21 (Data API off)
 5. Saving never waits on a network fetch.
-   Check: the P1-05 test with the fetcher hanging. not yet: P1-05
+   Check: the P1-07 test with the fetcher hanging. not yet: P1-07
 6. Logs never contain a URL's query string or fragment.
    Check: the logger test from P1-17. not yet: P1-17
 
@@ -89,37 +91,37 @@ Each rule names a check. None can pass yet because no code exists.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
 - Tickets: Plane project `linkaroo` (LNK), workspace `ideayard`, project id
-  `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 24 tickets, revised 2026-10-21 after the
-  Opus 5.5 review. Blockers are native Plane relations (set via
-  `work-items/{id}/relations/`) and are also written in each ticket body.
+  `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 26 tickets, revised 2026-10-21 after the
+  second Opus 5.5 audit.
+- **Blockers live only in each ticket body's `Blocked by:` line.** Do not create
+  native Plane relations: this self-hosted Plane's API can add a relation but not
+  remove one, so every plan revision that drops a blocker left a stale one behind.
 
   | Ticket | Plane | Ticket | Plane |
   |---|---|---|---|
-  | P1-01 scaffold + CI | LNK-1 | P1-12 sort and filter | LNK-12 |
-  | P1-02 schema + Supabase settings | LNK-2 | P1-13 edit, delete, pin | LNK-13 |
-  | P1-03a API auth | LNK-3 | P1-14a app shell + Inbox cards | LNK-14 |
-  | P1-03b web sign-in | LNK-17 | P1-14b collections UI | LNK-18 |
-  | P1-04 canonicalisation | LNK-4 | P1-14c search UI | LNK-19 |
-  | P1-05 save endpoint | LNK-5 | P1-14d edit/pin UI + export | LNK-20 |
-  | P1-06 SSRF fetcher | LNK-6 | P1-15 export | LNK-15 |
-  | P1-07 worker loop | LNK-7 | P1-16 success check | LNK-16 |
-  | P1-08 metadata extraction | LNK-8 | P1-17 config + logger | LNK-21 |
-  | P1-09 collections | LNK-9 | P1-18 deploy skeleton | LNK-22 |
-  | P1-10 Inbox list | LNK-10 | P1-19 authz sweep | LNK-23 |
-  | P1-11 search | LNK-11 | P1-20 [owner] provision server | LNK-24 |
+  | P1-01 scaffold + CI | LNK-1 | P1-13 edit, delete, pin | LNK-13 |
+  | P1-02 schema + migration | LNK-2 | P1-14a app shell + Inbox cards | LNK-14 |
+  | P1-03a API auth | LNK-3 | P1-14b collections UI | LNK-18 |
+  | P1-03b web sign-in | LNK-17 | P1-14c search UI | LNK-19 |
+  | P1-04 canonicalisation | LNK-4 | P1-14d edit/pin UI + export button | LNK-20 |
+  | P1-05 save endpoint | LNK-5 | P1-15 export API | LNK-15 |
+  | P1-06 SSRF fetcher | LNK-6 | P1-16 [owner] success check | LNK-16 |
+  | P1-07 worker loop | LNK-7 | P1-17 config + logger | LNK-21 |
+  | P1-08 metadata extraction | LNK-8 | P1-18 deploy skeleton | LNK-22 |
+  | P1-09 collections | LNK-9 | P1-19 authz sweep | LNK-23 |
+  | P1-10 Inbox list | LNK-10 | P1-20 [owner] provision server | LNK-24 |
+  | P1-11 search | LNK-11 | P1-21 [owner] Supabase project | LNK-25 |
+  | P1-12 sort and filter | LNK-12 | P1-22 e2e test harness | LNK-26 |
 
-  - Critical path to the success condition: P1-01 → P1-17 → P1-02 → P1-05 → P1-10
-    → P1-14a → P1-18. Also required before P1-18: P1-03a → P1-03b, P1-06 + P1-08
-    → P1-07, and P1-20 (owner buys the server).
+  - Critical path to the success condition (P1-18 and P1-14a both done):
+    P1-01 → P1-17 → P1-02 → P1-05 → P1-10 → P1-14a, where P1-14a also needs
+    P1-02 + P1-03a → P1-03b → P1-22. P1-18 needs P1-03b and P1-05 + P1-06 + P1-08
+    → P1-07, plus the owner tasks P1-21 → P1-20.
   - First point you can stop with a useful product: **P1-18 + P1-14a** (save at
-    home, see it in the Inbox at work). Phase 1's exit adds P1-09 → P1-12 → P1-14c
-    → P1-19 → P1-16.
-  - P1-04, P1-06 and P1-08 can start right after P1-01. P1-20 is yours, not an agent's.
-  - **Known defect in Plane:** this Plane build's API cannot remove a blocker, so
-    6 tickets still carry extra relations that the revision dropped: LNK-3 (P1-02),
-    LNK-8 (P1-07, which makes a deadlock with LNK-7), LNK-11 (P1-08), LNK-12 (P1-11),
-    LNK-14 (P1-11, P1-13), LNK-15 (P1-02, P1-03a). The `Blocked by:` line in each
-    ticket body is correct. Remove this note once they are cleared.
+    home, see it in the Inbox at work). Phase 1's exit adds P1-09 → P1-12 → P1-14c,
+    P1-14b, P1-14d, and P1-11 + P1-13 + P1-15 → P1-19, all ending at P1-16.
+  - P1-04, P1-06 and P1-17 can start right after P1-01; P1-08 after P1-04. P1-16, P1-20 and
+    P1-21 are yours, not an agent's; do P1-21 early, since P1-20 and P1-18 wait on it.
   - Rules not yet true: see Rules above.
 
 ### Phase 2 — Chrome extension and PWA share target
