@@ -1,5 +1,6 @@
 import { API_V1_PREFIX } from "@linkaroo/shared/http";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { me } from "./auth/me";
 import type { AuthConfig } from "./auth/key-source";
@@ -13,6 +14,8 @@ import { REQUEST_ID_HEADER, requestId } from "./http/request-id";
 import { requestLog } from "./http/request-log";
 import { linkRoutes } from "./links/routes";
 
+const MAX_BODY_BYTES = 16 * 1024;
+
 export type AppDeps = {
   logger: Logger;
   corsOrigins: string[];
@@ -23,6 +26,8 @@ export type AppDeps = {
 
 export function createApp({ logger, corsOrigins, auth, db, now = Date.now }: AppDeps) {
   const v1 = new Hono<AuthEnv>()
+    // Over the cap, bodyLimit throws a 413 HTTPException, which onError maps to VALIDATION.
+    .use(bodyLimit({ maxSize: MAX_BODY_BYTES }))
     .use(requireAuth(auth, logger))
     .route("/", me)
     .route("/", linkRoutes({ db, now }));
