@@ -12,19 +12,24 @@ export function useAuth(): AuthState {
   const [state, setState] = useState<AuthState>({ status: "loading" });
 
   useEffect(() => {
+    // Counts auth events so a slow landing check cannot overwrite a newer one.
+    let latestEvent = 0;
+    let disposed = false;
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      const thisEvent = ++latestEvent;
       if (session) {
         setState({ status: "signed-in", session });
       } else if (event === "INITIAL_SESSION") {
         // Not awaited: supabase-js awaits listeners, and initialize() has already settled.
         void readLinkProblem().then((linkProblem) => {
-          setState({ status: "signed-out", linkProblem });
+          if (!disposed && thisEvent === latestEvent) setState({ status: "signed-out", linkProblem });
         });
       } else {
         setState({ status: "signed-out", linkProblem: null });
       }
     });
     return () => {
+      disposed = true;
       data.subscription.unsubscribe();
     };
   }, []);
