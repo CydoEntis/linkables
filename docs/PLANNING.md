@@ -38,6 +38,8 @@ from the work computer, with no Discord message and no open tab.
   row carrying user edits. → [ADR-0004](adr/0004-data-model.md)
 - One long-running container for API and worker; never serverless.
   → [ADR-0005](adr/0005-hosting.md)
+- The API follows the Dev Deck API contract (envelope, 8 error codes, `/api/v1`
+  prefix); P1-01 builds it. → `AGENTS.md`, API contract
 
 ## Rules
 
