@@ -1,10 +1,10 @@
+import { TITLE_MAX } from "@linkaroo/shared/links";
 import { YOUTUBE_HOSTS, YOUTUBE_VIDEO_ID } from "@linkaroo/shared/url";
 import { z } from "zod";
 import { type HeadTag, scanHead } from "./head-scanner";
 
 // Resources are shared between users and these strings come from untrusted
 // pages, so every stored value is bounded. Caps count code points.
-export const TITLE_MAX = 300;
 export const DESCRIPTION_MAX = 1000;
 export const AUTHOR_MAX = 200;
 export const URL_MAX = 2048;
