@@ -14,6 +14,9 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
   definition of done. Read `conventions/code-style.md`, `conventions/commits.md`
   and `conventions/contract.md` in the Dev Deck repo (`CydoEntis/dev-deck`; local
   copy under `~/.claude/plugins/marketplaces/dev-deck/conventions/`).
+- **Playbooks:** pick the matching mode (new app, refactor, debug, system
+  design, performance, restructure, multi-agent build, UI component) from Dev
+  Deck `conventions/playbooks/README.md`. Its "Which rules win" order applies.
 - **Commits:** `feat(scope): ...` / `fix(scope): ...`, one logical change per
   commit, no `git add -A`, no ticket IDs in commit messages.
 - **Verify:** `pnpm verify` (typecheck + lint + test). not yet: P1-01 creates it.
