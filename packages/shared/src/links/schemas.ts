@@ -39,6 +39,12 @@ export const savedLinkSchema = z.strictObject({
 // duplicate: the user had already saved this resource; the existing link is returned.
 export const saveLinkResponseSchema = savedLinkSchema.extend({ duplicate: z.boolean() });
 
+// Postgres rejects NUL in text, and no other control character belongs in a
+// search box. Tab is allowed because pasted text often carries one.
+function hasControlCharacter(text: string): boolean {
+  return /\p{Cc}/u.test(text.replaceAll("\t", ""));
+}
+
 // The Inbox is links in no collection, so it cannot be narrowed to one.
 export const listLinksQuerySchema = z
   .object({
@@ -51,6 +57,7 @@ export const listLinksQuerySchema = z
       .string()
       .trim()
       .max(SEARCH_QUERY_MAX_LENGTH)
+      .refine((q) => !hasControlCharacter(q), { error: "q must not contain control characters" })
       .transform((q) => q || undefined)
       .optional(),
   })
