@@ -63,7 +63,7 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
    missing from it). not yet: P1-19 (per-route two-user checks)
 4. The database is reachable only through the API.
    Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
-   project. not yet: P1-21 (Data API off)
+   project (turned off 2026-10-22).
 5. Saving never waits on a network fetch.
    Check: the P1-07 test with the fetcher hanging. not yet: P1-07
 6. Logs never contain a URL's query string or fragment.
