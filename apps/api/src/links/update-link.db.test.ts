@@ -81,10 +81,11 @@ describe("PATCH /links/:id", () => {
     expect((await updated(await patch(a, link.id, { titleOverride: "   " }))).titleOverride).toBeNull();
   });
 
-  it("accepts a full-length title and note in three-byte characters", async () => {
+  // Caps count code points, so four-byte characters make the largest body a valid edit can send.
+  it("accepts a full-length title and note in four-byte characters", async () => {
     const link = await save(a);
-    const titleOverride = "題".repeat(300);
-    const note = "注".repeat(5000);
+    const titleOverride = "\u{1F516}".repeat(300);
+    const note = "\u{1F4DD}".repeat(3500);
 
     expect(await updated(await patch(a, link.id, { titleOverride, note }))).toMatchObject({ titleOverride, note });
   });
