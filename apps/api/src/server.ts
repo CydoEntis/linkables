@@ -11,6 +11,9 @@ if (!env.ok) {
 
 const logger = createLogger(env.config.logLevel);
 
-serve({ fetch: createApp({ logger, corsOrigins: env.config.corsOrigins }).fetch, port: env.config.port }, (info) => {
+const { nodeEnv, corsOrigins, auth, port } = env.config;
+const app = createApp({ logger, corsOrigins, auth: { ...auth, nodeEnv } });
+
+serve({ fetch: app.fetch, port }, (info) => {
   logger.info("api listening", { port: info.port });
 });

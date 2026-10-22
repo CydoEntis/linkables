@@ -4,7 +4,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "./env";
 import type { ApiError } from "./errors";
 
-function meta(c: Context<AppEnv>): Meta {
+function meta<E extends AppEnv>(c: Context<E>): Meta {
   return {
     requestId: c.get("requestId"),
     ms: Math.round(performance.now() - c.get("startedAt")),
@@ -12,7 +12,7 @@ function meta(c: Context<AppEnv>): Meta {
   };
 }
 
-export function ok<T>(c: Context<AppEnv>, data: T, status: ContentfulStatusCode = HTTP_STATUS.OK) {
+export function ok<T, E extends AppEnv>(c: Context<E>, data: T, status: ContentfulStatusCode = HTTP_STATUS.OK) {
   return c.json({ ok: true as const, data, meta: meta(c) }, status);
 }
 
