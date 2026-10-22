@@ -190,7 +190,7 @@ describe("metadata worker", () => {
 
     start({ fetchHtml });
 
-    await vi.waitFor(async () => expect(await jobRow(jobId)).toBeUndefined(), { timeout: 5_000 });
+    await vi.waitFor(async () => { expect(await jobRow(jobId)).toBeUndefined(); }, { timeout: 5_000 });
     expect(await resourceRow(resourceId)).toMatchObject({ fetchStatus: "fetch_failed", fetchError: "abandoned" });
     expect(fetchHtml).not.toHaveBeenCalled();
   });
@@ -260,6 +260,25 @@ describe("metadata worker", () => {
     await vi.waitFor(async () => { expect(await db.$count(job)).toBe(0); }, { timeout: 5_000 });
     expect(hang.calls).toEqual(["https://busy.example.com/one", "https://busy.example.com/two"]);
     expect((await resourceRow(first.resourceId))?.fetchStatus).toBe("fetched");
+  });
+
+  it("counts YouTube videos on any YouTube host against the one oEmbed host", async () => {
+    await queue("https://www.youtube.com/watch?v=aaaaaaaaaaa");
+    const mobile = await queue("https://m.youtube.com/watch?v=bbbbbbbbbbb");
+    const hang = hangingFetch();
+    const oEmbedCalls: string[] = [];
+    const fetchJson = async (url: string) => {
+      oEmbedCalls.push(url);
+      await hang.fetchHtml(url);
+      return { title: "video" };
+    };
+
+    start({ fetchJson });
+
+    await vi.waitFor(async () => {
+      expect((await jobRow(mobile.jobId))?.runAfterSecondsAway).toBeGreaterThan(0);
+    });
+    expect(oEmbedCalls).toHaveLength(1);
   });
 
   it("runs at most 4 fetches at once", async () => {
