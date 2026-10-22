@@ -8,6 +8,7 @@ import {
   RESOURCE_KINDS,
   SEARCH_QUERY_MAX_LENGTH,
   TITLE_OVERRIDE_MAX,
+  TITLE_MAX,
   URL_MAX_LENGTH,
 } from "./constants";
 
@@ -91,7 +92,7 @@ function clearableText(field: string, max: number) {
 
 export const updateLinkRequestSchema = z
   .strictObject({
-    titleOverride: clearableText("titleOverride", TITLE_OVERRIDE_MAX).optional(),
+    titleOverride: clearableText("titleOverride", TITLE_MAX).optional(),
     note: clearableText("note", NOTE_MAX).optional(),
     pinned: z.boolean().optional(),
   })
