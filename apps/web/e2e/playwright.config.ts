@@ -24,6 +24,7 @@ export default defineConfig({
       command: "pnpm start",
       cwd: fileURLToPath(new URL("../../api", import.meta.url)),
       url: `${API_URL}/health`,
+      timeout: 120_000,
       env: {
         NODE_ENV: "test",
         PORT: new URL(API_URL).port,
@@ -40,6 +41,7 @@ export default defineConfig({
       command: `pnpm exec vite --host 127.0.0.1 --port ${new URL(WEB_URL).port} --strictPort`,
       cwd: fileURLToPath(new URL("..", import.meta.url)),
       url: WEB_URL,
+      timeout: 120_000,
       // Process env wins over apps/web/.env, so a developer's real Supabase project is never used.
       env: {
         VITE_SUPABASE_URL: SUPABASE_URL,
