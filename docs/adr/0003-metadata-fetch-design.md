@@ -40,6 +40,10 @@ the resource.
   192.168/16, 224/4 and up, ::, ::1, fc00::/7, fe80::/10, IPv4-mapped IPv6
   (`::ffff:a.b.c.d` and its hex form are checked as IPv4), 64:ff9b::/96 and
   2002::/16 (embedded IPv4 checked as IPv4), 198.18/15, 192.0.0/24, and multicast.
+  Also refused (amended after the P1-06 security review): ::/96 and
+  ::ffff:0:0/96 (embedded IPv4 checked as IPv4), 64:ff9b:1::/48, 2001::/32
+  (Teredo), fec0::/10, 100::/64 and 2001:db8::/32. None is public unicast, and
+  the translation prefixes can reach an IPv4 host the plain check never sees.
 - Allow only http and https, only ports 80 and 443, at most 5 redirects. Proxy
   environment variables are ignored: the fetcher always passes its own undici
   `Agent` (never `EnvHttpProxyAgent` or global `fetch`). It never forwards
