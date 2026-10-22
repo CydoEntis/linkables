@@ -88,6 +88,18 @@ describe("api client", () => {
     await expect(api.request("/me", meSchema)).rejects.toMatchObject({ code: NETWORK_ERROR });
   });
 
+  it("keeps an error code this client does not know yet", async () => {
+    const failure = { ok: false, error: { code: "TEAPOT", message: "New code" }, meta: meta() };
+    const { api } = setup(() => Promise.resolve(jsonResponse(failure, 418)));
+    await expect(api.request("/me", meSchema)).rejects.toMatchObject({ code: "TEAPOT" });
+  });
+
+  it("accepts fields the server added after this client shipped", async () => {
+    const body = { ok: true, data: { id: "user-1", plan: "free" }, meta: { ...meta(), region: "eu" }, links: {} };
+    const { api } = setup(() => Promise.resolve(jsonResponse(body)));
+    await expect(api.request("/me", meSchema)).resolves.toEqual({ id: "user-1" });
+  });
+
   it("throws when the response does not match the envelope schema", async () => {
     const { api } = setup(() => Promise.resolve(jsonResponse({ id: "user-1" })));
     await expect(api.request("/me", meSchema)).rejects.toMatchObject({ code: "INTERNAL" });
