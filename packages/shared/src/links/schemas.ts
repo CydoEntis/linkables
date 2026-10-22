@@ -4,8 +4,10 @@ import {
   LINK_VIEWS,
   LIST_LIMIT_DEFAULT,
   LIST_LIMIT_MAX,
+  NOTE_MAX,
   RESOURCE_KINDS,
   SEARCH_QUERY_MAX_LENGTH,
+  TITLE_OVERRIDE_MAX,
   URL_MAX_LENGTH,
 } from "./constants";
 
@@ -71,3 +73,26 @@ export const listLinksResponseSchema = z.strictObject({
   items: z.array(savedLinkSchema),
   cursor: z.string().nullable(),
 });
+
+// Postgres text cannot hold NUL, and other control characters have no place in
+// plain text; tab and line breaks stay so notes keep their layout.
+const CONTROL_CHARACTER = /(?![\t\n\r])\p{Cc}/u;
+
+// A blank value clears the field, so emptying the title input restores the fetched title.
+function clearableText(field: string, max: number) {
+  return z
+    .string()
+    .trim()
+    .max(max, { error: `${field} must be at most ${String(max)} characters` })
+    .refine((text) => !CONTROL_CHARACTER.test(text), { error: `${field} must not contain control characters` })
+    .transform((text) => (text === "" ? null : text))
+    .nullable();
+}
+
+export const updateLinkRequestSchema = z
+  .strictObject({
+    titleOverride: clearableText("titleOverride", TITLE_OVERRIDE_MAX).optional(),
+    note: clearableText("note", NOTE_MAX).optional(),
+    pinned: z.boolean().optional(),
+  })
+  .refine((body) => Object.keys(body).length > 0, { error: "Send at least one of titleOverride, note or pinned" });
