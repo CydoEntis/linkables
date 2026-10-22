@@ -36,6 +36,17 @@ describe("error handling", () => {
     expect(text).not.toContain("at ");
   });
 
+  it("returns 500 INTERNAL with a request id when a non-Error value is thrown", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const res = await appThrowing("db password is hunter2").request("/throws");
+
+    expect(res.status).toBe(500);
+    expect(res.headers.get("X-Request-Id")).toBeTruthy();
+    const text = await res.text();
+    expect(failureEnvelopeSchema.parse(JSON.parse(text)).error.code).toBe("INTERNAL");
+    expect(text).not.toContain("hunter2");
+  });
+
   it("serves a thrown error subclass with its code and status", async () => {
     const res = await appThrowing(new ConflictError("Already saved", { id: "1" })).request("/throws");
 
