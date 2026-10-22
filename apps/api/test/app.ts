@@ -7,5 +7,5 @@ export function captureLogger(level: LogLevel = "debug") {
 }
 
 export function createTestApp(deps: Partial<AppDeps> = {}) {
-  return createApp({ logger: captureLogger().logger, ...deps });
+  return createApp({ logger: captureLogger().logger, corsOrigins: ["http://localhost:5173"], ...deps });
 }
