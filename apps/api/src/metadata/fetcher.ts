@@ -254,16 +254,25 @@ function decode(bytes: Buffer, charset: string | null): string {
   }
 }
 
+// The final URL is stored on the shared resource, so credentials in it would
+// leak one user's secrets to everyone who saves the same page.
+function withoutCredentials(url: URL): string {
+  const clean = new URL(url);
+  clean.username = "";
+  clean.password = "";
+  return clean.href;
+}
+
 async function getHtml(rawUrl: string, guard: Guard, signal: AbortSignal): Promise<HtmlPage> {
   const { url, response } = await requestFollowingRedirects(parseUrl(rawUrl), "text/html", guard, signal);
   assertSuccess(response);
   const { mediaType, charset } = contentTypeOf(response);
   if (mediaType !== "text/html") {
     discard(response.body);
-    return { url: url.href, contentType: mediaType, html: null };
+    return { url: withoutCredentials(url), contentType: mediaType, html: null };
   }
   const head = await readHead(response.body);
-  return { url: url.href, contentType: mediaType, html: decode(head, charset) };
+  return { url: withoutCredentials(url), contentType: mediaType, html: decode(head, charset) };
 }
 
 async function getJson(rawUrl: string, guard: Guard, signal: AbortSignal): Promise<unknown> {
