@@ -4,6 +4,7 @@ import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { me } from "./auth/me";
 import { collectionRoutes } from "./collections/routes";
+import { exportRoutes } from "./export/routes";
 import type { AuthConfig } from "./auth/key-source";
 import { requireAuth, type AuthEnv } from "./auth/require-auth";
 import type { Db } from "./db/client";
@@ -32,7 +33,8 @@ export function createApp({ logger, corsOrigins, auth, db, now = Date.now }: App
     .use(requireAuth(auth, logger))
     .route("/", me)
     .route("/", linkRoutes({ db, now }))
-    .route("/", collectionRoutes({ db }));
+    .route("/", collectionRoutes({ db }))
+    .route("/", exportRoutes({ db, now }));
 
   const app = new Hono<AppEnv>()
     .use(requestLog(logger))
