@@ -3,10 +3,10 @@ import { and, eq } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { job, resource, savedLink } from "../db/schema";
 import { InternalError } from "../http/errors";
+import { toSavedLink } from "./to-saved-link";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type ResourceRow = typeof resource.$inferSelect;
-type SavedLinkRow = typeof savedLink.$inferSelect;
 
 export type SaveLinkInput = { userId: string; originalUrl: string; canonicalUrl: string };
 
@@ -43,33 +43,10 @@ async function insertSavedLink(tx: Tx, input: SaveLinkInput, resourceId: string)
   return { link: found(existing, "saved link"), duplicate: true };
 }
 
-function toResponse(link: SavedLinkRow, res: ResourceRow, duplicate: boolean): SaveLinkResponse {
-  return {
-    id: link.id,
-    originalUrl: link.originalUrl,
-    titleOverride: link.titleOverride,
-    note: link.note,
-    pinned: link.pinned,
-    savedAt: link.savedAt.toISOString(),
-    resource: {
-      id: res.id,
-      canonicalUrl: res.canonicalUrl,
-      title: res.title,
-      description: res.description,
-      author: res.author,
-      faviconUrl: res.faviconUrl,
-      thumbnailUrl: res.thumbnailUrl,
-      kind: res.kind,
-      fetchStatus: res.fetchStatus,
-    },
-    duplicate,
-  };
-}
-
 export function saveLink(db: Db, input: SaveLinkInput): Promise<SaveLinkResponse> {
   return db.transaction(async (tx) => {
     const res = await upsertResource(tx, input.canonicalUrl);
     const { link, duplicate } = await insertSavedLink(tx, input, res.id);
-    return toResponse(link, res, duplicate);
+    return { ...toSavedLink(link, res), duplicate };
   });
 }
