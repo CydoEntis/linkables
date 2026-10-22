@@ -29,7 +29,9 @@ pnpm verify                              # typecheck + lint + test
 The compose Postgres holds two databases: `linkaroo` for the running app
 (`DATABASE_URL`, `MIGRATION_DATABASE_URL`) and `linkaroo_test` for integration
 tests (`TEST_DATABASE_URL`), which truncate every table and migrate it
-themselves. Values set in the shell win over `apps/api/.env`.
+themselves. Values set in the shell win over `apps/api/.env`. The tests refuse
+a `TEST_DATABASE_URL` whose database name does not end in `_test` or whose
+host is on Supabase.
 
 After changing `apps/api/src/db/schema.ts`, run `pnpm --filter api db:generate`
 and commit the new file under `apps/api/drizzle/`. Never edit a migration after
