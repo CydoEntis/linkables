@@ -4,6 +4,7 @@ const webEnvSchema = z.object({
   VITE_SUPABASE_URL: z.url(),
   VITE_SUPABASE_ANON_KEY: z.string().min(1),
   VITE_API_URL: z.url(),
+  VITE_AUTH_REDIRECT_URL: z.url(),
 });
 
 export type WebEnv = z.infer<typeof webEnvSchema>;

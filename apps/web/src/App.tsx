@@ -1,3 +1,15 @@
+import { AuthPage } from "./auth/AuthPage";
+import { SignInScreen } from "./auth/SignInScreen";
+import { openedFromEmailLink } from "./auth/supabase";
+import { useAuth } from "./auth/use-auth";
+import { HomeScreen } from "./home/HomeScreen";
+
 export function App() {
-  return <h1 className="p-4 text-2xl font-semibold">linkaroo</h1>;
+  const auth = useAuth();
+
+  if (auth.status === "loading") {
+    return openedFromEmailLink ? <AuthPage title="Signing you in…" /> : null;
+  }
+  if (auth.status === "signed-in") return <HomeScreen email={auth.session.user.email} />;
+  return <SignInScreen linkProblem={auth.linkProblem} />;
 }
