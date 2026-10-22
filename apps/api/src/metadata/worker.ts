@@ -51,14 +51,14 @@ export function startWorker({
     }
     const delayMs = backoffMs[claimed.attempts - 1];
     if (delayMs === undefined) await failJob(db, claimed, outcome.reason);
-    else await retryJob(db, claimed.id, outcome.reason, delayMs);
+    else await retryJob(db, claimed, outcome.reason, delayMs);
     logger.warn("metadata fetch failed", { jobId: claimed.id, attempt: claimed.attempts, reason: outcome.reason });
   }
 
   async function dispatch(claimed: ClaimedJob): Promise<void> {
     const host = new URL(claimed.canonicalUrl).hostname;
     if (busyHosts.has(host)) {
-      await releaseJob(db, claimed.id);
+      await releaseJob(db, claimed);
       return;
     }
     busyHosts.add(host);
