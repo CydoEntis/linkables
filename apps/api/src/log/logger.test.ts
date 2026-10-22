@@ -96,7 +96,7 @@ describe("logger", () => {
     const redacted = redactUrls("x".repeat(10_000));
 
     expect(redacted.length).toBeLessThan(4200);
-    expect(redacted.endsWith("…")).toBe(true);
+    expect(redacted.endsWith("\u2026")).toBe(true);
   });
 
   it("masks the password in a URL's userinfo", () => {

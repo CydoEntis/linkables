@@ -9,7 +9,7 @@ export type Logger = Record<LogLevel, (msg: string, fields?: Fields) => void>;
 const MAX_STRING = 4096;
 
 // No regex here can backtrack, so redaction is linear in the input; a lazy
-// scan-then-match pattern was quadratic on inputs like "a.a.a…" and stalled
+// scan-then-match pattern was quadratic on inputs like "a.a.a..." and stalled
 // the event loop on every request with a long path.
 const SEPARATOR = /[?#]|%3f|%23/i;
 const URL_LIKE = /[/.:]/;
@@ -44,7 +44,7 @@ function maskUserinfo(token: string): string {
 }
 
 export function redactUrls(text: string): string {
-  const capped = text.length > MAX_STRING ? `${text.slice(0, MAX_STRING)}…` : text;
+  const capped = text.length > MAX_STRING ? `${text.slice(0, MAX_STRING)}\u2026` : text;
   return capped
     .split(/(\s+)/)
     .map((part) => cutQuery(maskUserinfo(part)))
