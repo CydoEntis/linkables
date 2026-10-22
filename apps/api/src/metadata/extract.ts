@@ -1,4 +1,4 @@
-import { TITLE_MAX } from "@linkaroo/shared/links";
+import { TITLE_MAX, UNSAFE_TEXT_CHARS } from "@linkaroo/shared/links";
 import { YOUTUBE_HOSTS, YOUTUBE_VIDEO_ID } from "@linkaroo/shared/url";
 import { z } from "zod";
 import { type HeadTag, scanHead } from "./head-scanner";
@@ -113,9 +113,7 @@ function firstUrl(candidates: string[], baseUrl: string): string | null {
   return null;
 }
 
-// C0/C1 controls other than whitespace (Postgres text rejects NUL) and bidi
-// overrides, which can make a shared title display reversed or spoofed.
-const UNSAFE_CHARS = /(?![\t\n\v\f\r])\p{Cc}|[\u202A-\u202E\u2066-\u2069]/gu;
+const UNSAFE_CHARS = new RegExp(UNSAFE_TEXT_CHARS.source, "gu");
 
 function cleanText(value: string, max: number): string | null {
   const text = value.replace(UNSAFE_CHARS, "").replace(/\s+/g, " ").trim();

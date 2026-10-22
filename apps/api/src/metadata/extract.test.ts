@@ -277,6 +277,11 @@ describe("parseOEmbed", () => {
     expect(result.ok && result.data).toMatchObject({ title: "abc", author: "Rick" });
   });
 
+  it("strips lone surrogates", () => {
+    const result = parseOEmbed({ ...valid, title: "a\uD800b\uDFFFc" });
+    expect(result.ok && result.data.title).toBe("abc");
+  });
+
   it("returns a null thumbnail for a non-http URL", () => {
     const result = parseOEmbed({ ...valid, thumbnail_url: "javascript:alert(1)" });
     expect(result.ok && result.data.thumbnail).toBeNull();
