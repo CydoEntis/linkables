@@ -1,5 +1,5 @@
 import { HTTP_STATUS } from "@linkaroo/shared/http";
-import { saveLinkRequestSchema, URL_MAX_LENGTH } from "@linkaroo/shared/links";
+import { listLinksQuerySchema, saveLinkRequestSchema, URL_MAX_LENGTH } from "@linkaroo/shared/links";
 import { canonicalize } from "@linkaroo/shared/url";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
@@ -8,6 +8,8 @@ import type { AuthEnv } from "../auth/require-auth";
 import type { Db } from "../db/client";
 import { ok } from "../http/envelope";
 import { ValidationError } from "../http/errors";
+import { decodeCursor } from "./cursor";
+import { listLinks } from "./list-links";
 import { rateLimitPerUser } from "./rate-limit";
 import { saveLink } from "./save-link";
 
@@ -22,13 +24,27 @@ function invalid(field: string, message: string): ValidationError {
   return new ValidationError(message, { fieldErrors: { [field]: message } });
 }
 
-function parseBody(body: unknown) {
-  const parsed = saveLinkRequestSchema.safeParse(body);
-  if (parsed.success) return parsed.data;
-  const fieldErrors = Object.fromEntries(
-    Object.entries(z.flattenError(parsed.error).fieldErrors).map(([field, messages]) => [field, messages[0]]),
-  );
-  throw new ValidationError("Invalid request body", { fieldErrors });
+function firstErrorPerField(error: z.ZodError): Record<string, string> {
+  const fieldErrors: Record<string, string> = {};
+  for (const { path, message } of error.issues) {
+    const [field] = path;
+    if (field !== undefined) fieldErrors[String(field)] ??= message;
+  }
+  return fieldErrors;
+}
+
+function parseWith<T extends z.ZodType>(schema: T, message: string) {
+  return (value: unknown): z.output<T> => {
+    const parsed = schema.safeParse(value);
+    if (parsed.success) return parsed.data;
+    throw new ValidationError(message, { fieldErrors: firstErrorPerField(parsed.error) });
+  };
+}
+
+// shortcut: the collection filter is a later feature; reject it rather than
+// silently returning unfiltered links to a client that asked for one collection.
+function rejectCollectionFilter(collectionId: string | undefined) {
+  if (collectionId !== undefined) throw invalid("collectionId", "collectionId filter is not supported yet");
 }
 
 // The unique index on resource.canonical_url caps an entry at 2704 bytes, so the
@@ -45,15 +61,27 @@ function canonicalUrlFor(url: string): string {
 export type LinkRoutesDeps = { db: Db; now: () => number };
 
 export function linkRoutes({ db, now }: LinkRoutesDeps) {
-  return new Hono<AuthEnv>().post(
-    "/links",
-    rateLimitPerUser({ limit: SAVES_PER_MINUTE, windowMs: 60_000, now }),
-    validator("json", parseBody),
-    async (c) => {
-      const { url } = c.req.valid("json");
-      const canonicalUrl = canonicalUrlFor(url);
-      const saved = await saveLink(db, { userId: c.get("userId"), originalUrl: url, canonicalUrl });
-      return ok(c, saved, saved.duplicate ? HTTP_STATUS.OK : HTTP_STATUS.CREATED);
-    },
-  );
+  return new Hono<AuthEnv>()
+    .get("/links", validator("query", parseWith(listLinksQuerySchema, "Invalid query")), async (c) => {
+      const { view, limit, cursor, collectionId } = c.req.valid("query");
+      rejectCollectionFilter(collectionId);
+      const page = await listLinks(db, {
+        userId: c.get("userId"),
+        view,
+        limit,
+        cursor: cursor === undefined ? undefined : decodeCursor(cursor),
+      });
+      return ok(c, page);
+    })
+    .post(
+      "/links",
+      rateLimitPerUser({ limit: SAVES_PER_MINUTE, windowMs: 60_000, now }),
+      validator("json", parseWith(saveLinkRequestSchema, "Invalid request body")),
+      async (c) => {
+        const { url } = c.req.valid("json");
+        const canonicalUrl = canonicalUrlFor(url);
+        const saved = await saveLink(db, { userId: c.get("userId"), originalUrl: url, canonicalUrl });
+        return ok(c, saved, saved.duplicate ? HTTP_STATUS.OK : HTTP_STATUS.CREATED);
+      },
+    );
 }

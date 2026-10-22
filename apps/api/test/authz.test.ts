@@ -8,6 +8,7 @@ import { createTestApp } from "./app";
 const PROTECTED_ROUTES = [
   ["GET", "/api/v1/me"],
   ["POST", "/api/v1/links"],
+  ["GET", "/api/v1/links"],
 ] as const;
 
 const PUBLIC_ROUTES = [["GET", "/health"]] as const;

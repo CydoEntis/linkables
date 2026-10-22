@@ -71,3 +71,41 @@ describe("POST /links validation", () => {
     expect(res.status).toBe(401);
   });
 });
+
+function list(query: string, headers: Record<string, string> = a.headers) {
+  return createTestApp().request(`/api/v1/links?${query}`, { headers });
+}
+
+describe("GET /links validation", () => {
+  it("rejects a malformed cursor", async () => {
+    await expectValidationError(await list("cursor=not-a-cursor"));
+  });
+
+  it("rejects a cursor that decodes to the wrong shape", async () => {
+    const cursor = Buffer.from(JSON.stringify({ savedAt: "yesterday", id: "x" })).toString("base64url");
+
+    await expectValidationError(await list(`cursor=${cursor}`));
+  });
+
+  it.each(["0", "101", "ten", "2.5"])("rejects limit=%s", async (limit) => {
+    await expectValidationError(await list(`limit=${limit}`));
+  });
+
+  it("rejects an unknown view", async () => {
+    await expectValidationError(await list("view=archive"));
+  });
+
+  it("rejects view=inbox with a collectionId", async () => {
+    await expectValidationError(await list("view=inbox&collectionId=3f2b8c1e-9d4a-4b6e-8f1a-2c3d4e5f6a7b"));
+  });
+
+  it("rejects a collectionId filter, which is not supported yet", async () => {
+    await expectValidationError(await list("collectionId=3f2b8c1e-9d4a-4b6e-8f1a-2c3d4e5f6a7b"));
+  });
+
+  it("rejects a request without a token", async () => {
+    const res = await list("", {});
+
+    expect(res.status).toBe(401);
+  });
+});
