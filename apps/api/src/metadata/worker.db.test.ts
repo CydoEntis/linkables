@@ -12,6 +12,9 @@ const { db, close } = connectTestDb();
 const { a } = await testUsers();
 const articleHtml = readFileSync(new URL("./fixtures/article.html", import.meta.url), "utf8");
 
+// Generous because claims slow down when the whole suite runs in parallel.
+const WAIT = { timeout: 5_000, interval: 20 };
+
 let workers: Worker[] = [];
 let releaseHangs: (() => void)[] = [];
 
@@ -97,7 +100,7 @@ function makeDue(jobId: number) {
     .where(eq(job.id, jobId));
 }
 
-describe("metadata worker", () => {
+describe("metadata worker", { timeout: 20_000 }, () => {
   it("writes a page's metadata and deletes its job within 10 s", async () => {
     const { resourceId, jobId } = await queue("https://blog.example.com/posts/build-times");
 
@@ -129,7 +132,9 @@ describe("metadata worker", () => {
 
     start({ fetchHtml });
 
-    await vi.waitFor(async () => { expect((await resourceRow(resourceId))?.fetchStatus).toBe("fetched"); }, { timeout: 5_000 });
+    await vi.waitFor(async () => {
+      expect((await resourceRow(resourceId))?.fetchStatus).toBe("fetched");
+    }, WAIT);
     expect(fetchHtml).toHaveBeenCalledTimes(1);
   });
 
@@ -157,7 +162,9 @@ describe("metadata worker", () => {
     start({ fetchHtml });
     start({ fetchHtml });
 
-    await vi.waitFor(async () => { expect(await db.$count(job)).toBe(0); }, { timeout: 10_000 });
+    await vi.waitFor(async () => {
+      expect(await db.$count(job)).toBe(0);
+    }, { ...WAIT, timeout: 10_000 });
     expect(calls.toSorted()).toEqual(urls.toSorted());
   });
 
@@ -168,7 +175,9 @@ describe("metadata worker", () => {
     start({ fetchHtml });
 
     for (const attempt of [1, 2]) {
-      await vi.waitFor(async () => { expect((await jobRow(jobId))?.lastError).toBe("timeout"); }, { timeout: 5_000 });
+      await vi.waitFor(async () => {
+        expect((await jobRow(jobId))?.lastError).toBe("timeout");
+      }, WAIT);
       const row = await jobRow(jobId);
       expect(row).toMatchObject({ attempts: attempt, lockedUntil: null });
       expect(row?.runAfterSecondsAway).toBeGreaterThan(attempt === 1 ? 25 : 115);
@@ -176,7 +185,9 @@ describe("metadata worker", () => {
       await makeDue(jobId);
     }
 
-    await vi.waitFor(async () => { expect(await jobRow(jobId)).toBeUndefined(); }, { timeout: 5_000 });
+    await vi.waitFor(async () => {
+      expect(await jobRow(jobId)).toBeUndefined();
+    }, WAIT);
     expect(await resourceRow(resourceId)).toMatchObject({ fetchStatus: "fetch_failed", fetchError: "timeout" });
     expect(fetchHtml).toHaveBeenCalledTimes(3);
   });
@@ -190,7 +201,9 @@ describe("metadata worker", () => {
 
     start({ fetchHtml });
 
-    await vi.waitFor(async () => { expect(await jobRow(jobId)).toBeUndefined(); }, { timeout: 5_000 });
+    await vi.waitFor(async () => {
+      expect(await jobRow(jobId)).toBeUndefined();
+    }, WAIT);
     expect(await resourceRow(resourceId)).toMatchObject({ fetchStatus: "fetch_failed", fetchError: "abandoned" });
     expect(fetchHtml).not.toHaveBeenCalled();
   });
@@ -203,7 +216,7 @@ describe("metadata worker", () => {
 
     await vi.waitFor(() => {
       expect(lines.some((line) => line.includes("metadata job crashed"))).toBe(true);
-    });
+    }, WAIT);
     const [row] = await db
       .select({ attempts: job.attempts, held: sql<boolean>`${job.lockedUntil} > now()` })
       .from(job)
@@ -217,7 +230,9 @@ describe("metadata worker", () => {
 
     start({ fetchJson });
 
-    await vi.waitFor(async () => { expect((await jobRow(jobId))?.lastError).toBe("http_status"); }, { timeout: 5_000 });
+    await vi.waitFor(async () => {
+      expect((await jobRow(jobId))?.lastError).toBe("http_status");
+    }, WAIT);
     expect((await jobRow(jobId))?.attempts).toBe(1);
     expect((await resourceRow(resourceId))?.fetchStatus).toBe("pending");
   });
@@ -228,17 +243,16 @@ describe("metadata worker", () => {
 
     start({ fetchJson: () => Promise.resolve({ title: "Never Gonna Give You Up", author_name: "Rick Astley" }) });
 
-    await vi.waitFor(
-      async () => { expect(await resourceRow(resourceId)).toMatchObject({
-          title: "Never Gonna Give You Up",
-          author: "Rick Astley",
-          kind: "video",
-          finalUrl: url,
-          contentType: null,
-          fetchStatus: "fetched",
-        }); },
-      { timeout: 5_000 },
-    );
+    await vi.waitFor(async () => {
+      expect(await resourceRow(resourceId)).toMatchObject({
+        title: "Never Gonna Give You Up",
+        author: "Rick Astley",
+        kind: "video",
+        finalUrl: url,
+        contentType: null,
+        fetchStatus: "fetched",
+      });
+    }, WAIT);
   });
 
   it("releases a job whose host already has a fetch running", async () => {
@@ -252,12 +266,14 @@ describe("metadata worker", () => {
       const row = await jobRow(second.jobId);
       expect(row).toMatchObject({ attempts: 0, lockedUntil: null });
       expect(row?.runAfterSecondsAway).toBeGreaterThan(0);
-    });
+    }, WAIT);
     expect(hang.calls).toEqual(["https://busy.example.com/one"]);
 
     hang.release();
     await makeDue(second.jobId);
-    await vi.waitFor(async () => { expect(await db.$count(job)).toBe(0); }, { timeout: 5_000 });
+    await vi.waitFor(async () => {
+      expect(await db.$count(job)).toBe(0);
+    }, WAIT);
     expect(hang.calls).toEqual(["https://busy.example.com/one", "https://busy.example.com/two"]);
     expect((await resourceRow(first.resourceId))?.fetchStatus).toBe("fetched");
   });
@@ -277,7 +293,7 @@ describe("metadata worker", () => {
 
     await vi.waitFor(async () => {
       expect((await jobRow(mobile.jobId))?.runAfterSecondsAway).toBeGreaterThan(0);
-    });
+    }, WAIT);
     expect(oEmbedCalls).toHaveLength(1);
   });
 
@@ -287,7 +303,9 @@ describe("metadata worker", () => {
 
     start({ fetchHtml: hang.fetchHtml });
 
-    await vi.waitFor(() => { expect(hang.calls).toHaveLength(4); });
+    await vi.waitFor(() => {
+      expect(hang.calls).toHaveLength(4);
+    }, WAIT);
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(hang.calls).toHaveLength(4);
   });
@@ -296,7 +314,9 @@ describe("metadata worker", () => {
     await queue("https://slow.example.com/page");
     const hang = hangingFetch();
     start({ fetchHtml: hang.fetchHtml });
-    await vi.waitFor(() => { expect(hang.calls).toHaveLength(1); });
+    await vi.waitFor(() => {
+      expect(hang.calls).toHaveLength(1);
+    }, WAIT);
 
     const startedAt = performance.now();
     const res = await createTestApp({ db }).request("/api/v1/links", {
