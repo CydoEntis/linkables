@@ -5,6 +5,7 @@ import {
   LIST_LIMIT_DEFAULT,
   LIST_LIMIT_MAX,
   RESOURCE_KINDS,
+  SEARCH_QUERY_MAX_LENGTH,
   URL_MAX_LENGTH,
 } from "./constants";
 
@@ -45,6 +46,13 @@ export const listLinksQuerySchema = z
     cursor: z.string().min(1).optional(),
     limit: z.coerce.number().int().min(1).max(LIST_LIMIT_MAX).default(LIST_LIMIT_DEFAULT),
     collectionId: z.uuid().optional(),
+    // A blank search is no search, so clients can send the box's value as-is.
+    q: z
+      .string()
+      .trim()
+      .max(SEARCH_QUERY_MAX_LENGTH)
+      .transform((q) => q || undefined)
+      .optional(),
   })
   .refine((query) => !(query.view === "inbox" && query.collectionId !== undefined), {
     error: "view=inbox cannot be combined with collectionId",
