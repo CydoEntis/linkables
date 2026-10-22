@@ -1,5 +1,6 @@
 import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkaroo/shared/http";
 import { saveLinkResponseSchema } from "@linkaroo/shared/links";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
@@ -53,11 +54,13 @@ describe("POST /links", () => {
   it("gives a second user their own link to the same resource without a new job", async () => {
     const app = createTestApp({ db });
     const first = await saved(await save(app, a, "https://example.com/post"));
+    await db.update(savedLink).set({ note: "A's note", titleOverride: "A's title" }).where(eq(savedLink.id, first.id));
 
     const res = await save(app, b, "https://example.com/post");
 
     expect(res.status).toBe(201);
     const second = await saved(res);
+    expect(second).toMatchObject({ duplicate: false, note: null, titleOverride: null });
     expect(second.id).not.toBe(first.id);
     expect(second.resource.id).toBe(first.resource.id);
     expect(await db.select({ userId: savedLink.userId }).from(savedLink)).toHaveLength(2);
