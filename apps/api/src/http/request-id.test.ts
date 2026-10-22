@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { createApp } from "../app";
+import { createTestApp } from "../../test/app";
 
 const VALID_ID = "3f2b8c1e-4d5a-4e6f-9a7b-1c2d3e4f5a6b";
 
 async function requestHealth(requestId?: string, path = "/health") {
   const headers: Record<string, string> = requestId === undefined ? {} : { "X-Request-Id": requestId };
-  const res = await createApp().request(path, { headers });
+  const res = await createTestApp().request(path, { headers });
   const body = (await res.json()) as { meta: { requestId: string } };
   return { header: res.headers.get("X-Request-Id"), metaId: body.meta.requestId };
 }

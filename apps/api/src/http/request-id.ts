@@ -1,7 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import type { AppEnv } from "./env";
-import { InternalError } from "./errors";
 
 export const REQUEST_ID_HEADER = "X-Request-Id";
 
@@ -23,8 +22,6 @@ export const requestId = createMiddleware<AppEnv>(async (c, next) => {
     // Hono only routes Error instances to onError; anything else would escape
     // as a bare 500 without the envelope or request id.
     if (thrown instanceof Error) throw thrown;
-    // shortcut: console until the redacting logger exists.
-    console.error(`[${id}] non-Error value thrown`, thrown);
-    throw new InternalError("Internal server error");
+    throw new Error("Non-Error value thrown", { cause: thrown });
   }
 });
