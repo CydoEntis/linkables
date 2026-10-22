@@ -5,7 +5,10 @@ import { createTestApp } from "./app";
 
 // Every route except /health. Each new route adds a row here and a two-user
 // test beside its source.
-const PROTECTED_ROUTES = [["GET", "/api/v1/me"]] as const;
+const PROTECTED_ROUTES = [
+  ["GET", "/api/v1/me"],
+  ["POST", "/api/v1/links"],
+] as const;
 
 const PUBLIC_ROUTES = [["GET", "/health"]] as const;
 
