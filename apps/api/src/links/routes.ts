@@ -24,12 +24,6 @@ function invalid(field: string, message: string): ValidationError {
   return new ValidationError(message, { fieldErrors: { [field]: message } });
 }
 
-// shortcut: the collection filter is a later feature; reject it rather than
-// silently returning unfiltered links to a client that asked for one collection.
-function rejectCollectionFilter(collectionId: string | undefined) {
-  if (collectionId !== undefined) throw invalid("collectionId", "collectionId filter is not supported yet");
-}
-
 // The unique index on resource.canonical_url caps an entry at 2704 bytes, so the
 // limit is on encoded bytes, not characters.
 function canonicalUrlFor(url: string): string {
@@ -47,12 +41,12 @@ export function linkRoutes({ db, now }: LinkRoutesDeps) {
   return new Hono<AuthEnv>()
     .get("/links", validator("query", parseWith(listLinksQuerySchema, "Invalid query")), async (c) => {
       const { view, limit, cursor, collectionId } = c.req.valid("query");
-      rejectCollectionFilter(collectionId);
       const page = await listLinks(db, {
         userId: c.get("userId"),
         view,
         limit,
         cursor: cursor === undefined ? undefined : decodeCursor(cursor),
+        collectionId,
       });
       return ok(c, page);
     })
