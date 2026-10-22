@@ -28,10 +28,14 @@ fetching and any server-side calls. Thumbnails are stored as remote URLs. No
 Supabase Storage in the MVP.
 
 **Token verification.** The API verifies Supabase access tokens itself.
-Asymmetric JWT signing keys are enabled on the project (the JWKS endpoint returns
-no keys otherwise). The API checks the signature against
-`https://<ref>.supabase.co/auth/v1/.well-known/jwks.json` (Hono `jwk` middleware or
-`jose` `createRemoteJWKSet`), plus `iss = https://<ref>.supabase.co/auth/v1`,
+The project signs access tokens with an asymmetric key (ES256 or RS256): the
+default for projects created since 2025-10-01; older projects use Settings > JWT
+Keys > Migrate JWT secret, then Rotate keys. The JWKS endpoint returns no keys
+while only the legacy HS256 secret is in use. The API checks the signature against
+`https://<ref>.supabase.co/auth/v1/.well-known/jwks.json` with `jose`
+(`createRemoteJWKSet` + `jwtVerify`, which caches keys and refetches on an unknown
+`kid`; `hono/jwk` refetches the JWKS on every request), with `algorithms` limited
+to the project's signing algorithm, plus `iss = https://<ref>.supabase.co/auth/v1`,
 `aud = authenticated` and `exp`. `sub` is the user id. The extension's token flow
 is a Phase 2 ticket.
 
@@ -47,9 +51,9 @@ without the paid add-on. `user_id` is a plain `uuid` equal to the JWT `sub`, wit
 **no foreign key to `auth.users`**, so plain Postgres can run integration tests in
 CI.
 
-**Sign-in.** Phase 1 uses email magic link / OTP on Supabase's default SMTP. That
-works because it only delivers to project team addresses, which includes the
-owner. Custom SMTP is required before any other user signs up (Phase 3 beta).
+**Sign-in.** Phase 1 uses an email magic link on Supabase's default SMTP. That
+works because default SMTP delivers only to the org's team-member addresses (the
+owner's included), and Phase 1 stays under its limit of 2 emails per hour. Custom SMTP is required before any other user signs up (Phase 3 beta).
 
 ## Reasoning
 

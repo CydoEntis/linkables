@@ -28,19 +28,29 @@ the resource.
 - Address checks run **inside the connection's DNS lookup** (undici
   `connect.lookup`) for host names, so the IP that is checked is the IP that is
   connected, and **directly on the parsed host** for IP-literal URLs, because Node
-  skips the lookup for IP literals. The lookup handles `all: true` and refuses if
-  any returned address is blocked. Every redirect hop opens a connection through
-  the same agent and is checked again, with the scheme and port checks.
+  skips the lookup for IP literals (strip IPv6 brackets before checking). The
+  lookup handles both the `all: true` array form (Node's default
+  `autoSelectFamily`) and the single-address form, and refuses if any returned
+  address is blocked.
+- Redirects are followed by hand, not by undici's redirect interceptor (which has
+  no per-hop hook and no port check): each `Location` is resolved against the
+  current URL and checked for scheme, port and IP literal before it is requested
+  through the same guarded agent.
 - Refused ranges: 0.0.0.0/8, 10/8, 100.64/10, 127/8, 169.254/16, 172.16/12,
   192.168/16, 224/4 and up, ::, ::1, fc00::/7, fe80::/10, IPv4-mapped IPv6
   (`::ffff:a.b.c.d` and its hex form are checked as IPv4), 64:ff9b::/96 and
   2002::/16 (embedded IPv4 checked as IPv4), 198.18/15, 192.0.0/24, and multicast.
 - Allow only http and https, only ports 80 and 443, at most 5 redirects. Proxy
-  environment variables are ignored.
-- 2 s connect timeout, 10 s total timeout. Stream the body; stop at `</head>` or
+  environment variables are ignored: the fetcher always passes its own undici
+  `Agent` (never `EnvHttpProxyAgent` or global `fetch`). It never forwards
+  `X-Request-Id` or `traceparent` to the target.
+- 2 s connect timeout (`connect.timeout`), 10 s total timeout
+  (`AbortSignal.timeout` across all hops; undici has no total-time option). Stream the body; stop at `</head>` or
   512 KB, whichever comes first, and hard-abort at 2 MB. `fetchHtml` accepts only
   `text/html`; any other content type records the type with no title. `fetchJson`
-  accepts only `application/json` and is used only for the YouTube oEmbed endpoint.
+  accepts only a 2xx response whose media type is `application/json` (oEmbed
+  errors are plain text labelled as JSON) and is used only for the YouTube oEmbed
+  endpoint.
 - Tests may inject a DNS lookup, allowed ports, and an exact-IP allow list (for the
   local test server only) to run size, timeout, redirect and content-type tests.
   The blocked-address check always runs; production builds the fetcher with no
@@ -69,8 +79,10 @@ At most 3 attempts in total, with backoff of 30 s then 2 min via `run_after`. Th
 job row is deleted on success or after the last failed attempt; final failure sets
 `fetch_status = 'fetch_failed'` and `fetch_error`. Poll every 1 s when idle.
 Process at most 4 fetches at once and at most 1 per host. Only a save that creates
-the resource row inserts a job. Behaviour through the transaction pooler is
-unverified; the P1-18 production check proves it.
+the resource row inserts a job. The claim is one statement in its own implicit
+transaction and uses no session state, so it works through the transaction
+pooler; row locks last only for the statement and the `locked_until` lease is the
+guard. P1-18 confirms it in production.
 
 ## Reasoning
 
@@ -91,6 +103,10 @@ unverified; the P1-18 production check proves it.
 
 ## Sources (verified 2026-10-21)
 
-undici docs: `connect.lookup` takes a custom DNS function; the redirect interceptor
-takes `maxRedirections`. Unverified: YouTube oEmbed behaviour and consent pages
+undici docs and source: `connect.lookup` takes a custom DNS function; per-request
+`maxRedirections` was removed and `interceptors.redirect` has no per-hop hook, so
+redirects are handled by hand. Node source: `net.connect` skips `lookup` for IP
+literals, including on redirect hops (probe on Node 24 / undici 8). YouTube oEmbed
+(`https://www.youtube.com/oembed?url=...&format=json`) needs no key and returns
+`title`, `author_name`, `thumbnail_url`; errors are plain text. Unverified: YouTube oEmbed behaviour and consent pages
 served to datacenter IPs.

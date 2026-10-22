@@ -17,9 +17,9 @@ marketing site is separate.
    service. The extension and PWA reuse the same API and UI code.
 3. **Microservices** (separate metadata, search, auth services). Rejected: many
    deployables for one developer.
-4. **Fastify instead of Hono for the API.** Rejected: Hono ships a JWT/JWKS
-   middleware that fits Supabase token verification, and P1-01 is planned
-   around it.
+4. **Fastify instead of Hono for the API.** Rejected: Hono is small,
+   Web-standard and runs the same on Node; token verification uses `jose` for
+   cached JWKS (ADR-0002), which works with either framework.
 
 ## Decision
 
