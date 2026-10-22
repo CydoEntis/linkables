@@ -1,4 +1,5 @@
 import { createApp, type AppDeps } from "../src/app";
+import { createDb } from "../src/db/client";
 import { createLogger, type LogLevel } from "../src/log/logger";
 import { mintToken, testJwks } from "./auth/tokens";
 
@@ -11,6 +12,10 @@ export const TEST_AUTH: AppDeps["auth"] = {
   testJwks: JSON.stringify(testJwks),
 };
 
+// postgres-js connects on first query, so unit tests that never reach the
+// database get a client that never opens a socket. DB tests pass their own.
+const unreachableDb = createDb("postgres://unused@127.0.0.1:1/unused").db;
+
 export function captureLogger(level: LogLevel = "debug") {
   const lines: string[] = [];
   return { logger: createLogger(level, (line) => lines.push(line)), lines };
@@ -21,6 +26,7 @@ export function createTestApp(deps: Partial<AppDeps> = {}) {
     logger: captureLogger().logger,
     corsOrigins: ["http://localhost:5173"],
     auth: TEST_AUTH,
+    db: unreachableDb,
     ...deps,
   });
 }

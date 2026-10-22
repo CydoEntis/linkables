@@ -4,21 +4,28 @@ import { cors } from "hono/cors";
 import { me } from "./auth/me";
 import type { AuthConfig } from "./auth/key-source";
 import { requireAuth, type AuthEnv } from "./auth/require-auth";
+import type { Db } from "./db/client";
 import type { Logger } from "./log/logger";
 import { ok } from "./http/envelope";
 import type { AppEnv } from "./http/env";
 import { notFound, onError } from "./http/error-handler";
 import { REQUEST_ID_HEADER, requestId } from "./http/request-id";
 import { requestLog } from "./http/request-log";
+import { linkRoutes } from "./links/routes";
 
 export type AppDeps = {
   logger: Logger;
   corsOrigins: string[];
   auth: AuthConfig;
+  db: Db;
+  now?: () => number;
 };
 
-export function createApp({ logger, corsOrigins, auth }: AppDeps) {
-  const v1 = new Hono<AuthEnv>().use(requireAuth(auth, logger)).route("/", me);
+export function createApp({ logger, corsOrigins, auth, db, now = Date.now }: AppDeps) {
+  const v1 = new Hono<AuthEnv>()
+    .use(requireAuth(auth, logger))
+    .route("/", me)
+    .route("/", linkRoutes({ db, now }));
 
   const app = new Hono<AppEnv>()
     .use(requestLog(logger))
