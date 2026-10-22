@@ -51,6 +51,16 @@ describe("POST /links validation", () => {
     await expectValidationError(await post("{"));
   });
 
+  it("rejects a body larger than 16 KB", async () => {
+    const res = await post(JSON.stringify({ url: "https://example.com", padding: "x".repeat(17 * 1024) }));
+
+    expect(res.status).toBe(400);
+    expect(failureEnvelopeSchema.parse(await res.json()).error).toMatchObject({
+      code: "VALIDATION",
+      message: "Invalid request",
+    });
+  });
+
   it("rejects a request without a token", async () => {
     const res = await post(JSON.stringify({ url: "https://example.com" }), {});
 
