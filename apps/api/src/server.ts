@@ -27,11 +27,27 @@ if (worker) logger.info("metadata worker started");
 
 // In-flight fetches finish within the fetcher's 10 s timeout; a job cut off
 // harder than that is retried once its lease expires.
+function closeServer(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+// Requests drain before the worker stops and the database closes, so nothing
+// still running loses its connection pool.
 async function shutdown(signal: NodeJS.Signals) {
   logger.info("shutting down", { signal });
-  server.close();
-  await worker?.stop();
-  await close();
+  try {
+    await closeServer();
+    await worker?.stop();
+    await close();
+  } catch (error) {
+    logger.error("shutdown failed", { error });
+    process.exitCode = 1;
+  }
 }
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) process.once(signal, (s) => void shutdown(s));
