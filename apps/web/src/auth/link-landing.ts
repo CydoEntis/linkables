@@ -7,6 +7,6 @@ export type LinkProblem = "expired" | "invalid";
 export async function readLinkProblem(): Promise<LinkProblem | null> {
   const { error } = await supabase.auth.initialize();
   if (!isAuthImplicitGrantRedirectError(error)) return null;
-  window.history.replaceState(null, "", window.location.pathname);
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
   return error.details?.code === "otp_expired" ? "expired" : "invalid";
 }
