@@ -17,11 +17,20 @@ Save any URL in seconds, find it later from any device, share it when needed.
 
 ## Develop
 
-Created by P1-01 and P1-17; until then there is nothing to run.
-
 ```sh
 corepack enable                          # pnpm version comes from packageManager
 pnpm install
-cp apps/api/.env.example apps/api/.env   # fill in values
+cp apps/api/.env.example apps/api/.env   # local database URLs are filled in
+docker compose up -d                     # Postgres 17 on localhost:5432
+pnpm db:migrate                          # applies apps/api/drizzle to MIGRATION_DATABASE_URL
 pnpm verify                              # typecheck + lint + test
 ```
+
+The compose Postgres holds two databases: `linkaroo` for the running app
+(`DATABASE_URL`, `MIGRATION_DATABASE_URL`) and `linkaroo_test` for integration
+tests (`TEST_DATABASE_URL`), which truncate every table and migrate it
+themselves. Values set in the shell win over `apps/api/.env`.
+
+After changing `apps/api/src/db/schema.ts`, run `pnpm --filter api db:generate`
+and commit the new file under `apps/api/drizzle/`. Never edit a migration after
+it is merged.
