@@ -9,6 +9,12 @@ test("a signed-in user sees GET /me answer with their id", async ({ page, user }
   await expect(page.getByText(`"id": "${user.id}"`)).toBeVisible();
 });
 
+test("signing out returns to the sign-in screen", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("heading", { name: "Sign in to linkaroo" })).toBeVisible();
+});
+
 test("seeded links come back from GET /links for their owner", async ({ request, user, seedLinks }) => {
   await seedLinks([{ url: "https://example.com/first" }, { url: "https://example.com/second" }]);
   const response = await request.get(`${API_URL}/api/v1/links`, {
