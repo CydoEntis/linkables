@@ -70,3 +70,9 @@ export async function fetchMetadata(canonicalUrl: string, fetchers: Fetchers): P
     throw error;
   }
 }
+
+// The host the fetch actually hits, which the worker caps at one fetch at a
+// time: every YouTube video is fetched from the oEmbed endpoint's host.
+export function fetchHost(canonicalUrl: string): string {
+  return new URL(isYouTube(canonicalUrl) ? youTubeOEmbedUrl(canonicalUrl) : canonicalUrl).hostname;
+}

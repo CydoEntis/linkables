@@ -1,6 +1,6 @@
 import type { Db } from "../db/client";
 import type { Logger } from "../log/logger";
-import { fetchMetadata, type Fetchers } from "./fetch-metadata";
+import { fetchHost, fetchMetadata, type Fetchers } from "./fetch-metadata";
 import { claimJob, completeJob, failJob, releaseJob, retryJob, type ClaimedJob } from "./jobs";
 
 const POLL_MS = 1_000;
@@ -30,6 +30,8 @@ export function startWorker({
 }: WorkerDeps): Worker {
   const maxAttempts = backoffMs.length + 1;
   const running = new Map<number, Promise<void>>();
+  // shortcut: the 1-per-host cap is per process and relies on running a single
+  // worker process (ADR-0005). A cross-process cap needs host awareness in the claim.
   const busyHosts = new Set<string>();
   let stopped = false;
   let timer: NodeJS.Timeout | undefined;
@@ -56,7 +58,7 @@ export function startWorker({
   }
 
   async function dispatch(claimed: ClaimedJob): Promise<void> {
-    const host = new URL(claimed.canonicalUrl).hostname;
+    const host = fetchHost(claimed.canonicalUrl);
     if (busyHosts.has(host)) {
       await releaseJob(db, claimed);
       return;
