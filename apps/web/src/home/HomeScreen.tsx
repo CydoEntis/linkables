@@ -19,7 +19,9 @@ export function HomeScreen({ email }: { email: string | undefined }) {
         <h2 id="me-heading" className="text-sm font-medium">
           GET /me
         </h2>
-        {me.isPending ? <p role="status">Loading your account…</p> : null}
+        <p role="status" className="text-sm empty:hidden">
+          {me.isPending ? "Loading your account…" : null}
+        </p>
         {me.isError ? (
           <p role="alert" className="text-sm text-destructive">
             {meErrorMessage(me.error)}
