@@ -44,13 +44,28 @@ async function seedLink(user: TestUser, savedAt: string): Promise<string> {
   return link.id;
 }
 
-// Returns ids newest first, as the list should order them.
+// Returns ids newest first, as the list should order them. Two bulk inserts, so
+// seeding 100 links stays fast while other suites share the database server.
 async function seedLinks(user: TestUser, count: number): Promise<string[]> {
-  const ids: string[] = [];
-  for (let i = 0; i < count; i++) {
-    ids.push(await seedLink(user, new Date(Date.UTC(2026, 0, 1) + i * 1000).toISOString()));
-  }
-  return ids.reverse();
+  const urls = Array.from({ length: count }, () => `https://example.com/${randomUUID()}`);
+  const resources = await db
+    .insert(resource)
+    .values(urls.map((canonicalUrl) => ({ canonicalUrl })))
+    .returning();
+  const resourceIdByUrl = new Map(resources.map((r) => [r.canonicalUrl, r.id]));
+  const links = await db
+    .insert(savedLink)
+    .values(
+      urls.map((url, i) => ({
+        userId: user.id,
+        resourceId: resourceIdByUrl.get(url) ?? "",
+        originalUrl: url,
+        savedAt: sql`${new Date(Date.UTC(2026, 0, 1) + i * 1000).toISOString()}::timestamptz`,
+      })),
+    )
+    .returning();
+  const idByUrl = new Map(links.map((l) => [l.originalUrl, l.id]));
+  return urls.map((url) => idByUrl.get(url) ?? "").reverse();
 }
 
 async function fileInCollection(user: TestUser, linkIds: string[], name = "Reading"): Promise<string> {
