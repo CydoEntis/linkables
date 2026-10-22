@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "dev-deck": {
+      "source": {
+        "source": "github",
+        "repo": "CydoEntis/dev-deck"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "developer@dev-deck": true
+  }
+}
