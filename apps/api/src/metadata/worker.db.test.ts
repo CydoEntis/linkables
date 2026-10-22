@@ -181,6 +181,36 @@ describe("metadata worker", () => {
     expect(fetchHtml).toHaveBeenCalledTimes(3);
   });
 
+  it("fails a job whose lease expired on every attempt without fetching it again", async () => {
+    const { resourceId, jobId } = await queue("https://example.com/crashy", {
+      attempts: 3,
+      lockedUntil: sql`now() - interval '1 second'`,
+    });
+    const fetchHtml = vi.fn(articlePage);
+
+    start({ fetchHtml });
+
+    await vi.waitFor(async () => expect(await jobRow(jobId)).toBeUndefined(), { timeout: 5_000 });
+    expect(await resourceRow(resourceId)).toMatchObject({ fetchStatus: "fetch_failed", fetchError: "abandoned" });
+    expect(fetchHtml).not.toHaveBeenCalled();
+  });
+
+  it("leaves a job leased and logs an error when the fetch throws unexpectedly", async () => {
+    const { jobId } = await queue("https://example.com/bug");
+    const { logger, lines } = captureLogger();
+
+    start({ fetchHtml: () => Promise.reject(new TypeError("bug")) }, { logger });
+
+    await vi.waitFor(() => {
+      expect(lines.some((line) => line.includes("metadata job crashed"))).toBe(true);
+    });
+    const [row] = await db
+      .select({ attempts: job.attempts, held: sql<boolean>`${job.lockedUntil} > now()` })
+      .from(job)
+      .where(eq(job.id, jobId));
+    expect(row).toEqual({ attempts: 1, held: true });
+  });
+
   it("counts a non-2xx oEmbed reply as a failed attempt", async () => {
     const { resourceId, jobId } = await queue("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
     const fetchJson = vi.fn(() => Promise.reject(new FetchError("http_status", "unexpected status 401")));
