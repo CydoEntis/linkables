@@ -11,7 +11,8 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "test": "pnpm -r test",
-    "verify": "pnpm typecheck && pnpm lint && pnpm test"
+    "verify": "pnpm typecheck && pnpm lint && pnpm test",
+    "db:migrate": "pnpm --filter api db:migrate"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
