@@ -41,6 +41,8 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    # A cold `playwright install --with-deps` alone has taken about 10 minutes.
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17
