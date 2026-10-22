@@ -20,6 +20,7 @@ Save any URL in seconds, find it later from any device, share it when needed.
 Created by P1-01 and P1-17; until then there is nothing to run.
 
 ```sh
+corepack enable                          # pnpm version comes from packageManager
 pnpm install
 cp apps/api/.env.example apps/api/.env   # fill in values
 pnpm verify                              # typecheck + lint + test
