@@ -1,13 +1,19 @@
 import type { SaveLinkResponse } from "@linkaroo/shared/links";
 import { and, eq } from "drizzle-orm";
+import { requireCollection } from "../collections/collections";
 import type { Db, Tx } from "../db/client";
-import { job, resource, savedLink } from "../db/schema";
+import { collectionItem, job, resource, savedLink } from "../db/schema";
 import { InternalError } from "../http/errors";
 import { toSavedLink } from "./to-saved-link";
 
 type ResourceRow = typeof resource.$inferSelect;
 
-export type SaveLinkInput = { userId: string; originalUrl: string; canonicalUrl: string };
+export type SaveLinkInput = {
+  userId: string;
+  originalUrl: string;
+  canonicalUrl: string;
+  collectionId: string | undefined;
+};
 
 function found<T>(row: T | undefined, what: string): T {
   if (row === undefined) throw new InternalError(`${what} vanished during save`);
@@ -44,8 +50,13 @@ async function insertSavedLink(tx: Tx, input: SaveLinkInput, resourceId: string)
 
 export function saveLink(db: Db, input: SaveLinkInput): Promise<SaveLinkResponse> {
   return db.transaction(async (tx) => {
+    const { collectionId } = input;
+    if (collectionId !== undefined) await requireCollection(tx, { userId: input.userId, id: collectionId });
     const res = await upsertResource(tx, input.canonicalUrl);
     const { link, duplicate } = await insertSavedLink(tx, input, res.id);
+    if (collectionId !== undefined) {
+      await tx.insert(collectionItem).values({ collectionId, savedLinkId: link.id }).onConflictDoNothing();
+    }
     return { ...toSavedLink(link, res), duplicate };
   });
 }
