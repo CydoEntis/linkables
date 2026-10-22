@@ -2,7 +2,7 @@ import { z } from "zod";
 import { FETCH_STATUSES, RESOURCE_KINDS, URL_MAX_LENGTH } from "./constants";
 
 export const saveLinkRequestSchema = z.object({
-  url: z.string().max(URL_MAX_LENGTH, { error: `url must be at most ${String(URL_MAX_LENGTH)} characters` }),
+  url: z.string().trim().max(URL_MAX_LENGTH, { error: `url must be at most ${String(URL_MAX_LENGTH)} characters` }),
 });
 
 export const resourceSummarySchema = z.strictObject({
