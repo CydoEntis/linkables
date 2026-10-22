@@ -89,6 +89,21 @@ describe("PATCH /links/:id", () => {
     expect(await updated(await patch(a, link.id, { titleOverride, note }))).toMatchObject({ titleOverride, note });
   });
 
+  it("collapses line breaks and tabs in a title to single spaces", async () => {
+    const link = await save(a);
+
+    const result = await updated(await patch(a, link.id, { titleOverride: "one\r\ntwo\tthree\u2028four\u2029  five" }));
+
+    expect(result.titleOverride).toBe("one two three four five");
+  });
+
+  it("keeps tabs and line breaks in a note", async () => {
+    const link = await save(a);
+    const note = "one\r\ntwo\tthree\u2028four";
+
+    expect((await updated(await patch(a, link.id, { note }))).note).toBe(note);
+  });
+
   it("trims surrounding whitespace", async () => {
     const link = await save(a);
 

@@ -19,3 +19,8 @@ export const TITLE_MAX = 300;
 // The API caps request bodies at 16 KB. At 3 UTF-8 bytes per character, a full
 // note plus a full title still fits, so the field cap is the limit users hit.
 export const NOTE_MAX = 5000;
+
+// Never stored, whether a user typed it or a page supplied it: control characters
+// other than whitespace (Postgres text rejects NUL), bidi overrides and isolates,
+// which can make a title display reversed or spoofed, and lone surrogates.
+export const UNSAFE_TEXT_CHARS = /(?![\t\n\v\f\r])\p{Cc}|[\u202A-\u202E\u2066-\u2069]|\p{Cs}/u;

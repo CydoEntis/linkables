@@ -41,6 +41,19 @@ describe("PATCH /links/:id validation", () => {
     await expectValidationError(await patch({ note: "before\u0000after" }));
   });
 
+  it.each([
+    ["titleOverride", "U+202E", "\u202E"],
+    ["titleOverride", "U+2066", "\u2066"],
+    ["note", "U+202A", "\u202A"],
+    ["note", "U+2069", "\u2069"],
+  ])("rejects a %s containing the bidi control %s", async (field, _name, char) => {
+    await expectValidationError(await patch({ [field]: `before${char}after` }));
+  });
+
+  it.each(["titleOverride", "note"])("rejects a %s containing a lone surrogate", async (field) => {
+    await expectValidationError(await patch({ [field]: "before\uD800after" }));
+  });
+
   it("rejects a pinned value that is not a boolean", async () => {
     await expectValidationError(await patch({ pinned: "yes" }));
   });

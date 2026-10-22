@@ -9,6 +9,7 @@ import {
   SEARCH_QUERY_MAX_LENGTH,
   TITLE_OVERRIDE_MAX,
   TITLE_MAX,
+  UNSAFE_TEXT_CHARS,
   URL_MAX_LENGTH,
 } from "./constants";
 
@@ -75,25 +76,29 @@ export const listLinksResponseSchema = z.strictObject({
   cursor: z.string().nullable(),
 });
 
-// Postgres text cannot hold NUL, and other control characters have no place in
-// plain text; tab and line breaks stay so notes keep their layout.
-const CONTROL_CHARACTER = /(?![\t\n\r])\p{Cc}/u;
+// Titles are one line, like fetched titles; notes keep their line breaks.
+const collapseWhitespace = (text: string) => text.replace(/\s+/g, " ");
+const keepWhitespace = (text: string) => text;
 
 // A blank value clears the field, so emptying the title input restores the fetched title.
-function clearableText(field: string, max: number) {
+function clearableText(field: string, max: number, normalize: (text: string) => string) {
   return z
     .string()
-    .trim()
-    .max(max, { error: `${field} must be at most ${String(max)} characters` })
-    .refine((text) => !CONTROL_CHARACTER.test(text), { error: `${field} must not contain control characters` })
+    .transform((text) => normalize(text).trim())
+    .pipe(
+      z
+        .string()
+        .max(max, { error: `${field} must be at most ${String(max)} characters` })
+        .refine((text) => !UNSAFE_TEXT_CHARS.test(text), { error: `${field} contains characters that are not allowed` }),
+    )
     .transform((text) => (text === "" ? null : text))
     .nullable();
 }
 
 export const updateLinkRequestSchema = z
   .strictObject({
-    titleOverride: clearableText("titleOverride", TITLE_MAX).optional(),
-    note: clearableText("note", NOTE_MAX).optional(),
+    titleOverride: clearableText("titleOverride", TITLE_MAX, collapseWhitespace).optional(),
+    note: clearableText("note", NOTE_MAX, keepWhitespace).optional(),
     pinned: z.boolean().optional(),
   })
   .refine((body) => Object.keys(body).length > 0, { error: "Send at least one of titleOverride, note or pinned" });
