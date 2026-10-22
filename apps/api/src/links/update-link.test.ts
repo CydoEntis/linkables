@@ -33,8 +33,8 @@ describe("PATCH /links/:id validation", () => {
     await expectValidationError(await patch({ titleOverride: "t".repeat(301) }));
   });
 
-  it("rejects a note longer than 5000 characters", async () => {
-    await expectValidationError(await patch({ note: "n".repeat(5001) }));
+  it("rejects a note longer than 3500 characters", async () => {
+    await expectValidationError(await patch({ note: "n".repeat(3501) }));
   });
 
   it("rejects a note containing a control character", async () => {

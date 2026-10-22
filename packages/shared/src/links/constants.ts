@@ -16,9 +16,9 @@ export const TITLE_OVERRIDE_MAX = 300;
 // One cap for fetched titles and title overrides. Caps count code points.
 export const TITLE_MAX = 300;
 
-// The API caps request bodies at 16 KB. At 3 UTF-8 bytes per character, a full
-// note plus a full title still fits, so the field cap is the limit users hit.
-export const NOTE_MAX = 5000;
+// The API caps request bodies at 16 KB. A full note and title in 4-byte
+// characters come to about 15.3 KB of JSON, so the field cap is the limit users hit.
+export const NOTE_MAX = 3500;
 
 // Never stored, whether a user typed it or a page supplied it: control characters
 // other than whitespace (Postgres text rejects NUL), bidi overrides and isolates,
