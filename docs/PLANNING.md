@@ -95,6 +95,8 @@ Each rule names a check. None can pass yet because no code exists.
 - Tickets: Plane project `linkaroo` (LNK), workspace `ideayard`, project id
   `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 26 tickets, revised 2026-10-21 after the
   second Opus 5.5 audit.
+- Supabase project: `linkaroo`, ref `tiechzmcvmdlceyovskg`, region `us-east-1`,
+  free plan, created 2026-10-22 (ES256 signing key by default).
 - **Blockers live only in each ticket body's `Blocked by:` line.** Do not create
   native Plane relations: this self-hosted Plane's API can add a relation but not
   remove one, so every plan revision that drops a blocker left a stale one behind.
