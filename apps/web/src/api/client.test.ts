@@ -1,11 +1,11 @@
-import { createClient, type SupportedStorage } from "@supabase/supabase-js";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { readAccessToken } from "../auth/access-token";
+import { signOut, supabase } from "../auth/supabase";
+import { storeSession, stubAuthServer } from "../test/session";
 import { ApiError, createApiClient, NETWORK_ERROR } from "./client";
 
 const API_URL = "http://api.test";
-const STORAGE_KEY = "test-auth-token";
 const meSchema = z.object({ id: z.string() });
 
 function meta() {
@@ -19,33 +19,8 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function signedInSupabase(accessToken: string) {
-  const store = new Map<string, string>();
-  const storage: SupportedStorage = {
-    getItem: (key) => store.get(key) ?? null,
-    setItem: (key, value) => void store.set(key, value),
-    removeItem: (key) => void store.delete(key),
-  };
-  store.set(
-    STORAGE_KEY,
-    JSON.stringify({
-      access_token: accessToken,
-      refresh_token: "refresh",
-      token_type: "bearer",
-      expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      user: { id: "user-1", aud: "authenticated", app_metadata: {}, user_metadata: {}, created_at: "" },
-    }),
-  );
-  const authServer = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
-  return createClient("http://supabase.test", "anon-key", {
-    auth: { storage, storageKey: STORAGE_KEY, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: authServer },
-  });
-}
-
 function setup(fetchImpl: typeof fetch, accessToken = "token-1") {
-  const supabase = signedInSupabase(accessToken);
+  storeSession(accessToken);
   const onUnauthenticated = vi.fn(() => Promise.resolve());
   const fetchSpy = vi.fn(fetchImpl);
   const api = createApiClient({
@@ -56,10 +31,16 @@ function setup(fetchImpl: typeof fetch, accessToken = "token-1") {
   });
   const sentAuthorization = (call: number) =>
     new Headers(fetchSpy.mock.calls[call]?.[1]?.headers).get("Authorization");
-  return { api, supabase, fetchSpy, onUnauthenticated, sentAuthorization };
+  return { api, fetchSpy, onUnauthenticated, sentAuthorization };
 }
 
 const okMe = () => Promise.resolve(jsonResponse({ ok: true, data: { id: "user-1" }, meta: meta() }));
+
+beforeEach(stubAuthServer);
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
 describe("api client", () => {
   it("calls VITE_API_URL under /api/v1", async () => {
@@ -75,9 +56,9 @@ describe("api client", () => {
   });
 
   it("sends no token after sign-out", async () => {
-    const { api, supabase, sentAuthorization } = setup(okMe);
+    const { api, sentAuthorization } = setup(okMe);
     await api.request("/me", meSchema);
-    await supabase.auth.signOut({ scope: "local" });
+    await signOut();
     await api.request("/me", meSchema);
     expect(sentAuthorization(1)).toBeNull();
   });
