@@ -1,11 +1,10 @@
 import type { SaveLinkResponse } from "@linkaroo/shared/links";
 import { and, eq } from "drizzle-orm";
-import type { Db } from "../db/client";
+import type { Db, Tx } from "../db/client";
 import { job, resource, savedLink } from "../db/schema";
 import { InternalError } from "../http/errors";
 import { toSavedLink } from "./to-saved-link";
 
-type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type ResourceRow = typeof resource.$inferSelect;
 
 export type SaveLinkInput = { userId: string; originalUrl: string; canonicalUrl: string };
