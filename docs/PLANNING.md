@@ -89,12 +89,37 @@ Each rule names a check. None can pass yet because no code exists.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
 - Tickets: Plane project `linkaroo` (LNK), workspace `ideayard`, project id
-  `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`: LNK-1 to LNK-16, titled P1-01 to P1-16.
-  Blockers are native Plane relations (set via `work-items/{id}/relations/`) and are
-  also written in each ticket body.
-  **Revision pending:** the Opus review proposes splitting, adding and re-blocking
-  tickets; the list below is the original filing until step 2 is approved.
-  - Critical path (original): P1-01 → P1-02 → P1-03 → P1-05 → P1-10 → P1-11 → P1-14 → P1-16.
+  `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 24 tickets, revised 2026-10-21 after the
+  Opus 5.5 review. Blockers are native Plane relations (set via
+  `work-items/{id}/relations/`) and are also written in each ticket body.
+
+  | Ticket | Plane | Ticket | Plane |
+  |---|---|---|---|
+  | P1-01 scaffold + CI | LNK-1 | P1-12 sort and filter | LNK-12 |
+  | P1-02 schema + Supabase settings | LNK-2 | P1-13 edit, delete, pin | LNK-13 |
+  | P1-03a API auth | LNK-3 | P1-14a app shell + Inbox cards | LNK-14 |
+  | P1-03b web sign-in | LNK-17 | P1-14b collections UI | LNK-18 |
+  | P1-04 canonicalisation | LNK-4 | P1-14c search UI | LNK-19 |
+  | P1-05 save endpoint | LNK-5 | P1-14d edit/pin UI + export | LNK-20 |
+  | P1-06 SSRF fetcher | LNK-6 | P1-15 export | LNK-15 |
+  | P1-07 worker loop | LNK-7 | P1-16 success check | LNK-16 |
+  | P1-08 metadata extraction | LNK-8 | P1-17 config + logger | LNK-21 |
+  | P1-09 collections | LNK-9 | P1-18 deploy skeleton | LNK-22 |
+  | P1-10 Inbox list | LNK-10 | P1-19 authz sweep | LNK-23 |
+  | P1-11 search | LNK-11 | P1-20 [owner] provision server | LNK-24 |
+
+  - Critical path to the success condition: P1-01 → P1-17 → P1-02 → P1-05 → P1-10
+    → P1-14a → P1-18. Also required before P1-18: P1-03a → P1-03b, P1-06 + P1-08
+    → P1-07, and P1-20 (owner buys the server).
+  - First point you can stop with a useful product: **P1-18 + P1-14a** (save at
+    home, see it in the Inbox at work). Phase 1's exit adds P1-09 → P1-12 → P1-14c
+    → P1-19 → P1-16.
+  - P1-04, P1-06 and P1-08 can start right after P1-01. P1-20 is yours, not an agent's.
+  - **Known defect in Plane:** this Plane build's API cannot remove a blocker, so
+    6 tickets still carry extra relations that the revision dropped: LNK-3 (P1-02),
+    LNK-8 (P1-07, which makes a deadlock with LNK-7), LNK-11 (P1-08), LNK-12 (P1-11),
+    LNK-14 (P1-11, P1-13), LNK-15 (P1-02, P1-03a). The `Blocked by:` line in each
+    ticket body is correct. Remove this note once they are cleared.
   - Rules not yet true: see Rules above.
 
 ### Phase 2 — Chrome extension and PWA share target
