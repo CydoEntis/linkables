@@ -78,6 +78,11 @@ const BLOCKED_V6: [string, number][] = [
   ["fc00::", 7],
   ["fe80::", 10],
   ["ff00::", 8],
+  ["fec0::", 10],
+  ["100::", 64],
+  ["2001::", 32],
+  ["2001:db8::", 32],
+  ["64:ff9b:1::", 48],
 ];
 
 const blockList = new BlockList();
@@ -99,13 +104,14 @@ function isBlockedIPv6(address: string): boolean {
 }
 
 // Addresses whose last 32 bits (or, for 6to4, bits 16-48) reach an IPv4 host
-// are judged by that IPv4 address. ::/96 (deprecated IPv4-compatible) is
-// included so ::127.0.0.1 cannot slip past.
+// are judged by that IPv4 address. ::/96 (deprecated IPv4-compatible) and
+// ::ffff:0:0/96 (IPv4-translated) are included so ::127.0.0.1 cannot slip past.
 function embeddedIPv4(hextets: number[]): string | null {
   const [h0, h1, h2, h3, h4, h5, h6, h7] = hextets;
   if (h6 === undefined || h7 === undefined) return null;
-  const zeroHead = [h0, h1, h2, h3, h4].every((h) => h === 0);
-  if (zeroHead && (h5 === 0xffff || h5 === 0)) return hextetsToIPv4(h6, h7);
+  const zeroHead = [h0, h1, h2, h3].every((h) => h === 0);
+  if (zeroHead && h4 === 0 && (h5 === 0xffff || h5 === 0)) return hextetsToIPv4(h6, h7);
+  if (zeroHead && h4 === 0xffff && h5 === 0) return hextetsToIPv4(h6, h7);
   if (h0 === 0x64 && h1 === 0xff9b && [h2, h3, h4, h5].every((h) => h === 0)) return hextetsToIPv4(h6, h7);
   if (h0 === 0x2002 && h1 !== undefined && h2 !== undefined) return hextetsToIPv4(h1, h2);
   return null;

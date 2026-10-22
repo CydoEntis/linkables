@@ -109,6 +109,18 @@ describe("isBlockedAddress", () => {
     ["NAT64 64:ff9b::/96 dotted", "64:ff9b::10.0.0.1"],
     ["6to4 2002::/16 loopback", "2002:7f00:1::"],
     ["6to4 2002::/16 private", "2002:c0a8:101::1"],
+    ["IPv4-translated ::ffff:0:0/96", "::ffff:0:7f00:1"],
+    ["IPv4-translated ::ffff:0:0/96 dotted", "::ffff:0:10.0.0.1"],
+    ["local-use NAT64 64:ff9b:1::/48", "64:ff9b:1::808:808"],
+    ["local-use NAT64 64:ff9b:1::/48", "64:ff9b:1:ffff:ffff:ffff:ffff:ffff"],
+    ["Teredo 2001::/32", "2001::1"],
+    ["Teredo 2001::/32", "2001:0:ffff:ffff:ffff:ffff:ffff:ffff"],
+    ["site-local fec0::/10", "fec0::1"],
+    ["site-local fec0::/10", "feff:ffff::1"],
+    ["discard 100::/64", "100::1"],
+    ["discard 100::/64", "100::ffff:ffff:ffff:ffff"],
+    ["documentation 2001:db8::/32", "2001:db8::1"],
+    ["documentation 2001:db8::/32", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"],
     ["not an IP address", "localhost"],
     ["bracketed literal", "[::1]"],
   ])("refuses %s: %s", (_range, ip) => {
@@ -134,6 +146,13 @@ describe("isBlockedAddress", () => {
     "::ffff:808:808",
     "64:ff9b::808:808",
     "2002:808:808::1",
+    "::ffff:0:808:808",
+    "64:ff9b:2::1",
+    "2001:1::1",
+    "2001:4860:4860::8888",
+    "100:0:0:1::1",
+    "2001:db7:ffff::1",
+    "2001:db9::1",
   ])("allows public address %s", (ip) => {
     expect(isBlockedAddress(ip)).toBe(false);
   });
