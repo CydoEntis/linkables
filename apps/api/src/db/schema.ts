@@ -11,12 +11,13 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { FETCH_STATUSES, RESOURCE_KINDS } from "@linkaroo/shared/links";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
-export const resourceKind = pgEnum("resource_kind", ["video", "page", "other"]);
+export const resourceKind = pgEnum("resource_kind", RESOURCE_KINDS);
 
-export const fetchStatus = pgEnum("fetch_status", ["pending", "fetched", "fetch_failed"]);
+export const fetchStatus = pgEnum("fetch_status", FETCH_STATUSES);
 
 export const resource = pgTable("resource", {
   id: uuid("id").primaryKey().defaultRandom(),
