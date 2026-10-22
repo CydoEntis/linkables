@@ -1,8 +1,6 @@
-import { YOUTUBE_HOSTS } from "@linkaroo/shared/url";
-import { type Token, Tokenizer, TokenizerMode } from "parse5";
+import { YOUTUBE_HOSTS, YOUTUBE_VIDEO_ID } from "@linkaroo/shared/url";
 import { z } from "zod";
-
-type Attribute = Token.Attribute;
+import { type HeadTag, scanHead } from "./head-scanner";
 
 // Resources are shared between users and these strings come from untrusted
 // pages, so every stored value is bounded. Caps count code points.
@@ -48,9 +46,12 @@ export function isYouTube(url: string): boolean {
   return (
     parsed !== null &&
     isHttp(parsed) &&
+    parsed.username === "" &&
+    parsed.password === "" &&
+    parsed.port === "" &&
     YOUTUBE_HOSTS.has(parsed.hostname) &&
     parsed.pathname === "/watch" &&
-    (parsed.searchParams.get("v") ?? "") !== ""
+    YOUTUBE_VIDEO_ID.test(parsed.searchParams.get("v") ?? "")
   );
 }
 
@@ -60,8 +61,8 @@ export function youTubeOEmbedUrl(url: string): string {
 
 const oEmbedSchema = z.object({
   title: z.string(),
-  author_name: z.string().nullish(),
-  thumbnail_url: z.string().nullish(),
+  author_name: z.string().nullish().catch(null),
+  thumbnail_url: z.string().nullish().catch(null),
 });
 
 export function parseOEmbed(json: unknown): OEmbedResult {
@@ -78,86 +79,18 @@ export function parseOEmbed(json: unknown): OEmbedResult {
   };
 }
 
-interface HeadScan {
-  tags: { tagName: string; attrs: Attribute[] }[];
-  titles: string[];
-}
-
-const TEXT_MODES = new Map<string, Tokenizer["state"]>([
-  ["title", TokenizerMode.RCDATA],
-  ["textarea", TokenizerMode.RCDATA],
-  ["style", TokenizerMode.RAWTEXT],
-  ["xmp", TokenizerMode.RAWTEXT],
-  ["iframe", TokenizerMode.RAWTEXT],
-  ["noembed", TokenizerMode.RAWTEXT],
-  ["noframes", TokenizerMode.RAWTEXT],
-  ["script", TokenizerMode.SCRIPT_DATA],
-  ["plaintext", TokenizerMode.PLAINTEXT],
-]);
-const FOREIGN_ROOTS = new Set(["svg", "math"]);
-
-// Tokenizes instead of calling parse5's parse(): the tree builder is quadratic
-// on deeply nested elements, and a 512 KB page of <div>s blocks for ~30 s.
-// Switching the tokenizer into text modes is the part of tree building that
-// matters here, so a <meta> inside a <script> string is not read as a tag.
-// Elements inside <svg>/<math> are skipped, so an inline SVG <title> is not
-// taken for the page title.
-function scanHead(html: string): HeadScan {
-  const scan: HeadScan = { tags: [], titles: [] };
-  let foreignDepth = 0;
-  let title: string | null = null;
-  const appendTitle = (token: Token.CharacterToken) => {
-    if (title !== null) title += token.chars;
-  };
-  const closeTitle = () => {
-    if (title !== null) scan.titles.push(title);
-    title = null;
-  };
-  const tokenizer: Tokenizer = new Tokenizer(
-    {},
-    {
-      onStartTag(token) {
-        if (FOREIGN_ROOTS.has(token.tagName) && !token.selfClosing) foreignDepth++;
-        tokenizer.inForeignNode = foreignDepth > 0;
-        if (foreignDepth > 0) return;
-        if (token.tagName === "meta" || token.tagName === "link") scan.tags.push(token);
-        if (token.tagName === "title") title = "";
-        const mode = TEXT_MODES.get(token.tagName);
-        if (mode !== undefined) tokenizer.state = mode;
-      },
-      onEndTag(token) {
-        if (FOREIGN_ROOTS.has(token.tagName) && foreignDepth > 0) foreignDepth--;
-        tokenizer.inForeignNode = foreignDepth > 0;
-        if (token.tagName === "title") closeTitle();
-      },
-      onCharacter: appendTitle,
-      onWhitespaceCharacter: appendTitle,
-      onNullCharacter: ignore,
-      onComment: ignore,
-      onDoctype: ignore,
-      onEof: closeTitle,
-    },
-  );
-  tokenizer.write(html, true);
-  return scan;
-}
-
-function ignore(): void {
-  return;
-}
-
-function attr(tag: { attrs: Attribute[] }, name: string): string | undefined {
+function attr(tag: HeadTag, name: string): string | undefined {
   return tag.attrs.find((a) => a.name === name)?.value;
 }
 
-function metaContents(tags: HeadScan["tags"], key: string): string[] {
+function metaContents(tags: HeadTag[], key: string): string[] {
   return tags
     .filter((tag) => tag.tagName === "meta")
     .filter((tag) => [attr(tag, "property"), attr(tag, "name")].some((k) => k?.trim().toLowerCase() === key))
     .map((tag) => attr(tag, "content") ?? "");
 }
 
-function linkHrefs(tags: HeadScan["tags"], rel: string): string[] {
+function linkHrefs(tags: HeadTag[], rel: string): string[] {
   return tags
     .filter((tag) => tag.tagName === "link")
     .filter((tag) => (attr(tag, "rel") ?? "").toLowerCase().split(/\s+/).includes(rel))
@@ -180,8 +113,12 @@ function firstUrl(candidates: string[], baseUrl: string): string | null {
   return null;
 }
 
+// C0/C1 controls other than whitespace (Postgres text rejects NUL) and bidi
+// overrides, which can make a shared title display reversed or spoofed.
+const UNSAFE_CHARS = /(?![\t\n\v\f\r])\p{Cc}|[\u202A-\u202E\u2066-\u2069]/gu;
+
 function cleanText(value: string, max: number): string | null {
-  const text = value.replace(/\s+/g, " ").trim();
+  const text = value.replace(UNSAFE_CHARS, "").replace(/\s+/g, " ").trim();
   if (text === "") return null;
   if (text.length <= max) return text;
   return Array.from(text).slice(0, max).join("");

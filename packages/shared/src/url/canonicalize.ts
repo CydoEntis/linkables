@@ -10,7 +10,7 @@ export type CanonicalizeResult =
   | { ok: false; reason: "invalid_url" | "unsupported_protocol" };
 
 const TRACKING_PARAMS = new Set(["fbclid", "gclid"]);
-const VIDEO_ID = /^[A-Za-z0-9_-]+$/;
+export const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]+$/;
 
 export function canonicalize(input: string): CanonicalizeResult {
   if (!URL.canParse(input)) return { ok: false, reason: "invalid_url" };
@@ -62,7 +62,7 @@ function normalizeYouTube(url: URL): void {
 
 function youTubeVideoId(url: URL): string | null {
   const candidate = rawVideoId(url) ?? "";
-  return VIDEO_ID.test(candidate) ? candidate : null;
+  return YOUTUBE_VIDEO_ID.test(candidate) ? candidate : null;
 }
 
 function rawVideoId(url: URL): string | null | undefined {

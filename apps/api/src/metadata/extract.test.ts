@@ -148,6 +148,40 @@ describe("extractHead", () => {
     expect(performance.now() - started).toBeLessThan(1000);
   });
 
+  it("handles meta and link tags with 80k attributes each in linear time", () => {
+    const filler = Array.from({ length: 80_000 }, (_, i) => `x${i.toString(36)}`).join(" ");
+    const html = `<meta property="og:title" content="Kept" ${filler}><link rel=icon href=/i.png ${filler}>`;
+    const started = performance.now();
+    const head = extractHead(html, "https://example.com/");
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(head.title).toBe("Kept");
+    expect(head.favicon).toBe("https://example.com/i.png");
+  });
+
+  it("reads tags after an unclosed svg or math element", () => {
+    const html = '<svg><circle><meta property="og:title" content="After svg"><math><link rel="icon" href="/i.png">';
+    const head = extractHead(html, "https://example.com/");
+    expect(head.title).toBe("After svg");
+    expect(head.favicon).toBe("https://example.com/i.png");
+  });
+
+  it("ignores tags inside a template", () => {
+    const html = '<template><meta property="og:title" content="Template"><title>X</title></template><title>Real</title>';
+    expect(extractHead(html, "https://example.com/").title).toBe("Real");
+  });
+
+  it("reads tags inside noscript", () => {
+    const html = '<noscript><meta property="og:image" content="/n.png"></noscript>';
+    expect(extractHead(html, "https://example.com/").thumbnail).toBe("https://example.com/n.png");
+  });
+
+  it("strips control characters and bidi overrides from text", () => {
+    const html = '<title>a\u0000b&#1;c&#x202E;d\u2066e</title><meta name="description" content="x&#x7F;\u0085y">';
+    const head = extractHead(html, "https://example.com/");
+    expect(head.title).toBe("a\uFFFDbcde");
+    expect(head.description).toBe("xy");
+  });
+
   it("returns all nulls for empty input", () => {
     expect(extractHead("", "https://example.com/")).toEqual({
       title: null,
@@ -164,6 +198,7 @@ describe("isYouTube", () => {
     "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
     "https://youtube.com/watch?v=dQw4w9WgXcQ&t=42",
+    "https://www.youtube.com:443/watch?v=dQw4w9WgXcQ",
   ])("is true for the watch URL %s", (url) => {
     expect(isYouTube(url)).toBe(true);
   });
@@ -174,6 +209,10 @@ describe("isYouTube", () => {
     ["a playlist", "https://www.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI"],
     ["a watch URL without v", "https://www.youtube.com/watch"],
     ["a watch URL with empty v", "https://www.youtube.com/watch?v="],
+    ["a URL with userinfo", "https://user:pw@www.youtube.com/watch?v=dQw4w9WgXcQ"],
+    ["a non-default port", "https://www.youtube.com:8443/watch?v=dQw4w9WgXcQ"],
+    ["a non-http scheme", "ftp://www.youtube.com/watch?v=dQw4w9WgXcQ"],
+    ["an invalid video id", "https://www.youtube.com/watch?v=dQw4%20w9WgXcQ"],
     ["an uncanonicalised short", "https://www.youtube.com/shorts/dQw4w9WgXcQ"],
     ["a youtu.be link", "https://youtu.be/dQw4w9WgXcQ"],
     ["a look-alike host", "https://www.youtube.com.evil.example/watch?v=dQw4w9WgXcQ"],
@@ -226,6 +265,18 @@ describe("parseOEmbed", () => {
     });
   });
 
+  it("returns a null author and thumbnail when they are not strings", () => {
+    expect(parseOEmbed({ ...valid, author_name: 42, thumbnail_url: { url: "x" } })).toEqual({
+      ok: true,
+      data: { title: valid.title, author: null, thumbnail: null },
+    });
+  });
+
+  it("strips control characters and bidi overrides", () => {
+    const result = parseOEmbed({ ...valid, title: "a\u0000b\u202Ec", author_name: "Ri\u2066ck\u0007" });
+    expect(result.ok && result.data).toMatchObject({ title: "abc", author: "Rick" });
+  });
+
   it("returns a null thumbnail for a non-http URL", () => {
     const result = parseOEmbed({ ...valid, thumbnail_url: "javascript:alert(1)" });
     expect(result.ok && result.data.thumbnail).toBeNull();
@@ -243,7 +294,6 @@ describe("parseOEmbed", () => {
     ["a missing title", { author_name: "Rick Astley" }],
     ["a non-string title", { title: 42 }],
     ["a blank title", { title: "   " }],
-    ["a non-string author", { title: "x", author_name: { name: "Rick" } }],
   ])("returns a malformed failure for %s", (_label, json) => {
     expect(parseOEmbed(json)).toEqual({ ok: false, reason: "malformed" });
   });
