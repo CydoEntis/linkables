@@ -30,7 +30,7 @@ export function checkTestDatabaseUrl(url: string): string {
   return url;
 }
 
-function testDatabaseUrl(): string {
+export function testDatabaseUrl(): string {
   const fromFile = existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf8")).TEST_DATABASE_URL : undefined;
   const url = process.env.TEST_DATABASE_URL ?? fromFile;
   if (!url) {
@@ -42,7 +42,7 @@ function testDatabaseUrl(): string {
   return checkTestDatabaseUrl(url);
 }
 
-async function migrateTestDb(url: string) {
+export async function migrateTestDb(url: string) {
   // The migrator's "already exists, skipping" notices are expected on every run.
   const sql = postgres(url, { onnotice: () => undefined });
   try {
