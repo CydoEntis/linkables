@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { parseEnv } from "./config/env";
+import { createLogger } from "./log/logger";
 
 const env = parseEnv(process.env);
 if (!env.ok) {
@@ -8,6 +9,8 @@ if (!env.ok) {
   process.exit(1);
 }
 
-serve({ fetch: createApp().fetch, port: env.config.port }, (info) => {
-  console.log(`api listening on http://localhost:${String(info.port)}`);
+const logger = createLogger(env.config.logLevel);
+
+serve({ fetch: createApp({ logger }).fetch, port: env.config.port }, (info) => {
+  logger.info("api listening", { port: info.port });
 });

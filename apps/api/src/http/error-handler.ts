@@ -1,6 +1,7 @@
 import { HTTP_STATUS } from "@linkaroo/shared/http";
-import type { Context, ErrorHandler, NotFoundHandler } from "hono";
+import type { ErrorHandler, NotFoundHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
+import type { Logger } from "../log/logger";
 import { fail } from "./envelope";
 import type { AppEnv } from "./env";
 import {
@@ -28,14 +29,19 @@ function fromHttpException(exception: HTTPException): ApiError {
   }
 }
 
-function toApiError(err: Error, c: Context<AppEnv>): ApiError {
+function toKnownError(err: Error): ApiError | undefined {
   if (err instanceof ApiError) return err;
   if (err instanceof HTTPException) return fromHttpException(err);
-  // shortcut: console until the redacting logger exists.
-  console.error(`[${c.get("requestId")}] unexpected error`, err);
-  return new InternalError("Internal server error");
+  return undefined;
 }
 
-export const onError: ErrorHandler<AppEnv> = (err, c) => fail(c, toApiError(err, c));
+export function onError(logger: Logger): ErrorHandler<AppEnv> {
+  return (err, c) => {
+    const known = toKnownError(err);
+    if (known) return fail(c, known);
+    logger.error("unexpected error", { requestId: c.get("requestId"), err });
+    return fail(c, new InternalError("Internal server error"));
+  };
+}
 
 export const notFound: NotFoundHandler<AppEnv> = (c) => fail(c, new NotFoundError("Not found"));

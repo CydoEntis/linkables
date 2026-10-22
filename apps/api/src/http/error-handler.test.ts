@@ -1,15 +1,20 @@
 import { failureEnvelopeSchema } from "@linkaroo/shared/http";
 import { HTTPException } from "hono/http-exception";
-import { describe, expect, it, vi } from "vitest";
-import { createApp } from "../app";
+import { describe, expect, it } from "vitest";
+import { captureLogger, createTestApp } from "../../test/app";
+import type { Logger } from "../log/logger";
 import { ConflictError } from "./errors";
 
-function appThrowing(error: unknown) {
-  const app = createApp();
+function appThrowing(error: unknown, logger: Logger = captureLogger().logger) {
+  const app = createTestApp({ logger });
   app.get("/throws", () => {
     throw error;
   });
   return app;
+}
+
+function errorEntry(lines: string[]) {
+  return lines.map((line) => JSON.parse(line) as { level: string }).find((entry) => entry.level === "error");
 }
 
 async function failureOf(res: Response) {
@@ -18,14 +23,13 @@ async function failureOf(res: Response) {
 
 describe("error handling", () => {
   it("returns 404 NOT_FOUND for an unknown /api/v1 path", async () => {
-    const res = await createApp().request("/api/v1/does-not-exist");
+    const res = await createTestApp().request("/api/v1/does-not-exist");
 
     expect(res.status).toBe(404);
     expect((await failureOf(res)).error.code).toBe("NOT_FOUND");
   });
 
   it("returns 500 INTERNAL without a stack for an unexpected error", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
     const res = await appThrowing(new Error("db password is hunter2")).request("/throws");
 
     expect(res.status).toBe(500);
@@ -37,7 +41,6 @@ describe("error handling", () => {
   });
 
   it("returns 500 INTERNAL with a request id when a non-Error value is thrown", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
     const res = await appThrowing("db password is hunter2").request("/throws");
 
     expect(res.status).toBe(500);
@@ -45,6 +48,26 @@ describe("error handling", () => {
     const text = await res.text();
     expect(failureEnvelopeSchema.parse(JSON.parse(text)).error.code).toBe("INTERNAL");
     expect(text).not.toContain("hunter2");
+  });
+
+  it("logs an unexpected error with its request id", async () => {
+    const { logger, lines } = captureLogger();
+    const res = await appThrowing(new Error("db down"), logger).request("/throws");
+
+    const entry = errorEntry(lines);
+    expect(entry).toMatchObject({
+      msg: "unexpected error",
+      requestId: res.headers.get("X-Request-Id"),
+      err: { message: "db down" },
+    });
+  });
+
+  it("logs a thrown non-Error value as the cause", async () => {
+    const { logger, lines } = captureLogger();
+    await appThrowing("plain string", logger).request("/throws");
+
+    const entry = errorEntry(lines);
+    expect(entry).toMatchObject({ err: { cause: "plain string" } });
   });
 
   it("serves a thrown error subclass with its code and status", async () => {
