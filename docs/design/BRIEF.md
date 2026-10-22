@@ -205,6 +205,11 @@ Every API error carries one of these codes; draw a treatment for each that appli
 - Extension sign-in: code entry inside the popup, or hand-off to the web app.
 
 ### 6.2 Phone
+
+Moved to Phase 1 (2026-10-22): the Android share target, the bookmark button,
+the iPhone Shortcut and drag and drop are Tier A now. Design prompt:
+`docs/design/PROMPT-save-anywhere.md`.
+
 - **PWA install**: Android install button; iPhone "Share → Add to Home Screen"
   hint sheet (iPhone has no install prompt).
 - **Android share target**: share a link from any app → a small "Saved to Inbox"

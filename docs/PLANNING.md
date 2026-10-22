@@ -90,13 +90,15 @@ Each rule names a check. None can pass yet because no code exists.
 
 - Objective: a usable personal link library on desktop and mobile browsers.
 - In: auth; save URL; async metadata fetch; Inbox; collections; Postgres full-text
-  search; sort and filter; JSON export of the user's links; responsive web UI.
-- Deferred: browser extension, PWA share target, any sharing.
+  search; sort and filter; JSON export of the user's links; responsive web UI;
+  saving without copy and paste (Android share target, bookmark button, iPhone
+  Shortcut, drag and drop), added 2026-10-22 because saving must be effortless.
+- Deferred: browser extension, any sharing.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
 - Tickets: Plane project `linkaroo` (LNK), workspace `ideayard`, project id
-  `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 26 tickets, revised 2026-10-21 after the
-  second Opus 5.5 audit.
+  `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 29 tickets, revised 2026-10-21 after the
+  second Opus 5.5 audit; P1-23 to P1-25 added 2026-10-22.
 - Supabase project: `linkaroo`, ref `tiechzmcvmdlceyovskg`, region `us-east-1`,
   free plan, created 2026-10-22 (ES256 signing key by default).
 - **Blockers live only in each ticket body's `Blocked by:` line.** Do not create
@@ -118,6 +120,8 @@ Each rule names a check. None can pass yet because no code exists.
   | P1-10 Inbox list | LNK-10 | P1-20 [owner] provision server | LNK-24 |
   | P1-11 search | LNK-11 | P1-21 [owner] Supabase project | LNK-25 |
   | P1-12 sort and filter | LNK-12 | P1-22 e2e test harness | LNK-26 |
+  | P1-23 `/save` page, installable app, Android share | LNK-27 | P1-24 bookmark button | LNK-28 |
+  | P1-25 iPhone Shortcut, Save from anywhere page | LNK-29 | | |
 
   - Critical path to the success condition (P1-18 and P1-14a both done):
     P1-01 → P1-17 → P1-02 → P1-05 → P1-10 → P1-14a, where P1-14a also needs
@@ -125,19 +129,19 @@ Each rule names a check. None can pass yet because no code exists.
     → P1-07, plus the owner tasks P1-21 → P1-20.
   - First point you can stop with a useful product: **P1-18 + P1-14a** (save at
     home, see it in the Inbox at work). Phase 1's exit adds P1-09 → P1-12 → P1-14c,
-    P1-14b, P1-14d, and P1-11 + P1-13 + P1-15 → P1-19, all ending at P1-16.
+    P1-14b, P1-14d, P1-11 + P1-13 + P1-15 → P1-19, and P1-23 → P1-24 → P1-25
+    (P1-23 needs P1-03b and P1-14a), all ending at P1-16.
   - P1-04, P1-06 and P1-17 can start right after P1-01; P1-08 after P1-04. P1-16, P1-20 and
     P1-21 are yours, not an agent's; do P1-21 early, since P1-20 and P1-18 wait on it.
   - Rules not yet true: see Rules above.
 
-### Phase 2 — Chrome extension and PWA share target
+### Phase 2 — Chrome extension
 
-- Objective: saving tabs and phone links is effortless.
+- Objective: saving tabs is effortless.
 - In: save current tab, selected tabs, a whole window; choose Inbox or collection;
-  detect already-saved URLs; close tabs only after confirmed save; PWA share target;
-  the extension's Supabase token flow.
-- Exit: a 50-tab save in one pass loses no tabs, and the phone share sheet saves
-  reliably on Android and iOS.
+  detect already-saved URLs; close tabs only after confirmed save; the extension's
+  Supabase token flow. (The phone share target moved to Phase 1 as P1-23.)
+- Exit: a 50-tab save in one pass loses no tabs.
 - Tickets: none (outline only).
 
 ### Phase 3 — Sharing and collaboration
