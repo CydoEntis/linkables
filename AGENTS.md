@@ -7,8 +7,8 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
 ## Dev Deck
 
 - **Stack:** TypeScript on Node. Vite + React SPA (web and PWA), Chrome MV3
-  extension (Phase 2), one Node API (Hono or Fastify), Postgres via Drizzle on
-  Supabase (Postgres + Auth). Source: ADR-0001, ADR-0002.
+  extension (Phase 2), one Node API on Hono (also runs the worker loop), Postgres
+  via Drizzle on Supabase (Postgres + Auth). Source: ADR-0001, ADR-0002.
 - **House style:** the shared conventions apply: vertical slice, colocation,
   small explicit functions, DRY/KISS, WHY-not-WHAT comments.
 - **Commits:** `feat(scope): ...` / `fix(scope): ...`, one logical change per
@@ -18,14 +18,13 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
   - Validate every request body and every external response at the boundary
     (e.g. with Zod); trust the types inside.
   - All data access goes through the API and is scoped to the signed-in user.
-    No query returns another user's rows (plan Rule 2).
+    No query returns another user's rows (plan Rule 3).
   - Anything that fetches a user-supplied URL goes through the SSRF-guarded
     fetcher from ADR-0003. Never call `fetch` on a saved URL directly.
   - Migrations are Drizzle migrations, committed, and never edited after merge.
   - React: function components; server state in TanStack Query.
 - **API contract:** the web app and the extension are clients of the one API.
   The API is the source of truth; shared types live in the shared package.
-- **Verify:** not defined yet. P1-01 (scaffold) sets the `test` and `build`
-  commands; update this line then.
+- **Verify:** `pnpm verify` (typecheck + lint + test), not yet: P1-01 creates it.
 - **Pipeline:** feature work goes through the pipeline skill
   (planner → builder → reviewer). Quick fixes can be done in-session.

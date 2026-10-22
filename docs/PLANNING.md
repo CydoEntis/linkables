@@ -3,8 +3,8 @@
 Source of truth for scope and order. Records (ADRs, glossary, tickets) are linked
 here, never copied in. Last checked against code: not yet (no code exists).
 
-**Verify:** not yet (no code).
-**Base branch:** not yet (no repo).
+**Verify:** `pnpm verify` — not yet: P1-01 creates it.
+**Base branch:** `main` (origin `CydoEntis/linkaroo`).
 
 ## Goal
 
@@ -17,25 +17,48 @@ from the work computer, with no Discord message and no open tab.
 - Phase 1 is planned in full. Phases 2 to 6 are outlines and get tickets only
   when they become the active phase.
 - Architecture: modular monolith. Vite React SPA (web and PWA), Chrome MV3
-  extension sharing UI code, one TypeScript Node API (Hono or Fastify), Postgres
-  via Drizzle, hosted on Supabase for Postgres and Auth. No Supabase Storage in
-  the MVP. Marketing site deferred.
+  extension sharing UI code, one TypeScript Node API on Hono that also runs the
+  worker loop, Postgres via Drizzle on Supabase (Postgres + Auth). No Supabase
+  Storage in the MVP. Marketing site deferred.
+- Sign-in in Phase 1: email magic link / OTP.
+- Hosting: one long-running container; the owner intends a DigitalOcean server.
 
 ## Decisions
 
-- Modular monolith with one API; SPA clients. Rejected: Next.js full-stack,
-  microservices. → [ADR-0001](adr/0001-modular-monolith-spa-clients.md)
-- Supabase for Postgres and Auth; no object storage in MVP; thumbnails stored as
-  remote URLs. Rejected: Supabase edge functions for fetching.
-  → [ADR-0002](adr/0002-supabase-postgres-and-auth.md)
-- Metadata fetching runs in the Node API behind an SSRF guard, with a DB-backed
-  job table. → [ADR-0003](adr/0003-metadata-fetch-design.md)
+- Modular monolith, one Hono API that also runs the worker; SPA clients. Rejected:
+  Next.js full-stack, microservices, Fastify.
+  → [ADR-0001](adr/0001-modular-monolith-spa-clients.md)
+- Supabase for Postgres and Auth; the API verifies tokens and owns authorization;
+  Data API off; no object storage in MVP. Rejected: Supabase edge functions for
+  fetching. → [ADR-0002](adr/0002-supabase-postgres-and-auth.md)
+- Metadata fetching behind an SSRF guard that checks inside the DNS lookup, with a
+  DB-backed job table; YouTube via oEmbed. Rules out Redis/BullMQ in the MVP.
+  → [ADR-0003](adr/0003-metadata-fetch-design.md)
+- Shared `resource`, per-user `saved_link`; Inbox is derived. Rules out one shared
+  row carrying user edits. → [ADR-0004](adr/0004-data-model.md)
+- One long-running container for API and worker; never serverless.
+  → [ADR-0005](adr/0005-hosting.md)
 
 ## Rules
 
-- Metadata fetching refuses private, loopback and link-local addresses.
-  not yet: Phase 1 metadata ticket
-- A user can read only their own resources in Phase 1. not yet: Phase 1 auth ticket
+Each rule names a check. None can pass yet because no code exists.
+
+1. Outbound fetches refuse private, loopback, link-local, CGNAT, multicast and
+   IPv4-mapped addresses, on every redirect hop.
+   Check: `pnpm --filter api test fetcher`. not yet: P1-06
+2. No code outside `apps/api/src/metadata/fetcher.ts` makes outbound HTTP.
+   Check: ESLint `no-restricted-globals: fetch` and `no-restricted-imports:
+   undici, node:http, node:https` in `apps/api` excluding that file; `pnpm lint`.
+   not yet: P1-06
+3. Every route except `/health` needs a valid Supabase JWT, and every query is
+   scoped to `sub`. Check: `apps/api/test/authz.test.ts`. not yet: P1-03a, P1-19
+4. The database is reachable only through the API.
+   Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
+   project. not yet: P1-02
+5. Saving never waits on a network fetch.
+   Check: the P1-05 test with the fetcher hanging. not yet: P1-05
+6. Logs never contain a URL's query string or fragment.
+   Check: the logger test from P1-17. not yet: P1-17
 
 ## Glossary
 
@@ -48,13 +71,14 @@ from the work computer, with no Discord message and no open tab.
 - Billing and team plans (Phase 5)
 - Native mobile apps, nested collections, marketing site (Phase 6 or later)
 - Firefox extension
+- Tags, archive, bulk actions, account deletion (not asked for; add when wanted)
 
 ## Phases
 
-### Phase 0 — Definition  *(done: ADR-0001 to ADR-0003 and CONTEXT.md written and linked)*
+### Phase 0 — Definition  *(done: ADR-0001 to ADR-0005 and CONTEXT.md written and linked)*
 
 - Objective: the decisions in this plan are recorded and the glossary exists.
-- Exit: ADR-0001 to ADR-0003 and CONTEXT.md are written and linked here.
+- Exit: ADRs and CONTEXT.md are written and linked here.
 
 ### Phase 1 — Personal MVP  *(active)*
 
@@ -68,16 +92,17 @@ from the work computer, with no Discord message and no open tab.
   `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`: LNK-1 to LNK-16, titled P1-01 to P1-16.
   Blockers are native Plane relations (set via `work-items/{id}/relations/`) and are
   also written in each ticket body.
-  - Critical path to the success check: P1-01 → P1-02 → P1-03 → P1-05 → P1-10 → P1-11 → P1-14 → P1-16.
-  - P1-04 and P1-06 can start right after P1-01. P1-15 is off the critical path.
-  - First point you can stop and have a useful product: P1-16 (the exit condition).
-  - Rules not yet true: SSRF refusal is made true by P1-06; per-user read access by P1-03.
+  **Revision pending:** the Opus review proposes splitting, adding and re-blocking
+  tickets; the list below is the original filing until step 2 is approved.
+  - Critical path (original): P1-01 → P1-02 → P1-03 → P1-05 → P1-10 → P1-11 → P1-14 → P1-16.
+  - Rules not yet true: see Rules above.
 
 ### Phase 2 — Chrome extension and PWA share target
 
 - Objective: saving tabs and phone links is effortless.
 - In: save current tab, selected tabs, a whole window; choose Inbox or collection;
-  detect already-saved URLs; close tabs only after confirmed save; PWA share target.
+  detect already-saved URLs; close tabs only after confirmed save; PWA share target;
+  the extension's Supabase token flow.
 - Exit: a 50-tab save in one pass loses no tabs, and the phone share sheet saves
   reliably on Android and iOS.
 - Tickets: none (outline only).
@@ -86,7 +111,7 @@ from the work computer, with no Discord message and no open tab.
 
 - Objective: coworkers and friends can use shared collections.
 - In: share links and collections; roles (owner, editor, viewer); invitations;
-  follow collections; contributor attribution.
+  follow collections; contributor attribution; custom SMTP so others can sign up.
 - Exit: private resources do not leak through API, search or metadata endpoints.
 - Tickets: none (outline only).
 
@@ -116,6 +141,8 @@ from the work computer, with no Discord message and no open tab.
 
 - ADRs: [0001](adr/0001-modular-monolith-spa-clients.md),
   [0002](adr/0002-supabase-postgres-and-auth.md),
-  [0003](adr/0003-metadata-fetch-design.md)
+  [0003](adr/0003-metadata-fetch-design.md),
+  [0004](adr/0004-data-model.md),
+  [0005](adr/0005-hosting.md)
 - Glossary: [CONTEXT.md](../CONTEXT.md)
 - Source brief: [brief.md](brief.md) (the original request, kept for reference)

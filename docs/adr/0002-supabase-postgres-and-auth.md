@@ -1,17 +1,18 @@
-# ADR-0002: Supabase for Postgres and Auth; no object storage in the MVP
+# ADR-0002: Supabase for Postgres and Auth; authorization lives only in the API
 
-**Status:** proposed (accept with the plan)
+**Status:** accepted (2026-10-21)
 
 ## Problem
 
 The app needs Postgres, sign-in that works from the web app, the extension and
 the PWA, and somewhere to keep thumbnails. The owner is a solo developer, so
-operational load matters more than vendor independence.
+operational load matters more than vendor independence. The web app ships
+Supabase's public (anon) key, so any second route into the data must be closed.
 
 ## Options
 
-1. **Supabase: Postgres + Auth (chosen).** Managed Postgres, managed email and
-   OAuth sign-in, token refresh, and row-level security if needed later.
+1. **Supabase: Postgres + Auth (chosen).** Managed Postgres, managed sign-in, token
+   refresh.
 2. **Self-hosted Postgres + managed auth (Clerk or similar).** Keeps auth portable,
    adds a second vendor.
 3. **Supabase for everything, including fetching in edge functions.** Rejected for
@@ -26,18 +27,50 @@ Option 1. Supabase provides Postgres and Auth. The Node API performs all metadat
 fetching and any server-side calls. Thumbnails are stored as remote URLs. No
 Supabase Storage in the MVP.
 
+**Token verification.** The API verifies Supabase access tokens itself.
+Asymmetric JWT signing keys are enabled on the project (the JWKS endpoint returns
+no keys otherwise). The API checks the signature against
+`https://<ref>.supabase.co/auth/v1/.well-known/jwks.json` (Hono `jwk` middleware or
+`jose` `createRemoteJWKSet`), plus `iss = https://<ref>.supabase.co/auth/v1`,
+`aud = authenticated` and `exp`. `sub` is the user id. The extension's token flow
+is a Phase 2 ticket.
+
+**Authorization.** Authorization lives only in the API. The API connects with the
+postgres role through Drizzle. The **Supabase Data API is disabled**. As a
+backstop, RLS is enabled on every table in `public` with no policies. The browser
+uses supabase-js only for Auth.
+
+**Database access.** Runtime: `postgres-js` + Drizzle over the Supavisor shared
+pooler with `prepare: false`, so it works in transaction mode. Migrations:
+`drizzle-kit` over the session pooler, because the direct connection is IPv6-only
+without the paid add-on. `user_id` is a plain `uuid` equal to the JWT `sub`, with
+**no foreign key to `auth.users`**, so plain Postgres can run integration tests in
+CI.
+
+**Sign-in.** Phase 1 uses email magic link / OTP on Supabase's default SMTP. That
+works because it only delivers to project team addresses, which includes the
+owner. Custom SMTP is required before any other user signs up (Phase 3 beta).
+
 ## Reasoning
 
 - Postgres is portable: plain SQL, Drizzle migrations, pg_dump for backup.
-- Auth is the main lock-in. The extension needs a token flow against it, and that
-  flow is one of the Phase 1 tickets.
+- Verifying tokens in the API keeps all access rules in one tested place.
+- Closing the Data API removes the only other route to the tables.
 
 ## Tradeoffs
 
-- Auth and any RLS policies are tied to Supabase.
+- Auth is the main lock-in; moving off it means re-issuing tokens and sign-ins.
 - Remote thumbnails can break or leak referrers. Caching them is a later decision.
+- The default SMTP has a low hourly rate limit, which is fine for one user.
 
 ## Revisit when
 
-- Auth needs a provider Supabase does not offer.
+- Auth needs a provider Supabase does not offer, or a coworker needs to sign up
+  (custom SMTP).
 - Thumbnail or file storage becomes a real requirement.
+
+## Sources (verified 2026-10-21 against Supabase docs)
+
+JWT guide (JWKS, claims), Drizzle guide (Data API can be turned off), Connecting
+guide (direct connection IPv6-only; shared pooler IPv4), SMTP guide (default SMTP
+delivers to team addresses only).
