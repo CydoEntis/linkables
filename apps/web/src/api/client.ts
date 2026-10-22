@@ -1,8 +1,15 @@
-import { API_V1_PREFIX, ERROR_CODES, envelopeSchema, type ErrorCode } from "@linkaroo/shared/http";
+import {
+  API_V1_PREFIX,
+  ERROR_CODES,
+  failureEnvelopeSchema,
+  metaSchema,
+  type ErrorCode,
+} from "@linkaroo/shared/http";
 import { z } from "zod";
 
 export const NETWORK_ERROR = "NETWORK_ERROR";
-export type ApiErrorCode = ErrorCode | typeof NETWORK_ERROR;
+// "string & {}" keeps codes added to the API after this bundle shipped while known codes still narrow.
+export type ApiErrorCode = ErrorCode | typeof NETWORK_ERROR | (string & {});
 
 export class ApiError extends Error {
   override readonly name = "ApiError";
@@ -60,7 +67,17 @@ export function createApiClient(options: ApiClientOptions) {
   return { request };
 }
 
-const anyEnvelopeSchema = envelopeSchema(z.unknown());
+// Looser than the shared schemas on purpose: deployed bundles (the PWA keeps old
+// ones) must survive additive API changes, which the contract calls non-breaking.
+const clientMetaSchema = z.looseObject(metaSchema.shape);
+const anyEnvelopeSchema = z.discriminatedUnion("ok", [
+  z.looseObject({ ok: z.literal(true), data: z.unknown(), meta: clientMetaSchema }),
+  z.looseObject({
+    ok: z.literal(false),
+    error: z.looseObject({ ...failureEnvelopeSchema.shape.error.shape, code: z.string() }),
+    meta: clientMetaSchema,
+  }),
+]);
 
 async function parseEnvelope(response: Response) {
   return parseOrThrow(anyEnvelopeSchema, await readJson(response));
