@@ -9,3 +9,5 @@ export const LINK_VIEWS = ["all", "inbox"] as const;
 export const LIST_LIMIT_DEFAULT = 50;
 
 export const LIST_LIMIT_MAX = 100;
+
+export const SEARCH_QUERY_MAX_LENGTH = 200;
