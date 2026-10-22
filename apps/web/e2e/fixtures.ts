@@ -52,6 +52,8 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
       supabaseHits.push(route.request().url());
       return route.abort();
     });
+    // signOut({ scope: "local" }) still calls logout; Playwright tries the latest route first.
+    await context.route(`${SUPABASE_URL}/auth/v1/logout*`, (route) => route.fulfill({ status: 204 }));
     await use(context);
     expect(supabaseHits, "the app called the dummy Supabase origin").toEqual([]);
   },
