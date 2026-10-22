@@ -15,8 +15,21 @@ declare module "vitest" {
 const envFile = fileURLToPath(new URL("../.env", import.meta.url));
 const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
 
-// A separate variable from DATABASE_URL, because these tests truncate every
-// table and must never point at a database that holds real data.
+// These tests truncate every table, so refuse anything that could hold real
+// data: the database name must say it is a test database, and Supabase is never
+// a test host.
+export function checkTestDatabaseUrl(url: string): string {
+  if (!URL.canParse(url)) throw new Error("TEST_DATABASE_URL is not a valid URL.");
+  const { hostname, pathname } = new URL(url);
+  if (!pathname.slice(1).endsWith("_test")) {
+    throw new Error("TEST_DATABASE_URL's database name must end in _test.");
+  }
+  if (hostname.endsWith("supabase.com") || hostname.endsWith("supabase.co")) {
+    throw new Error("TEST_DATABASE_URL must not point at a Supabase host.");
+  }
+  return url;
+}
+
 function testDatabaseUrl(): string {
   const fromFile = existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf8")).TEST_DATABASE_URL : undefined;
   const url = process.env.TEST_DATABASE_URL ?? fromFile;
@@ -26,7 +39,7 @@ function testDatabaseUrl(): string {
         "TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/linkaroo_test (env or apps/api/.env).",
     );
   }
-  return url;
+  return checkTestDatabaseUrl(url);
 }
 
 async function migrateTestDb(url: string) {
