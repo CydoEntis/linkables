@@ -340,8 +340,8 @@ search → add it to a collection → open it.
 
 | # | Decision | Assumed here | Status |
 |---|---|---|---|
-| D1 | UI kit | Tailwind v4 + shadcn/ui (Base UI) + Lucide icons | Assumed; record as an ADR before M2 |
-| D2 | Figma plan | A paid seat with Dev Mode, so the Figma MCP server and Code Connect work | Confirm with the designer |
+| D1 | UI kit | Tailwind v4 + shadcn/ui (Base UI) + Lucide icons | Decided: ADR-0006 |
+| D2 | Design tool | Budget is $0, so no paid Figma seat. Designs come from a design tool using `docs/design/PROMPT.md`, delivered as code or HTML plus a theme CSS block. The Figma-specific rules in section 8 apply only if Figma is used. | Decided (2026-10-22) |
 | D3 | Sign-in | Phase 1 ships the magic link only; the code-entry screen is drawn now for Phase 2 | Revisit when the extension or iPhone app starts |
-| D4 | Brand | No existing logo, colours or fonts; the designer proposes them in M1 | Owner to confirm or supply |
-| D5 | Scope | Tiers A–D as in section 4 | Owner to confirm budget and dates |
+| D4 | Brand | No existing logo, colours or fonts; the design proposes them | Decided (2026-10-22) |
+| D5 | Scope | Tiers A–D as in section 4; no budget and no dates, so milestones are an order, not a schedule | Decided (2026-10-22) |
