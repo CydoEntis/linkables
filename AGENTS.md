@@ -9,14 +9,15 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
 - **Stack:** TypeScript on Node. Vite + React SPA (web and PWA), Chrome MV3
   extension (Phase 2), one Node API on Hono (also runs the worker loop), Postgres
   via Drizzle on Supabase (Postgres + Auth). Source: ADR-0001, ADR-0002.
-- **House style:** the shared Dev Deck conventions apply: vertical slice,
-  colocation, small explicit functions, DRY/KISS, WHY-not-WHAT comments, and its
-  definition of done. Read `conventions/code-style.md`, `conventions/commits.md`
-  and `conventions/contract.md` in the Dev Deck repo (`CydoEntis/dev-deck`; local
-  copy under `~/.claude/plugins/marketplaces/dev-deck/conventions/`).
-- **Playbooks:** pick the matching mode (new app, refactor, debug, system
-  design, performance, restructure, multi-agent build, UI component) from Dev
-  Deck `conventions/playbooks/README.md`. Its "Which rules win" order applies.
+- **House style:** the Dev Deck conventions apply (code-style, commits,
+  contract): vertical slice, colocation, functions split by job, DRY/KISS,
+  WHY-not-WHAT comments, and its definition of done. The developer plugin's
+  agents and skills load them from `${CLAUDE_PLUGIN_ROOT}/conventions/`; the
+  rules that matter most here are restated below.
+- **Task modes:** use the matching `playbook-*` skill (new-app, system-design,
+  multi-agent-build, understand-and-refactor, debug, performance, restructure,
+  ui-component). Rule order: the user's request, then this file and the ADRs,
+  then the Dev Deck conventions, then the playbook.
 - **Commits:** `feat(scope): ...` / `fix(scope): ...`, one logical change per
   commit, no `git add -A`, no ticket IDs in commit messages.
 - **Verify:** `pnpm verify` (typecheck + lint + test). not yet: P1-01 creates it.
@@ -42,8 +43,10 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
   message, details? }, meta }`, with `meta.requestId` mirrored in `X-Request-Id`.
 - Errors use the 8 registry codes (`VALIDATION`, `UNAUTHENTICATED`, `FORBIDDEN`,
   `NOT_FOUND`, `CONFLICT`, `RATE_LIMIT`, `UPSTREAM`, `INTERNAL`) via the error
-  subclasses and one top-level handler. Another user's row is `NOT_FOUND`, never
-  `FORBIDDEN` (don't leak existence). DELETE returns 200 with `data: null`.
+  subclasses and one top-level handler, which also maps Hono's own
+  `HTTPException`s. Clients branch on `error.code`, never on `message`.
+  Another user's row is `NOT_FOUND`, never `FORBIDDEN` (don't leak existence).
+  DELETE returns 200 with `data: null`.
 - Routes mount under `/api/v1`. **Paths in tickets are relative to that
   prefix** (`POST /links` means `POST /api/v1/links`). Only `GET /health` is
   unversioned. Pagination lives inside `data` as `{ items, cursor }`.
@@ -58,7 +61,8 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
   a two-user test and an entry in `apps/api/test/authz.test.ts`.
 - Anything that fetches a user-supplied URL goes through the SSRF-guarded
   fetcher (ADR-0003, `apps/api/src/metadata/fetcher.ts`). Never call `fetch` on a
-  saved URL directly; never weaken the guard to make a test pass.
+  saved URL directly; never weaken the guard to make a test pass. The fetcher
+  never forwards `X-Request-Id` or `traceparent` to saved URLs.
 - The test auth path (`AUTH_TEST_JWKS`, the committed test key pair) works only
   with `NODE_ENV=test`. Never add another way around token verification.
 - Logs never contain a URL's query string or fragment; use the redacting logger.
