@@ -15,7 +15,7 @@ const restrictImports = (names, patterns = []) => [
 const API_OUTBOUND_MODULES = ["undici", "http", "https", "http2", "node:http", "node:https", "node:http2"];
 
 export default defineConfig(
-  { ignores: ["**/dist/", "**/node_modules/"] },
+  { ignores: ["**/dist/", "**/node_modules/", "**/playwright-report/", "**/test-results/"] },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {

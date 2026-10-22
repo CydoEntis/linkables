@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "test": "pnpm -r test",
     "verify": "pnpm typecheck && pnpm lint && pnpm test",
+    "e2e": "pnpm --filter web e2e",
     "db:migrate": "pnpm --filter api db:migrate"
   },
   "devDependencies": {
