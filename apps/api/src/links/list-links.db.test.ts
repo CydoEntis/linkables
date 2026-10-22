@@ -1,4 +1,4 @@
-import { successEnvelopeSchema } from "@linkaroo/shared/http";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkaroo/shared/http";
 import { listLinksResponseSchema } from "@linkaroo/shared/links";
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
@@ -53,9 +53,10 @@ async function seedLinks(user: TestUser, count: number): Promise<string[]> {
   return ids.reverse();
 }
 
-async function fileInCollection(user: TestUser, linkIds: string[]) {
-  const col = only(await db.insert(collection).values({ userId: user.id, name: "Reading" }).returning());
+async function fileInCollection(user: TestUser, linkIds: string[], name = "Reading"): Promise<string> {
+  const col = only(await db.insert(collection).values({ userId: user.id, name }).returning());
   await db.insert(collectionItem).values(linkIds.map((savedLinkId) => ({ collectionId: col.id, savedLinkId })));
+  return col.id;
 }
 
 async function list(user: TestUser, query = "") {
@@ -165,5 +166,25 @@ describe("GET /links", () => {
 
     expect(await walk(b, "limit=1")).toEqual(own);
     expect(await walk(b, "view=inbox&limit=1")).toEqual(own);
+  });
+});
+
+describe("GET /links?collectionId", () => {
+  it("pages through only that collection's links", async () => {
+    const ids = await seedLinks(a, 6);
+    const filed = ids.filter((_, i) => i % 2 === 0);
+    const col = await fileInCollection(a, filed);
+    await fileInCollection(a, ids.slice(1, 2), "Later");
+
+    expect(await walk(a, `collectionId=${col}&limit=2`)).toEqual(filed);
+  });
+
+  it("returns NOT_FOUND for another user's collection", async () => {
+    const col = await fileInCollection(a, await seedLinks(a, 1));
+
+    const res = await app.request(`/api/v1/links?collectionId=${col}`, { headers: b.headers });
+
+    expect(res.status).toBe(404);
+    expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("NOT_FOUND");
   });
 });
