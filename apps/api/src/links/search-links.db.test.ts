@@ -87,6 +87,32 @@ describe("GET /links?q=", () => {
     expect(await ids(a, "github.com")).toEqual([hit]);
   });
 
+  it("finds a link by a title word and a host word together", async () => {
+    const hit = await seed(a, { url: "https://github.com/facebook/react", title: "React" });
+    await seed(a, { url: "https://example.com/react", title: "React elsewhere" });
+
+    expect(await ids(a, "react github")).toEqual([hit]);
+  });
+
+  it("finds a link by words from different parts of its host", async () => {
+    const hit = await seed(a, { url: "https://docs.github.com/en", title: "Manual" });
+    await seed(a, { url: "https://github.com/about", title: "About" });
+
+    expect(await ids(a, "docs github")).toEqual([hit]);
+  });
+
+  it("finds a link by a tab-separated query", async () => {
+    const hit = await seed(a, { url: "https://example.com/1", title: "Tabbed words" });
+
+    expect(await ids(a, "tabbed\twords")).toEqual([hit]);
+  });
+
+  it.each(["the", "!", "🦊"])("returns no error for a query with no searchable words: %s", async (q) => {
+    await seed(a, { url: "https://example.com/1", title: "The fox" });
+
+    await search(a, `q=${encodeURIComponent(q)}`);
+  });
+
   it("finds a link by a fragment of its URL path", async () => {
     const hit = await seed(a, { url: "https://example.com/docs/websearch-tsquery", title: "Docs" });
     await seed(a, { url: "https://example.com/blog", title: "Blog" });
