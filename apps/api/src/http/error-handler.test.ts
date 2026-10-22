@@ -62,6 +62,16 @@ describe("error handling", () => {
     });
   });
 
+  it("logs the original message, redacted, when the error cannot be serialized as-is", async () => {
+    const { logger, lines } = captureLogger();
+    const err = new Error("GET https://a.test/p?token=SECRET failed");
+    err.cause = err;
+    await appThrowing(err, logger).request("/throws");
+
+    expect(lines.join("\n")).not.toContain("SECRET");
+    expect(errorEntry(lines)).toMatchObject({ err: { message: "GET https://a.test/p failed" } });
+  });
+
   it("logs a thrown non-Error value as the cause", async () => {
     const { logger, lines } = captureLogger();
     await appThrowing("plain string", logger).request("/throws");
