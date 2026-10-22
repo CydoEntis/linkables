@@ -64,6 +64,13 @@ describe("POST /links", () => {
     expect(await db.$count(job)).toBe(1);
   });
 
+  it("stores the submitted url without surrounding whitespace", async () => {
+    const res = await save(createTestApp({ db }), a, "  https://example.com/post \n");
+
+    expect(res.status).toBe(201);
+    expect((await saved(res)).originalUrl).toBe("https://example.com/post");
+  });
+
   it("dedupes urls that differ only by tracking params", async () => {
     const app = createTestApp({ db });
     const first = await saved(await save(app, a, "https://example.com/post?utm_source=x"));

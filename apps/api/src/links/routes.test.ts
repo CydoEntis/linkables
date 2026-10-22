@@ -61,6 +61,10 @@ describe("POST /links validation", () => {
     });
   });
 
+  it("rejects a url that is only whitespace", async () => {
+    await expectValidationError(await post(JSON.stringify({ url: "   " })));
+  });
+
   it("rejects a request without a token", async () => {
     const res = await post(JSON.stringify({ url: "https://example.com" }), {});
 
