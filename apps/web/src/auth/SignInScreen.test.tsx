@@ -9,11 +9,11 @@ import type { LinkProblem } from "./link-landing";
 const signInWithOtp = vi.hoisted(() => vi.fn());
 vi.mock("./supabase", () => ({ supabase: { auth: { signInWithOtp } } }));
 
-function renderScreen(linkProblem: LinkProblem | null = null) {
+function renderScreen(linkProblem: LinkProblem | null = null, focusHeading = false) {
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <SignInScreen linkProblem={linkProblem} />
+      <SignInScreen linkProblem={linkProblem} focusHeading={focusHeading} />
     </QueryClientProvider>,
   );
 }
@@ -40,6 +40,31 @@ describe("SignInScreen", () => {
       email: "owner@example.com",
       options: { emailRedirectTo: "http://localhost:5173/" },
     });
+  });
+
+  it("moves focus to the check-your-email heading after a link is sent", async () => {
+    signInWithOtp.mockResolvedValue({ data: {}, error: null });
+    renderScreen();
+    await submitEmail("owner@example.com");
+    expect(await screen.findByRole("heading", { name: "Check your email" })).toHaveFocus();
+  });
+
+  it("moves focus to the sign-in heading on Use a different email", async () => {
+    signInWithOtp.mockResolvedValue({ data: {}, error: null });
+    renderScreen();
+    const user = await submitEmail("owner@example.com");
+    await user.click(await screen.findByRole("button", { name: "Use a different email" }));
+    expect(screen.getByRole("heading", { name: "Sign in to linkaroo" })).toHaveFocus();
+  });
+
+  it("focuses the sign-in heading when it replaces the signed-in screen", () => {
+    renderScreen(null, true);
+    expect(screen.getByRole("heading", { name: "Sign in to linkaroo" })).toHaveFocus();
+  });
+
+  it("leaves focus alone on a fresh page load", () => {
+    renderScreen();
+    expect(screen.getByRole("heading", { name: "Sign in to linkaroo" })).not.toHaveFocus();
   });
 
   it("goes back to the form with the address kept on Use a different email", async () => {
