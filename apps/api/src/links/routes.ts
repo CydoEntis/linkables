@@ -14,6 +14,7 @@ import { ok } from "../http/envelope";
 import { ValidationError } from "../http/errors";
 import { parseWith } from "../http/validate";
 import { decodeCursor } from "./cursor";
+import { deleteLink } from "./delete-link";
 import { listLinks } from "./list-links";
 import { rateLimitPerUser } from "./rate-limit";
 import { saveLink } from "./save-link";
@@ -82,5 +83,9 @@ export function linkRoutes({ db, now }: LinkRoutesDeps) {
         });
         return ok(c, link);
       },
-    );
+    )
+    .delete("/links/:id", validator("param", parseWith(linkParamSchema, "Invalid link id")), async (c) => {
+      await deleteLink(db, { userId: c.get("userId"), linkId: c.req.valid("param").id });
+      return ok(c, null);
+    });
 }
