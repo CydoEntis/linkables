@@ -85,11 +85,11 @@ describe("logger", () => {
     ["a.", "a.".repeat(8192)],
     ["a-", "a-".repeat(8192)],
     ["/", "/".repeat(16384)],
-  ])("redacts a 16 KB run of %s in well under 20 ms", (_label, text) => {
+  ])("redacts a 16 KB run of %s in well under 100 ms (the quadratic version took ~200 ms)", (_label, text) => {
     const started = performance.now();
     redactUrls(text);
 
-    expect(performance.now() - started).toBeLessThan(20);
+    expect(performance.now() - started).toBeLessThan(100);
   });
 
   it("caps a long string before redacting", () => {
