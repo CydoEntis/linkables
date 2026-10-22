@@ -38,6 +38,8 @@ from the work computer, with no Discord message and no open tab.
   row carrying user edits. → [ADR-0004](adr/0004-data-model.md)
 - One long-running container for API and worker; never serverless.
   → [ADR-0005](adr/0005-hosting.md)
+- Web UI on Tailwind CSS v4 and shadcn/ui (Base UI), Lucide icons; design brief
+  and prompt in `docs/design/`. → [ADR-0006](adr/0006-ui-kit.md)
 - The API follows the Dev Deck API contract (envelope, 8 error codes, `/api/v1`
   prefix); P1-01 builds it. → `AGENTS.md`, API contract
 
@@ -174,6 +176,8 @@ Each rule names a check. None can pass yet because no code exists.
   [0002](adr/0002-supabase-postgres-and-auth.md),
   [0003](adr/0003-metadata-fetch-design.md),
   [0004](adr/0004-data-model.md),
-  [0005](adr/0005-hosting.md)
+  [0005](adr/0005-hosting.md),
+  [0006](adr/0006-ui-kit.md)
+- Design: [brief](design/BRIEF.md), [prompt](design/PROMPT.md)
 - Glossary: [CONTEXT.md](../CONTEXT.md)
 - Source brief: [brief.md](brief.md) (the original request, kept for reference)

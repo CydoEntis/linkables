@@ -8,7 +8,8 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
 
 - **Stack:** TypeScript on Node. Vite + React SPA (web and PWA), Chrome MV3
   extension (Phase 2), one Node API on Hono (also runs the worker loop), Postgres
-  via Drizzle on Supabase (Postgres + Auth). Source: ADR-0001, ADR-0002.
+  via Drizzle on Supabase (Postgres + Auth). Web UI: Tailwind CSS v4 + shadcn/ui,
+  Lucide icons; screens follow `docs/design/`. Source: ADR-0001, ADR-0002, ADR-0006.
 - **House style:** the Dev Deck conventions apply (code-style, commits,
   contract): vertical slice, colocation, functions split by job, DRY/KISS,
   WHY-not-WHAT comments, and its definition of done. The developer plugin's
