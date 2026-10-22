@@ -1,8 +1,8 @@
 # linkaroo — Plan
 
 Source of truth for scope and order. Records (ADRs, glossary, tickets) are linked
-here, never copied in. Last checked against code: 2026-10-22, after P1-01, P1-02, P1-03a, P1-04,
-P1-06, P1-08 and P1-17 merged.
+here, never copied in. Last checked against code: 2026-10-22, after P1-01 to P1-11, P1-13, P1-17 and
+P1-22 merged.
 
 **Verify:** `pnpm verify` (DB tests need `docker compose up -d` and
 `TEST_DATABASE_URL`; see README).
@@ -65,7 +65,8 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
    Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
    project (turned off 2026-10-22).
 5. Saving never waits on a network fetch.
-   Check: the P1-07 test with the fetcher hanging. not yet: P1-07
+   Check: the Rule 5 test in `apps/api/src/metadata/worker.db.test.ts` (fetcher
+   hanging, `POST /links` still returns 201 within 500 ms).
 6. Logs never contain a URL's query string or fragment.
    Check: the logger tests in `apps/api/src/log/logger.test.ts`.
 
