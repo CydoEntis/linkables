@@ -18,7 +18,7 @@ export type AppDeps = {
 };
 
 export function createApp({ logger, corsOrigins, auth }: AppDeps) {
-  const v1 = new Hono<AuthEnv>().use(requireAuth(auth)).route("/", me);
+  const v1 = new Hono<AuthEnv>().use(requireAuth(auth, logger)).route("/", me);
 
   const app = new Hono<AppEnv>()
     .use(requestLog(logger))
