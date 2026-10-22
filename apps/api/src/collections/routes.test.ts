@@ -40,6 +40,9 @@ describe("collection request validation", () => {
   it.each([
     ["PATCH", "/collections/not-a-uuid"],
     ["DELETE", "/collections/not-a-uuid"],
+    ["PUT", `/collections/not-a-uuid/links/${SOME_ID}`],
+    ["PUT", `/collections/${SOME_ID}/links/not-a-uuid`],
+    ["DELETE", `/collections/${SOME_ID}/links/not-a-uuid`],
   ])("%s %s rejects an id that is not a uuid", async (method, path) => {
     await expectValidationError(await send(method, path, { name: "Reading" }));
   });

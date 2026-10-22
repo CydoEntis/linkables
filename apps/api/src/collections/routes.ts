@@ -8,9 +8,18 @@ import type { Db } from "../db/client";
 import { ok } from "../http/envelope";
 import { parseWith } from "../http/validate";
 import { createCollection, deleteCollection, listCollections, renameCollection } from "./collections";
+import { addToCollection, removeFromCollection, type Membership } from "./membership";
 
 const collectionParams = validator("param", parseWith(z.object({ id: z.uuid() }), "Invalid path"));
+const membershipParams = validator(
+  "param",
+  parseWith(z.object({ id: z.uuid(), linkId: z.uuid() }), "Invalid path"),
+);
 const nameBody = validator("json", parseWith(collectionRequestSchema, "Invalid request body"));
+
+function membership(userId: string, { id, linkId }: { id: string; linkId: string }): Membership {
+  return { userId, collectionId: id, linkId };
+}
 
 export function collectionRoutes({ db }: { db: Db }) {
   return new Hono<AuthEnv>()
@@ -25,6 +34,14 @@ export function collectionRoutes({ db }: { db: Db }) {
     })
     .delete("/collections/:id", collectionParams, async (c) => {
       await deleteCollection(db, { userId: c.get("userId"), id: c.req.valid("param").id });
+      return ok(c, null);
+    })
+    .put("/collections/:id/links/:linkId", membershipParams, async (c) => {
+      await addToCollection(db, membership(c.get("userId"), c.req.valid("param")));
+      return ok(c, null);
+    })
+    .delete("/collections/:id/links/:linkId", membershipParams, async (c) => {
+      await removeFromCollection(db, membership(c.get("userId"), c.req.valid("param")));
       return ok(c, null);
     });
 }

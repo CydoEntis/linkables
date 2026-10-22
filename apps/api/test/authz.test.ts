@@ -13,6 +13,8 @@ const PROTECTED_ROUTES = [
   ["POST", "/api/v1/collections"],
   ["PATCH", "/api/v1/collections/:id"],
   ["DELETE", "/api/v1/collections/:id"],
+  ["PUT", "/api/v1/collections/:id/links/:linkId"],
+  ["DELETE", "/api/v1/collections/:id/links/:linkId"],
 ] as const;
 
 const PUBLIC_ROUTES = [["GET", "/health"]] as const;

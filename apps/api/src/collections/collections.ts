@@ -2,7 +2,7 @@ import type { Collection, ListCollectionsResponse } from "@linkaroo/shared/colle
 import { and, asc, eq, sql } from "drizzle-orm";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import postgres from "postgres";
-import type { Db } from "../db/client";
+import type { Db, Tx } from "../db/client";
 import { collection } from "../db/schema";
 import { ConflictError, NotFoundError } from "../http/errors";
 
@@ -34,6 +34,17 @@ async function uniqueName<T>(query: Promise<T>): Promise<T> {
     }
     throw error;
   }
+}
+
+// key share holds the row until the caller's transaction ends, so a concurrent
+// delete cannot slip in before the caller inserts a collection_item for it.
+export async function requireCollection(db: Db | Tx, { userId, id }: Owned): Promise<void> {
+  const [row] = await db
+    .select({ id: collection.id })
+    .from(collection)
+    .where(and(eq(collection.id, id), eq(collection.userId, userId)))
+    .for("key share");
+  if (row === undefined) throw new NotFoundError("Collection not found");
 }
 
 export async function listCollections(db: Db, userId: string): Promise<ListCollectionsResponse> {
