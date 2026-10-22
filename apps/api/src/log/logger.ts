@@ -6,27 +6,49 @@ type Fields = Record<string, unknown>;
 
 export type Logger = Record<LogLevel, (msg: string, fields?: Fields) => void>;
 
-const USERINFO = /(\b[a-z][a-z\d+.-]*:\/\/)([^\s/?#]*)@/gi;
+const MAX_STRING = 4096;
 
-// A URL start (scheme://, /path, or a dotted host with optional port) up to
-// its first ?, #, %3F or %23, then the rest of the token. Over-matching
-// non-URL text like "a/b?c" only trims log text; under-matching leaks tokens.
-// shortcut: the suffix ends at whitespace, so an unencoded space inside a
-// query ("?q=hello SECRET") still leaks what follows it. Real URLs reaching
-// the logger come from URL/Request objects, which encode spaces.
-// shortcut: opaque schemes without a dotted host ("urn:x?y") are not stripped.
-const URL_WITH_SUFFIX =
-  /(\b[a-z][a-z\d+.-]*:\/\/\S*?|\/\S*?|\b[a-z\d-]+(?:\.[a-z\d-]+)+(?::\d+)?)(?:[?#]|%3f|%23)\S*/gi;
+// No regex here can backtrack, so redaction is linear in the input; a lazy
+// scan-then-match pattern was quadratic on inputs like "a.a.a…" and stalled
+// the event loop on every request with a long path.
+const SEPARATOR = /[?#]|%3f|%23/i;
+const URL_LIKE = /[/.:]/;
 
-const LEADING_QUERY = /(?<=^|\s)(?:\?|%3f)\S*/gi;
+// A token is cut at its first ?, #, %3F or %23 when the text before it looks
+// like a URL or path, or when it starts with ? / %3F. Over-cutting non-URL text
+// like "10:30?" only trims log text; under-cutting leaks tokens.
+// shortcut: still leaks an unencoded space inside a query ("?q=a SECRET"),
+// a fully encoded standalone URL ("https%3A%2F%2Fh%2Fp%3Ft"), a double-encoded
+// separator (%253F), and scheme-less userinfo ("user:pass@host").
+function cutQuery(token: string): string {
+  const match = SEPARATOR.exec(token);
+  if (!match) return token;
+  const prefix = token.slice(0, match.index);
+  const leadingQuery = match.index === 0 && !match[0].startsWith("#") && match[0] !== "%23";
+  return URL_LIKE.test(prefix) || leadingQuery ? prefix : token;
+}
 
-function maskUserinfo(_match: string, scheme: string, userinfo: string): string {
+function maskUserinfo(token: string): string {
+  const schemeEnd = token.indexOf("://");
+  if (schemeEnd === -1) return token;
+  const authStart = schemeEnd + 3;
+  const rest = token.slice(authStart);
+  const authEnd = rest.search(/[/?#]/);
+  const authority = authEnd === -1 ? rest : rest.slice(0, authEnd);
+  const at = authority.lastIndexOf("@");
+  if (at === -1) return token;
+  const userinfo = authority.slice(0, at);
   const colon = userinfo.indexOf(":");
-  return colon === -1 ? `${scheme}***@` : `${scheme}${userinfo.slice(0, colon)}:***@`;
+  const masked = colon === -1 ? "***" : `${userinfo.slice(0, colon)}:***`;
+  return token.slice(0, authStart) + masked + rest.slice(at);
 }
 
 export function redactUrls(text: string): string {
-  return text.replace(USERINFO, maskUserinfo).replace(URL_WITH_SUFFIX, "$1").replace(LEADING_QUERY, "");
+  const capped = text.length > MAX_STRING ? `${text.slice(0, MAX_STRING)}…` : text;
+  return capped
+    .split(/(\s+)/)
+    .map((part) => cutQuery(maskUserinfo(part)))
+    .join("");
 }
 
 function hasToJson(value: object): value is { toJSON: () => unknown } {
@@ -65,7 +87,8 @@ function serialize(level: LogLevel, msg: string, fields: Fields | undefined): st
   try {
     return JSON.stringify({ ...(sanitize(fields ?? {}, new WeakSet()) as Fields), ...head });
   } catch {
-    // A log call must never throw: inside onError that would lose the real error.
+    // Any failure here (a throwing getter or toJSON) is handled the same way:
+    // a log call must never throw, or onError would lose the real error.
     return JSON.stringify({ ...head, error: "serialization failed" });
   }
 }

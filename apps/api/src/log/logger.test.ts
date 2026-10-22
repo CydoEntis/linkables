@@ -67,12 +67,36 @@ describe("logger", () => {
     ["a query after a bare host", "GET a.test?token=SECRET x"],
     ["a query after a host and port", "GET a.test:8080?token=SECRET x"],
     ["a bare leading query", "?token=SECRET x"],
+    ["a query after a dotless host and port", "GET localhost:3000?SECRET x"],
+    ["a query on an opaque URN", "GET urn:x?SECRET x"],
     ["an opaque mailto URL with a dotted host", "mailto:me@a.test?body=SECRET x"],
   ])("strips %s", (_label, text) => {
     const redacted = redactUrls(text);
 
     expect(redacted).not.toContain("SECRET");
     expect(redacted).toMatch(/ x$/);
+  });
+
+  it("keeps a non-URL leading #", () => {
+    expect(redactUrls("see issue #12 now")).toBe("see issue #12 now");
+  });
+
+  it.each([
+    ["a.", "a.".repeat(8192)],
+    ["a-", "a-".repeat(8192)],
+    ["/", "/".repeat(16384)],
+  ])("redacts a 16 KB run of %s in well under 20 ms", (_label, text) => {
+    const started = performance.now();
+    redactUrls(text);
+
+    expect(performance.now() - started).toBeLessThan(20);
+  });
+
+  it("caps a long string before redacting", () => {
+    const redacted = redactUrls("x".repeat(10_000));
+
+    expect(redacted.length).toBeLessThan(4200);
+    expect(redacted.endsWith("…")).toBe(true);
   });
 
   it("masks the password in a URL's userinfo", () => {
