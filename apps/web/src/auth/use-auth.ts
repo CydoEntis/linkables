@@ -6,7 +6,7 @@ import { supabase } from "./supabase";
 export type AuthState =
   | { status: "loading" }
   | { status: "signed-in"; session: Session }
-  | { status: "signed-out"; linkProblem: LinkProblem | null };
+  | { status: "signed-out"; linkProblem: LinkProblem | null; afterSignOut: boolean };
 
 export function useAuth(): AuthState {
   const [state, setState] = useState<AuthState>({ status: "loading" });
@@ -22,10 +22,10 @@ export function useAuth(): AuthState {
       } else if (event === "INITIAL_SESSION") {
         // Not awaited: supabase-js awaits listeners, and initialize() has already settled.
         void readLinkProblem().then((linkProblem) => {
-          if (!disposed && thisEvent === latestEvent) setState({ status: "signed-out", linkProblem });
+          if (!disposed && thisEvent === latestEvent) setState({ status: "signed-out", linkProblem, afterSignOut: false });
         });
       } else {
-        setState({ status: "signed-out", linkProblem: null });
+        setState({ status: "signed-out", linkProblem: null, afterSignOut: true });
       }
     });
     return () => {

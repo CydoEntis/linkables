@@ -11,5 +11,5 @@ export function App() {
     return openedFromEmailLink ? <AuthPage title="Signing you in…" /> : null;
   }
   if (auth.status === "signed-in") return <HomeScreen email={auth.session.user.email} />;
-  return <SignInScreen linkProblem={auth.linkProblem} />;
+  return <SignInScreen linkProblem={auth.linkProblem} focusHeading={auth.afterSignOut} />;
 }

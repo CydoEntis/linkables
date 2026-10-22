@@ -23,14 +23,26 @@ const PROBLEM_MESSAGES: Record<Problem, string> = {
 
 const emailSchema = z.email();
 
-export function SignInScreen({ linkProblem }: { linkProblem: LinkProblem | null }) {
+type SignInScreenProps = { linkProblem: LinkProblem | null; focusHeading: boolean };
+
+export function SignInScreen({ linkProblem, focusHeading }: SignInScreenProps) {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [cameBack, setCameBack] = useState(false);
 
   if (sentTo !== null) {
-    return <CheckEmail email={sentTo} onUseDifferentEmail={() => { setSentTo(null); }} />;
+    return <CheckEmail email={sentTo} onUseDifferentEmail={() => {
+          setSentTo(null);
+          setCameBack(true);
+        }} />;
   }
-  return <EmailForm email={email} onEmailChange={setEmail} initialProblem={linkProblem} onSent={setSentTo} />;
+  return <EmailForm
+      email={email}
+      onEmailChange={setEmail}
+      initialProblem={linkProblem}
+      onSent={setSentTo}
+      focusHeading={focusHeading || cameBack}
+    />;
 }
 
 type EmailFormProps = {
@@ -38,9 +50,10 @@ type EmailFormProps = {
   onEmailChange: (email: string) => void;
   initialProblem: LinkProblem | null;
   onSent: (email: string) => void;
+  focusHeading: boolean;
 };
 
-function EmailForm({ email, onEmailChange, initialProblem, onSent }: EmailFormProps) {
+function EmailForm({ email, onEmailChange, initialProblem, onSent, focusHeading }: EmailFormProps) {
   const [problem, setProblem] = useState<Problem | null>(initialProblem);
   const send = useMutation({ mutationFn: sendMagicLink });
   const problemId = useId();
@@ -63,7 +76,11 @@ function EmailForm({ email, onEmailChange, initialProblem, onSent }: EmailFormPr
   }
 
   return (
-    <AuthPage title="Sign in to linkaroo" description="We'll email you a link that signs you in.">
+    <AuthPage
+      title="Sign in to linkaroo"
+      description="We'll email you a link that signs you in."
+      focusHeading={focusHeading}
+    >
       <form noValidate onSubmit={submit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -101,6 +118,7 @@ function CheckEmail({ email, onUseDifferentEmail }: { email: string; onUseDiffer
     <AuthPage
       icon={<MailCheck aria-hidden className="size-8 text-muted-foreground" />}
       title="Check your email"
+      focusHeading
       description={
         <>
           We sent a sign-in link to <strong className="break-all text-foreground">{email}</strong>.
