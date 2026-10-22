@@ -4,6 +4,7 @@ import { requireCollection } from "../collections/collections";
 import type { Db } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
 import { encodeCursor, type Cursor } from "./cursor";
+import { matchesSearch } from "./search";
 import { toSavedLink } from "./to-saved-link";
 
 export type ListLinksInput = {
@@ -12,6 +13,7 @@ export type ListLinksInput = {
   limit: number;
   cursor: Cursor | undefined;
   collectionId: string | undefined;
+  q?: string | undefined;
 };
 
 const cursorSavedAt = sql<string>`to_char(${savedLink.savedAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
@@ -41,7 +43,7 @@ function after(cursor: Cursor) {
 
 export async function listLinks(
   db: Db,
-  { userId, view, limit, cursor, collectionId }: ListLinksInput,
+  { userId, view, limit, cursor, collectionId, q }: ListLinksInput,
 ): Promise<ListLinksResponse> {
   if (collectionId !== undefined) await requireCollection(db, { userId, id: collectionId });
   const rows = await db
@@ -53,6 +55,7 @@ export async function listLinks(
         eq(savedLink.userId, userId),
         view === "inbox" ? inInbox(db, userId) : undefined,
         collectionId === undefined ? undefined : inCollection(db, collectionId),
+        q === undefined ? undefined : matchesSearch(q),
         cursor ? after(cursor) : undefined,
       ),
     )
