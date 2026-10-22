@@ -1,7 +1,7 @@
 import { failureEnvelopeSchema } from "@linkaroo/shared/http";
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, it } from "vitest";
-import { captureLogger, createTestApp } from "../../test/app";
+import { captureLogger, createTestApp, testUsers } from "../../test/app";
 import type { Logger } from "../log/logger";
 import { ConflictError } from "./errors";
 
@@ -23,7 +23,8 @@ async function failureOf(res: Response) {
 
 describe("error handling", () => {
   it("returns 404 NOT_FOUND for an unknown /api/v1 path", async () => {
-    const res = await createTestApp().request("/api/v1/does-not-exist");
+    const { a } = await testUsers();
+    const res = await createTestApp().request("/api/v1/does-not-exist", { headers: a.headers });
 
     expect(res.status).toBe(404);
     expect((await failureOf(res)).error.code).toBe("NOT_FOUND");

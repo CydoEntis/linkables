@@ -22,9 +22,9 @@ describe("CORS", () => {
   });
 
   it("keeps CORS headers on an error response", async () => {
-    const res = await requestFrom(ALLOWED, "/api/v1/missing");
+    const res = await requestFrom(ALLOWED, "/api/v1/me");
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ALLOWED);
   });
 
