@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/client";
+import { useCollectionsUi } from "../collections/collections-ui-store";
 import { LinkList } from "./LinkList";
 import type { LinksView } from "./links-search";
 import { savedLink } from "./test-links";
@@ -63,5 +64,15 @@ describe("LinkList", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Load more" }));
     expect(await screen.findByText("First again")).toBeInTheDocument();
     expect(request.mock.calls.map(([path]) => path)).toEqual(["/links", "/links?cursor=cursor-1", "/links"]);
+  });
+
+  it("leaves a collection that is being deleted out of each row, even after a refetch", async () => {
+    const japan = { id: crypto.randomUUID(), name: "Japan" };
+    request.mockResolvedValue({ items: [savedLink({ originalUrl: "https://example.com/a", collections: [japan] })], cursor: null });
+    useCollectionsUi.getState().startDeleting(japan.id, { name: japan.name, undo: () => undefined });
+    renderList();
+    expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · To sort");
+    useCollectionsUi.getState().stopDeleting(japan.id);
+    expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · in Japan");
   });
 });

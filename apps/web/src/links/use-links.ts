@@ -1,9 +1,10 @@
 import { ERROR_CODES } from "@linkables/shared/http";
 import { listLinksResponseSchema, type ListLinksResponse, type SavedLink } from "@linkables/shared/links";
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { api } from "../api/api";
 import { isApiError } from "../api/client";
+import { useCollectionsUi } from "../collections/collections-ui-store";
 import { shouldRetry } from "../query-client";
 import type { LinksView } from "./links-search";
 
@@ -66,15 +67,30 @@ export function pendingPoller() {
   };
 }
 
+// A collection inside its Undo window is hidden at render, so a refetch cannot bring it back.
+function withoutCollections(data: LinksPages, hidden: Readonly<Record<string, unknown>>): LinksPages {
+  if (Object.keys(hidden).length === 0) return data;
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      items: page.items.map((item) => ({ ...item, collections: item.collections.filter((collection) => !(collection.id in hidden)) })),
+    })),
+  };
+}
+
 export function useLinks(scope: ListScope) {
   const queryClient = useQueryClient();
   const queryKey = scopeKey(scope);
   const [pendingInterval] = useState(pendingPoller);
+  const deleting = useCollectionsUi((state) => state.deleting);
+  const select = useCallback((data: LinksPages) => withoutCollections(data, deleting), [deleting]);
   const query = useInfiniteQuery({
     queryKey,
     queryFn: ({ pageParam, signal }) => api.request(listPath(scope, pageParam), listLinksResponseSchema, { signal }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor ?? undefined,
+    select,
     refetchInterval: (current) => pendingInterval(current.state.data, Date.now()),
     retry: (failures, error) => !isApiError(error, ERROR_CODES.VALIDATION) && shouldRetry(failures, error),
   });
