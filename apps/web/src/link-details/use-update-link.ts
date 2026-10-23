@@ -6,6 +6,9 @@ import { findCachedLink, linksKeys, type LinksPages } from "../links/use-links";
 // One field at a time, as the shared schema outputs it: trimmed, with blank as null.
 export type LinkEdits = { titleOverride: string | null } | { note: string | null };
 
+// keepalive lets a save started as the page goes away outlive the page.
+type UpdateVariables = { edits: LinkEdits; keepalive?: boolean };
+
 function patchLists(queryClient: QueryClient, linkId: string, edits: Partial<SavedLink>) {
   queryClient.setQueriesData<LinksPages>({ queryKey: linksKeys.all }, (data) =>
     data === undefined
@@ -31,13 +34,14 @@ export function useUpdateLink(linkId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     scope: { id: `edit-${linkId}` },
-    mutationFn: (edits: LinkEdits) =>
+    mutationFn: ({ edits, keepalive = false }: UpdateVariables) =>
       api.request(`/links/${linkId}`, savedLinkSchema, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(edits),
+        keepalive,
       }),
-    onMutate: async (edits) => {
+    onMutate: async ({ edits }) => {
       await queryClient.cancelQueries({ queryKey: linksKeys.all });
       const previous = previousValues(findCachedLink(queryClient, linkId), edits);
       patchLists(queryClient, linkId, edits);
@@ -47,7 +51,7 @@ export function useUpdateLink(linkId: string) {
       if (context?.previous) patchLists(queryClient, linkId, context.previous);
     },
     // A new title can move the link in a title-sorted list; a note moves nothing.
-    onSuccess: (_link, edits) => {
+    onSuccess: (_link, { edits }) => {
       if ("titleOverride" in edits) void queryClient.invalidateQueries({ queryKey: linksKeys.all });
     },
   });
