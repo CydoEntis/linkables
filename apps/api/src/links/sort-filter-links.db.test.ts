@@ -117,6 +117,12 @@ const filterCases: FilterCase[] = [
     match: { savedAt: "2026-03-01T12:00:00Z" },
     miss: { savedAt: "2026-03-01T12:00:00.000001Z" },
   },
+  {
+    name: "to datetime with microseconds, inclusive",
+    query: "to=2026-03-01T12:00:00.000001Z",
+    match: { savedAt: "2026-03-01T12:00:00.000001Z" },
+    miss: { savedAt: "2026-03-01T12:00:00.000002Z" },
+  },
 ];
 
 describe("GET /links filters", () => {

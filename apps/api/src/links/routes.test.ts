@@ -163,6 +163,7 @@ describe("GET /links validation", () => {
     "to=0000-01-01T00:00:00Z",
     "from=2026-03-01T12:00:00",
     "to=1772366400",
+    "to=2026-03-01T12:00:00.1234567Z",
   ])("rejects the date bound %s", async (query) => {
     await expectValidationError(await list(query));
   });

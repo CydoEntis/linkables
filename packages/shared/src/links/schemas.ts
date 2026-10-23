@@ -49,13 +49,15 @@ function hasControlCharacter(text: string): boolean {
   return /\p{Cc}/u.test(text.replaceAll("\t", ""));
 }
 
-// Postgres has no year 0, so a 0000 bound would fail the timestamptz cast with a 500.
+// Postgres has no year 0, so a 0000 bound would fail the timestamptz cast with a
+// 500, and it rounds past microseconds, which would shift an inclusive bound.
 function savedAtBound(field: string) {
   return z
     .union([z.iso.date(), z.iso.datetime({ offset: true })], {
       error: `${field} must be a date (YYYY-MM-DD) or an ISO datetime with an offset`,
     })
-    .refine((bound) => !bound.startsWith("0000-"), { error: `${field} must be after year 0` });
+    .refine((bound) => !bound.startsWith("0000-"), { error: `${field} must be after year 0` })
+    .refine((bound) => !/\.\d{7,}/.test(bound), { error: `${field} must have at most 6 fractional digits` });
 }
 
 const isDateOnly = (bound: string) => bound.length === "YYYY-MM-DD".length;
