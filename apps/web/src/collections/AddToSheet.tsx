@@ -14,12 +14,14 @@ export function AddToSheet() {
   const setLinkId = useLinksUi((state) => state.setAddToLinkId);
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement | null>(null);
-  // Taken from the cache when the sheet opens: filing can move the row out of
-  // the loaded list while the sheet is still in use.
+  // Copied from the cache each time the sheet opens, so it shows the link's
+  // current collections; kept while open, since filing can move the row out of
+  // the loaded list; kept while closing, so the sheet does not empty as it slides away.
+  const [openedFor, setOpenedFor] = useState<string | null>(null);
   const [link, setLink] = useState<SavedLink | null>(null);
-  if (linkId !== null && link?.id !== linkId) {
-    const found = findCachedLink(queryClient, linkId);
-    if (found) setLink(found);
+  if (openedFor !== linkId) {
+    setOpenedFor(linkId);
+    if (linkId !== null) setLink(findCachedLink(queryClient, linkId) ?? null);
   }
 
   return (

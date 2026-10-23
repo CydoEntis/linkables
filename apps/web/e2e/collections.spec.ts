@@ -206,6 +206,14 @@ test.describe("at 375 px", () => {
     await sheet.getByRole("button", { name: "Recipes" }).click();
     await expect(sheet.getByRole("button", { name: "Recipes" })).toHaveAttribute("aria-pressed", "true");
     await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+
+    // Reopened on the same link, the sheet shows the filing it just made.
+    await page.getByRole("button", { name: "Add to", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await expect(sheet.getByRole("button", { name: "Recipes" })).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
 
     await page.getByRole("button", { name: "All links" }).click();
     await page.getByRole("dialog").getByRole("link", { name: /^Recipes/ }).click();
