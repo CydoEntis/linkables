@@ -4,14 +4,16 @@ import { useForm } from "react-hook-form";
 import { saveLinkFormSchema, type SaveLinkFormInput, type SaveLinkFormOutput } from "./save-link-form";
 import { useSaveLink } from "./use-save-link";
 
-type SaveLinkFormOptions = { onSubmitted?: () => void; onInvalid?: () => void };
+// The search bar passes "onSubmit": its text is often a search, which must not be checked as a link while typing.
+type SaveLinkFormOptions = { onSubmitted?: () => void; onInvalid?: () => void; reValidateMode?: "onChange" | "onSubmit" };
 
 // Saving is optimistic: the field clears at once, and a link the API rejects comes back with its message.
-export function useSaveLinkForm({ onSubmitted, onInvalid }: SaveLinkFormOptions = {}) {
+export function useSaveLinkForm({ onSubmitted, onInvalid, reValidateMode = "onChange" }: SaveLinkFormOptions = {}) {
   const save = useSaveLink();
   const form = useForm<SaveLinkFormInput, unknown, SaveLinkFormOutput>({
     resolver: zodResolver(saveLinkFormSchema),
     defaultValues: { url: "" },
+    reValidateMode,
   });
   const value = form.watch("url");
 
@@ -35,6 +37,9 @@ export function useSaveLinkForm({ onSubmitted, onInvalid }: SaveLinkFormOptions 
   return {
     register: form.register,
     onSubmit,
+    value,
+    setValue: (text: string) => { form.setValue("url", text); },
+    clearError: () => { form.clearErrors("url"); },
     canSave: saveLinkFormSchema.safeParse({ url: value }).success,
     error: form.formState.errors.url?.message,
   };

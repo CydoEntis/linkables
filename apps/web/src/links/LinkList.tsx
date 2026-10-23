@@ -1,22 +1,30 @@
 import type { SavedLink } from "@linkables/shared/links";
 import { useEffect, useState } from "react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { ApiError, NETWORK_ERROR } from "../api/client";
-import { groupLinks } from "./link-groups";
+import { isNarrowed, type FiltersChange, type ListFilters } from "../search/list-filters";
+import { NoMatches } from "../search/NoMatches";
+import { groupLinks, type LinkGroup } from "./link-groups";
 import { LinkRow, type RowHighlight } from "./LinkRow";
 import { useLinksUi } from "./links-ui-store";
 import { LinksEmpty } from "./LinksEmpty";
 import { belongsIn, useLinks, type ListScope } from "./use-links";
 import { useHeldRow } from "./use-held-row";
 
-export function LinkList({ scope }: { scope: ListScope }) {
-  const { query, loadMore } = useLinks(scope);
+type LinkListProps = { scope: ListScope; filters?: ListFilters; onFiltersChange?: FiltersChange };
+
+const noChange: FiltersChange = () => undefined;
+
+export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: LinkListProps) {
+  const { query, loadMore } = useLinks(scope, filters);
   const now = useNow();
   const highlightFor = useRowHighlight();
   const leavingIds = useLinksUi((state) => state.leavingIds);
   const heldId = useLinksUi((state) => state.heldId);
   const loaded = useHeldRow(query.data?.pages.flatMap((page) => page.items) ?? []);
 
+  const narrowed = isNarrowed(filters);
   if (query.isPending) return <LinkListSkeleton />;
   if (query.isError && query.data === undefined) {
     return <LoadProblem error={query.error} onRetry={() => void query.refetch()} />;
@@ -24,38 +32,50 @@ export function LinkList({ scope }: { scope: ListScope }) {
 
   // A link filed out of this list on this device goes at once (after its leave
   // animation), without waiting for the refetch; a held row waits for its popover.
-  const stays = (link: SavedLink) => belongsIn(scope, link) || link.id === heldId;
+  const belongs = (link: SavedLink) => belongsIn(scope, link, filters);
+  const stays = (link: SavedLink) => belongs(link) || link.id === heldId;
   const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
-  if (links.length === 0) return <LinksEmpty scope={scope} />;
+  const status = narrowed ? <ResultCount count={links.length} more={query.hasNextPage} searching={query.isPlaceholderData} /> : null;
+  if (links.length === 0) {
+    return (
+      <>
+        {status}
+        {narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : <LinksEmpty scope={scope} />}
+      </>
+    );
+  }
 
-  const pinnedView = "view" in scope && scope.view === "pinned";
-  const groups = groupLinks(links, now, { pinnedGroup: !pinnedView });
+  const renderRow = (link: SavedLink) => (
+    <li key={link.id}>
+      <LinkRow
+        link={link}
+        now={now}
+        inCollection={"collectionId" in scope}
+        highlight={highlightFor(link.id)}
+        belongs={belongs(link)}
+        leaving={!stays(link)}
+        query={filters.q}
+      />
+    </li>
+  );
   return (
     <div className="flex flex-col gap-2 md:gap-[22px]">
-      {groups.map((group) => (
-        <section key={group.label} aria-labelledby={`group-${group.label}`}>
-          <h2
-            id={`group-${group.label}`}
-            className="px-3 pb-1 text-xs font-semibold tracking-[0.02em] text-subtle-foreground md:px-3.5 md:pb-1.5 md:text-[12.5px]"
-          >
-            {group.label}
-          </h2>
-          <ul>
-            {group.links.map((link) => (
-              <li key={link.id}>
-                <LinkRow
-                  link={link}
-                  now={now}
-                  inCollection={"collectionId" in scope}
-                  highlight={highlightFor(link.id)}
-                  belongs={belongsIn(scope, link)}
-                  leaving={!stays(link)}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {status}
+      {listGroups(links, now, scope, filters).map((group) =>
+        group.label === null ? (
+          <ul key="results">{group.links.map(renderRow)}</ul>
+        ) : (
+          <section key={group.label} aria-labelledby={`group-${group.label}`}>
+            <h2
+              id={`group-${group.label}`}
+              className="px-3 pb-1 text-xs font-semibold tracking-[0.02em] text-subtle-foreground md:px-3.5 md:pb-1.5 md:text-[12.5px]"
+            >
+              {group.label}
+            </h2>
+            <ul>{group.links.map(renderRow)}</ul>
+          </section>
+        ),
+      )}
       {query.hasNextPage ? (
         <Button
           variant="ghost"
@@ -68,6 +88,24 @@ export function LinkList({ scope }: { scope: ListScope }) {
         </Button>
       ) : null}
     </div>
+  );
+}
+
+// Day groups follow the newest-first order; search results and other sorts are
+// one list in the API's order (pinned still first), as in the handoff's search.
+function listGroups(links: SavedLink[], now: number, scope: ListScope, filters: ListFilters): (LinkGroup | { label: null; links: SavedLink[] })[] {
+  if (filters.q !== undefined || (filters.sort ?? "newest") !== "newest") return [{ label: null, links }];
+  const pinnedView = "view" in scope && scope.view === "pinned";
+  return groupLinks(links, now, { pinnedGroup: !pinnedView });
+}
+
+// A loaded count: past the first page the total is unknown, so it reads "50+".
+function ResultCount({ count, more, searching }: { count: number; more: boolean; searching: boolean }) {
+  const total = `${String(count)}${more ? "+" : ""}`;
+  return (
+    <p role="status" className={cn("px-3 text-[13.5px] text-muted-foreground md:px-3.5", count === 0 && !searching && "sr-only")}>
+      {searching ? "Searching…" : `${total} ${count === 1 && !more ? "match" : "matches"}`}
+    </p>
   );
 }
 

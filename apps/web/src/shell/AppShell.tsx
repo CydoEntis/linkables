@@ -8,14 +8,15 @@ import type { ListScope } from "../links/use-links";
 import { AccountMenu } from "./AccountMenu";
 import { Wordmark } from "./Wordmark";
 
-type AppShellProps = { scope: ListScope; children: ReactNode };
+// search: the phone's search field, above the view chips as in the handoff.
+type AppShellProps = { scope: ListScope; search?: ReactNode; children: ReactNode };
 
 // The phone's first chip picks All links or a collection, so only these two are plain links there.
 const PHONE_VIEW_CHIPS: LinksView[] = ["pinned", "inbox"];
 
 // shortcut: the sidebar shows no counts yet; the API has no count endpoint, and
 // counting loaded pages would be wrong past the first page.
-export function AppShell({ scope, children }: AppShellProps) {
+export function AppShell({ scope, search, children }: AppShellProps) {
   const view = "view" in scope ? scope.view : undefined;
   const collectionId = "collectionId" in scope ? scope.collectionId : undefined;
 
@@ -53,6 +54,7 @@ export function AppShell({ scope, children }: AppShellProps) {
           </Link>
           <AccountMenu />
         </header>
+        {search ? <div className="px-4 pt-1.5 pb-1 md:hidden">{search}</div> : null}
         <nav aria-label="Links" className="flex gap-2 overflow-x-auto px-4 md:hidden">
           <CollectionChip activeId={collectionId} allActive={view === "all"} />
           {PHONE_VIEW_CHIPS.map((item) => (

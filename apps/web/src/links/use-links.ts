@@ -6,6 +6,8 @@ import { api } from "../api/api";
 import { isApiError } from "../api/client";
 import { useCollectionsUi } from "../collections/collections-ui-store";
 import { shouldRetry } from "../query-client";
+import { localDayEnd, localDayStart } from "../search/date-bounds";
+import type { ListFilters } from "../search/list-filters";
 import type { LinksView } from "./links-search";
 
 // Metadata usually lands within seconds (brief 5.3) but can take minutes, so
@@ -29,21 +31,54 @@ export function scopeKey(scope: ListScope) {
   return "view" in scope ? linksKeys.list(scope.view) : linksKeys.collection(scope.collectionId);
 }
 
+// What the list really shows. A search covers every link (brief 5.9), so on the
+// views it drops the view; a collection's page searches inside the collection.
+// To sort holds no filed links, so narrowing it to a collection means all links.
+export function effectiveScope(scope: ListScope, filters: ListFilters): ListScope {
+  if ("collectionId" in scope) return scope;
+  if (filters.q !== undefined) return { view: "all" };
+  if (scope.view === "inbox" && filters.collection !== undefined) return { view: "all" };
+  return scope;
+}
+
+// An unfiltered list keeps the scope's own key, so a new save still lands in it at once.
+export function listKey(scope: ListScope, filters: ListFilters) {
+  const effective = effectiveScope(scope, filters);
+  const defined = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== undefined));
+  return Object.keys(defined).length === 0 ? scopeKey(effective) : [...scopeKey(effective), defined];
+}
+
 // Whether a link still belongs in a list after a change made on this device.
-export function belongsIn(scope: ListScope, link: SavedLink): boolean {
-  if ("collectionId" in scope) return link.collections.some((collection) => collection.id === scope.collectionId);
-  if (scope.view === "inbox") return link.collections.length === 0;
-  if (scope.view === "pinned") return link.pinned;
+export function belongsIn(scope: ListScope, link: SavedLink, filters: ListFilters = {}): boolean {
+  const inCollection = (id: string) => link.collections.some((collection) => collection.id === id);
+  if (filters.pinned && !link.pinned) return false;
+  if (filters.collection !== undefined && !inCollection(filters.collection)) return false;
+  const effective = effectiveScope(scope, filters);
+  if ("collectionId" in effective) return inCollection(effective.collectionId);
+  if (effective.view === "inbox") return link.collections.length === 0;
+  if (effective.view === "pinned") return link.pinned;
   return true;
 }
 
 export type LinksPages = InfiniteData<ListLinksResponse, string | undefined>;
 
-function listPath(scope: ListScope, cursor: string | undefined): string {
+function filterParams(params: URLSearchParams, { q, sort, kind, pinned, from, to, collection }: ListFilters) {
+  if (q !== undefined) params.set("q", q);
+  if (sort !== undefined && sort !== "newest") params.set("sort", sort);
+  if (kind !== undefined) params.set("kind", kind);
+  if (pinned) params.set("pinned", "true");
+  if (from !== undefined) params.set("from", localDayStart(from));
+  if (to !== undefined) params.set("to", localDayEnd(to));
+  if (collection !== undefined && !params.has("collectionId")) params.set("collectionId", collection);
+}
+
+function listPath(scope: ListScope, filters: ListFilters, cursor: string | undefined): string {
+  const effective = effectiveScope(scope, filters);
   const params = new URLSearchParams();
-  if ("collectionId" in scope) params.set("collectionId", scope.collectionId);
-  else if (scope.view === "inbox") params.set("view", "inbox");
-  else if (scope.view === "pinned") params.set("pinned", "true");
+  if ("collectionId" in effective) params.set("collectionId", effective.collectionId);
+  else if (effective.view === "inbox") params.set("view", "inbox");
+  else if (effective.view === "pinned") params.set("pinned", "true");
+  filterParams(params, filters);
   if (cursor !== undefined) params.set("cursor", cursor);
   const query = params.toString();
   return query ? `/links?${query}` : "/links";
@@ -88,18 +123,23 @@ function withoutCollections(data: LinksPages, hidden: Readonly<Record<string, un
   };
 }
 
-export function useLinks(scope: ListScope) {
+export function useLinks(scope: ListScope, filters: ListFilters = {}) {
   const queryClient = useQueryClient();
-  const queryKey = scopeKey(scope);
+  const queryKey = listKey(scope, filters);
+  const ownKey = scopeKey(effectiveScope(scope, filters));
+  const filtered = queryKey.length > ownKey.length;
   const [pendingInterval] = useState(pendingPoller);
   const deleting = useCollectionsUi((state) => state.deleting);
   const select = useCallback((data: LinksPages) => withoutCollections(data, deleting), [deleting]);
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam, signal }) => api.request(listPath(scope, pageParam), listLinksResponseSchema, { signal }),
+    queryFn: ({ pageParam, signal }) => api.request(listPath(scope, filters, pageParam), listLinksResponseSchema, { signal }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor ?? undefined,
     select,
+    // While a search, filter or sort changes, the same list's last results stay up instead of a skeleton.
+    placeholderData: (previous, previousQuery) =>
+      filtered && ownKey.every((part, index) => previousQuery?.queryKey[index] === part) ? previous : undefined,
     refetchInterval: (current) => pendingInterval(current.state.data, Date.now()),
     retry: (failures, error) => !isApiError(error, ERROR_CODES.VALIDATION) && shouldRetry(failures, error),
   });

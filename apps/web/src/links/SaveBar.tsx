@@ -1,15 +1,48 @@
-import { Search } from "lucide-react";
-import { useId } from "react";
+import { Search, X } from "lucide-react";
+import { useId, type KeyboardEvent } from "react";
 import { cn } from "cn";
+import { useSearchText } from "../search/use-search-text";
+import { saveLinkFormSchema } from "./save-link-form";
 import { useSaveLinkForm } from "./use-save-link-form";
 
-// shortcut: the bar only saves for now; typing to search arrives with the search ticket.
-export function SaveBar({ className }: { className?: string }) {
-  const { register, onSubmit, canSave, error } = useSaveLinkForm();
+type SaveBarProps = {
+  className?: string;
+  query: string | undefined;
+  onQueryChange: (query: string | undefined) => void;
+};
+
+const isLink = (text: string) => saveLinkFormSchema.safeParse({ url: text }).success;
+
+// A link is offered for saving, never searched for, as in the handoff.
+const searchFor = (text: string) => (isLink(text) ? undefined : text.trim() || undefined);
+
+// The handoff's search/paste bar: a link gets the lime Save button, anything else searches as you type.
+export function SaveBar({ className, query, onQueryChange }: SaveBarProps) {
+  const { register, onSubmit, value, setValue, clearError, canSave, error } = useSaveLinkForm({ reValidateMode: "onSubmit" });
+  const search = useSearchText({ query, onQueryChange, text: value, setText: setValue, toQuery: searchFor });
+  const field = register("url", { onChange: clearError });
   const errorId = useId();
+  const searching = !canSave && value.trim() !== "";
+
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Escape") return;
+    if (value === "") event.currentTarget.blur();
+    else search.clear();
+  }
 
   return (
-    <form noValidate onSubmit={onSubmit} className={className}>
+    <form
+      noValidate
+      role="search"
+      onSubmit={(event) => {
+        if (canSave) onSubmit(event);
+        else {
+          event.preventDefault();
+          search.flush();
+        }
+      }}
+      className={className}
+    >
       <label
         className={cn(
           "flex h-[52px] cursor-text items-center gap-3 rounded-xl bg-card pr-2 pl-[18px] shadow-[0_0_0_1px_var(--line-strong)] transition-shadow duration-200",
@@ -20,11 +53,13 @@ export function SaveBar({ className }: { className?: string }) {
       >
         <Search aria-hidden strokeWidth={2.2} className="size-[17px] shrink-0 text-subtle-foreground" />
         <input
-          {...register("url")}
+          {...field}
           type="text"
           inputMode="url"
           autoComplete="off"
           autoFocus
+          data-search-field
+          onKeyDown={onKeyDown}
           placeholder="Search or paste a link"
           aria-label="Search or paste a link"
           aria-invalid={error ? true : undefined}
@@ -37,6 +72,19 @@ export function SaveBar({ className }: { className?: string }) {
             className="h-[38px] shrink-0 animate-pop rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground"
           >
             Save link
+          </button>
+        ) : null}
+        {searching ? (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={(event) => {
+              search.clear();
+              event.currentTarget.form?.querySelector<HTMLInputElement>("[data-search-field]")?.focus();
+            }}
+            className="flex size-[34px] shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X aria-hidden strokeWidth={2.2} className="size-4" />
           </button>
         ) : null}
       </label>
