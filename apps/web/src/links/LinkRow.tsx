@@ -1,6 +1,6 @@
 import type { SavedLink } from "@linkables/shared/links";
 import { Pin, Plus, Share } from "lucide-react";
-import { useState, type DragEvent } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { cn } from "cn";
 import { AddToPopover } from "../collections/AddToPopover";
 import { displayTitle, domainOf, filedLabel, relativeTime, safeHref, savedFromLabel } from "./link-display";
@@ -149,8 +149,13 @@ type RowActionsProps = { link: SavedLink; belongs: boolean; pinned: boolean; onP
 function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const dragging = useLinksUi((state) => state.draggingId !== null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
+  // A row leaving the list may unmount before the popover finishes closing,
+  // which would take the popover's own focus return with it; so focus moves
+  // to the next row here, at once, while every node is still in place.
   function onPickerOpenChange(open: boolean) {
+    if (!open && !belongs && triggerRef.current && ownsFocus(triggerRef.current)) neighbourRowLink(triggerRef.current)?.focus();
     setPickerOpen(open);
     const ui = useLinksUi.getState();
     ui.setHeldId(open ? link.id : null);
@@ -174,7 +179,8 @@ function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
         link={link}
         open={pickerOpen}
         onOpenChange={onPickerOpenChange}
-        finalFocus={(trigger) => (belongs ? trigger : neighbourRowLink(trigger))}
+        triggerRef={triggerRef}
+        returnFocus={belongs}
         className={cn(ACTION, "px-3.5")}
       />
       <button type="button" onClick={() => void copyLink(link.originalUrl)} className={cn(ACTION, "px-3.5")}>
@@ -195,6 +201,13 @@ function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
 }
 
 // A row about to leave hands focus to the next row (or the one before), not to the page.
+// Focus is this row's to move: in its popover, in the row, or nowhere.
+function ownsFocus(trigger: HTMLElement): boolean {
+  const active = document.activeElement;
+  if (active === null || active === document.body) return true;
+  return Boolean(active.closest("[data-slot=popover-content]")) || Boolean(trigger.closest("[data-row]")?.contains(active));
+}
+
 function neighbourRowLink(from: HTMLElement): HTMLElement | null {
   const links = [...document.querySelectorAll<HTMLElement>("[data-row-link]")];
   const own = from.closest("[data-row]")?.querySelector<HTMLElement>("[data-row-link]");
