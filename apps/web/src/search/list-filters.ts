@@ -1,5 +1,6 @@
 import { LINK_SORTS, RESOURCE_KINDS, SEARCH_QUERY_MAX_LENGTH, type LinkSort, type ResourceKind } from "@linkables/shared/links";
 import { z } from "zod";
+import { localDate } from "./date-bounds";
 
 export const SORT_LABELS: Record<LinkSort, string> = { newest: "Newest", oldest: "Oldest", title: "Title A–Z" };
 
@@ -17,8 +18,10 @@ const searchText = z.preprocess(
 );
 
 // Dates in the URL are the user's local days, so a shared link reads as the
-// days they picked; the request turns them into offset datetimes.
-const localDay = z.iso.date();
+// days they picked; the request turns them into offset datetimes. No link is
+// saved before 1970, and earlier years would need historical time zone offsets.
+export const EARLIEST_DAY = "1970-01-01";
+const localDay = z.iso.date().refine((day) => day >= EARLIEST_DAY);
 
 // Every param falls back on its own, so one stale or hand-edited value never costs the rest.
 export const listFiltersShape = {
@@ -62,7 +65,7 @@ export type FilterChip = { key: string; label: string; clear: FiltersPatch };
 export function dayLabel(day: string): string {
   const [year = 0, month = 1, date = 1] = day.split("-").map(Number);
   const sameYear = year === new Date().getFullYear();
-  return new Date(year, month - 1, date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
+  return localDate(year, month, date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
 }
 
 function rangeLabel(from: string | undefined, to: string | undefined): string | null {

@@ -10,17 +10,24 @@ function offsetDatetime(date: Date): string {
   return `${day}T${time}${sign}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
 }
 
-function localDate(day: string, hours: number, minutes: number, seconds: number, ms: number): Date {
+// new Date(year, …) reads years 0–99 as 1900–1999; setFullYear does not.
+export function localDate(year: number, month: number, date: number, time: [number, number, number, number] = [0, 0, 0, 0]): Date {
+  const day = new Date(2000, 0, 1, ...time);
+  day.setFullYear(year, month - 1, date);
+  return day;
+}
+
+function dayAt(day: string, time: [number, number, number, number]): Date {
   const [year = 0, month = 1, date = 1] = day.split("-").map(Number);
-  return new Date(year, month - 1, date, hours, minutes, seconds, ms);
+  return localDate(year, month, date, time);
 }
 
 // A bare date would mean a UTC day to the API, so a local day is sent as the
 // first and last instants of that day on this device.
 export function localDayStart(day: string): string {
-  return offsetDatetime(localDate(day, 0, 0, 0, 0));
+  return offsetDatetime(dayAt(day, [0, 0, 0, 0]));
 }
 
 export function localDayEnd(day: string): string {
-  return offsetDatetime(localDate(day, 23, 59, 59, 999));
+  return offsetDatetime(dayAt(day, [23, 59, 59, 999]));
 }

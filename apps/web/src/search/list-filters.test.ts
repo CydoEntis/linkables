@@ -53,6 +53,11 @@ describe("list search params", () => {
     expect(listFiltersSchema.parse({ from: "2026-10-20", to: "2026-10-01" })).toEqual({ from: "2026-10-01", to: "2026-10-20" });
   });
 
+  it("drops a date before 1970, which no saved link can have", () => {
+    expect(listFiltersSchema.parse({ from: "0050-01-01", to: "1969-12-31" })).toEqual({});
+    expect(listFiltersSchema.parse({ from: "1970-01-01" })).toEqual({ from: "1970-01-01" });
+  });
+
   it("ignores a collection filter that is not an id", () => {
     expect(linksSearchSchema.parse({ collection: "rust" })).toEqual({ view: "all" });
   });
