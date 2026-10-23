@@ -1,5 +1,7 @@
 import { createRootRoute, createRoute, createRouter, stripSearchParams } from "@tanstack/react-router";
+import { z } from "zod";
 import { AuthGate } from "./auth/AuthGate";
+import { linkDetailsSearchShape } from "./link-details/details-search";
 import { CollectionPage } from "./collections/CollectionPage";
 import { SignInPage } from "./auth/SignInScreen";
 import { LinksPage } from "./links/LinksPage";
@@ -8,7 +10,7 @@ import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
 import { SAVE_ANYWHERE_PATH, SaveAnywherePage, saveAnywhereSearchSchema } from "./save-anywhere/SaveAnywherePage";
-import { listFiltersSchema } from "./search/list-filters";
+import { listFiltersShape, orderRange } from "./search/list-filters";
 import { NotFoundPage } from "./shell/NotFoundPage";
 
 const rootRoute = createRootRoute({ component: AuthGate, notFoundComponent: NotFoundPage });
@@ -25,7 +27,7 @@ const linksRoute = createRoute({
 const collectionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/c/$collectionId",
-  validateSearch: listFiltersSchema,
+  validateSearch: z.object({ ...listFiltersShape, ...linkDetailsSearchShape }).transform(orderRange),
   component: CollectionPage,
 });
 
