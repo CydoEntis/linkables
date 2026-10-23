@@ -144,6 +144,8 @@ toast (undo preferred).
   Create, rename, delete, open. Empty state.
 - **Create / rename:** name field. Duplicate name error ("You already have a
   collection called Rust").
+- **Names:** collection names display with the first letter capitalised; names
+  that differ only in case are the same name.
 - **Delete:** "Links in it stay in your library. Links that were only here go back
   to your Inbox."
 - **Add to collection:** a picker with checkboxes (a link can be in several), and
