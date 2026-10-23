@@ -7,7 +7,7 @@ const webEnvSchema = z.object({
   VITE_AUTH_REDIRECT_URL: z.url(),
   // The iCloud link to the "Save to linkables" Shortcut; see docs/ios-shortcut.md.
   // Optional until the owner shares it; an empty line in .env counts as unset.
-  VITE_IOS_SHORTCUT_URL: z.preprocess((value) => (value === "" ? undefined : value), z.url({ protocol: /^https$/ }).optional()),
+  VITE_IOS_SHORTCUT_URL: z.preprocess((value) => (value === "" ? undefined : value), z.url({ protocol: /^https$/, hostname: z.regexes.domain }).optional()),
 });
 
 export type WebEnv = z.infer<typeof webEnvSchema>;

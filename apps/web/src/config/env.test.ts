@@ -26,4 +26,9 @@ describe("VITE_IOS_SHORTCUT_URL", () => {
     expect(() => parseWebEnv({ ...BASE, VITE_IOS_SHORTCUT_URL: "not a link" })).toThrow("VITE_IOS_SHORTCUT_URL");
     expect(() => parseWebEnv({ ...BASE, VITE_IOS_SHORTCUT_URL: "javascript:alert(1)" })).toThrow("VITE_IOS_SHORTCUT_URL");
   });
+
+  it("rejects an https link without a real host name", () => {
+    expect(() => parseWebEnv({ ...BASE, VITE_IOS_SHORTCUT_URL: "https://icloud" })).toThrow("VITE_IOS_SHORTCUT_URL");
+    expect(() => parseWebEnv({ ...BASE, VITE_IOS_SHORTCUT_URL: "https://" })).toThrow("VITE_IOS_SHORTCUT_URL");
+  });
 });
