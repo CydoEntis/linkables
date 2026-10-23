@@ -6,7 +6,8 @@ the app's Save from anywhere page offers that link to everyone.
 
 What it does: takes the link you shared (or, if you share nothing, the link you
 copied), and opens `https://<your linkables address>/save?url=<that link>` in
-Safari. linkables then saves it and shows "Saved to linkables".
+your default browser, which is Safari unless you changed it (Settings → Apps →
+Default Browser App). linkables then saves it and shows "Saved to linkables".
 
 You need an iPhone or iPad with the Shortcuts app, and iCloud turned on for
 Shortcuts (Settings → your name → iCloud → Show All → Shortcuts).
@@ -60,10 +61,11 @@ Open URL
 
 ## Try it
 
-1. In Safari, open linkables and sign in. The shortcut opens Safari, and
-   Safari keeps its own sign-in, separate from the home-screen app.
-2. Still in Safari, open any web page, tap **Share**, scroll down the list of
-   actions, and tap **Save to linkables**. Safari opens linkables and shows
+1. In your default browser (usually Safari), open linkables and sign in. The
+   shortcut opens that browser, and it keeps its own sign-in, separate from
+   the home-screen app.
+2. In Safari, open any web page, tap **Share**, scroll down the list of
+   actions, and tap **Save to linkables**. Your default browser opens linkables and shows
    "Saved to linkables".
 3. In YouTube, open a video, tap **Share**, then **More** (the "…" at the end of
    the row), then **Save to linkables**. The video shows up in To sort.

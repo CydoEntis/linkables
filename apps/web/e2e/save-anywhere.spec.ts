@@ -43,7 +43,7 @@ for (const width of WIDTHS) {
         await expect(lead).toHaveAccessibleName("On iPhone or iPad");
         await expect(lead.getByRole("link", { name: "Add the shortcut" })).toHaveAttribute("href", IOS_SHORTCUT_URL);
         await expect(lead.getByRole("listitem")).toHaveCount(3);
-        await expect(lead.getByText(/sign in to linkables in Safari/)).toBeVisible();
+        await expect(lead.getByText(/default browser \(usually Safari\), so sign in to linkables there once/)).toBeVisible();
         await shot(page, testInfo, `save-anywhere-iphone-${String(width)}`);
       });
     });
