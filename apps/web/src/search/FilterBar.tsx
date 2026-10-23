@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/compone
 import { displayName } from "../collections/display-name";
 import { useCollections } from "../collections/use-collections";
 import type { ListScope } from "../links/use-links";
-import { CLEARED_FILTERS, filterChips, KIND_LABELS, SORT_LABELS, type FiltersChange, type ListFilters } from "./list-filters";
+import { CLEARED_FILTERS, EARLIEST_DAY, filterChips, KIND_LABELS, SORT_LABELS, type FiltersChange, type ListFilters } from "./list-filters";
 
 type FilterBarProps = { scope: ListScope; filters: ListFilters; onFiltersChange: FiltersChange };
 
@@ -170,6 +170,8 @@ function DateRange({ from, to, onRangeChange }: Range & { onRangeChange: (range:
 
   function change(next: typeof draft) {
     setDraft(next);
+    // A year still being typed reads as 0002, 0020…: wait until the day is a real one.
+    if ([next.from, next.to].some((day) => day !== "" && day < EARLIEST_DAY)) return;
     if (next.from !== "" && next.to !== "" && next.from > next.to) return;
     onRangeChange({ from: next.from || undefined, to: next.to || undefined });
   }
@@ -180,6 +182,7 @@ function DateRange({ from, to, onRangeChange }: Range & { onRangeChange: (range:
         <input
           type="date"
           aria-label="From"
+          min={EARLIEST_DAY}
           value={draft.from}
           onChange={(event) => { change({ ...draft, from: event.target.value }); }}
           aria-invalid={reversed || undefined}
@@ -189,6 +192,7 @@ function DateRange({ from, to, onRangeChange }: Range & { onRangeChange: (range:
         <input
           type="date"
           aria-label="To"
+          min={EARLIEST_DAY}
           value={draft.to}
           onChange={(event) => { change({ ...draft, to: event.target.value }); }}
           aria-invalid={reversed || undefined}
