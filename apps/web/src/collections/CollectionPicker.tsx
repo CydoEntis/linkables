@@ -36,13 +36,15 @@ export function CollectionPicker({ link, variant, inputRef }: CollectionPickerPr
   const createName = !sheet && query.trim() !== "" && !hasExactName(ordered, query) ? query.trim() : null;
 
   function file(collection: Pick<Collection, "id" | "name">, filed: boolean) {
-    setFiledIds((current) => {
-      const next = new Set(current);
-      if (filed) next.add(collection.id);
-      else next.delete(collection.id);
-      return next;
-    });
-    setFiled({ link, collection: { id: collection.id, name: collection.name }, filed });
+    const onFiled = (isFiled: boolean) => {
+      setFiledIds((current) => {
+        const next = new Set(current);
+        if (isFiled) next.add(collection.id);
+        else next.delete(collection.id);
+        return next;
+      });
+    };
+    setFiled({ link, collection: { id: collection.id, name: collection.name }, filed }, { onFiled });
   }
 
   async function createAndFile(name: string) {

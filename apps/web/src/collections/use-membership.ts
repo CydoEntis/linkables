@@ -61,12 +61,17 @@ function apply(queryClient: QueryClient, change: MembershipChange) {
   applyToCollections(queryClient, change);
 }
 
+// onFiled: told of every state the picker should show, including Undo and a revert.
+// toastId: the "Added to X · Undo" toast, which a failure replaces with the error.
+type SetFiledOptions = { undoable?: boolean; onFiled?: ((filed: boolean) => void) | undefined };
+type MembershipVariables = MembershipChange & { toastId?: string | undefined; onFiled?: SetFiledOptions["onFiled"] };
+
 export function useMembership() {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationKey: MEMBERSHIP_KEY,
     scope: MEMBERSHIP_SCOPE,
-    mutationFn: ({ link, collection, filed }: MembershipChange) =>
+    mutationFn: ({ link, collection, filed }: MembershipVariables) =>
       api.request(`/collections/${collection.id}/links/${link.id}`, z.null(), { method: filed ? "PUT" : "DELETE" }),
     onMutate: async (change) => {
       await Promise.all([
@@ -75,9 +80,11 @@ export function useMembership() {
       ]);
       apply(queryClient, change);
     },
-    onError: (_error, change) => {
+    // No Undo survives for a change that never happened.
+    onError: (_error, { toastId, onFiled, ...change }) => {
       apply(queryClient, { ...change, filed: !change.filed });
-      toast.error(`Couldn't update ${displayName(change.collection.name)}. Try again.`);
+      onFiled?.(!change.filed);
+      toast.error(`Couldn't update ${displayName(change.collection.name)}. Try again.`, toastId === undefined ? {} : { id: toastId, action: null });
     },
     // Several ticks in a row would refetch over each other's optimistic state, so only the last one refreshes.
     onSettled: async () => {
@@ -89,19 +96,25 @@ export function useMembership() {
     },
   });
 
-  function setFiled(change: MembershipChange, { undoable = true }: { undoable?: boolean } = {}) {
+  function setFiled(change: MembershipChange, { undoable = true, onFiled }: SetFiledOptions = {}) {
     useLinksUi.getState().leave(change.link.id);
-    mutation.mutate(change);
-    if (!undoable) return;
-    const name = displayName(change.collection.name);
-    toast(change.filed ? `Added to ${name}` : `Removed from ${name}`, {
-      duration: UNDO_MS,
-      action: {
-        label: "Undo",
-        onClick: () => { setFiled({ ...change, filed: !change.filed }, { undoable: false }); },
-      },
-    });
+    onFiled?.(change.filed);
+    const toastId = undoable
+      ? undoToast(change, () => { setFiled({ ...change, filed: !change.filed }, { undoable: false, onFiled }); })
+      : undefined;
+    mutation.mutate({ ...change, toastId, onFiled });
   }
 
   return setFiled;
+}
+
+function undoToast(change: MembershipChange, onUndo: () => void): string {
+  const id = crypto.randomUUID();
+  const name = displayName(change.collection.name);
+  toast(change.filed ? `Added to ${name}` : `Removed from ${name}`, {
+    id,
+    duration: UNDO_MS,
+    action: { label: "Undo", onClick: onUndo },
+  });
+  return id;
 }

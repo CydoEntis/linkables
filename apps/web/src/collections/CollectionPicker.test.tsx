@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
+import { ApiError } from "../api/client";
 import { savedLink } from "../links/test-links";
 import { CollectionPicker } from "./CollectionPicker";
 import { listedCollection } from "./test-collections";
@@ -14,6 +15,7 @@ const rust = listedCollection({ name: "rust" });
 const recipes = listedCollection({ name: "Recipes" });
 // Toasts outlive a test, so the Undo test files into a collection no other test touches.
 const later = listedCollection({ name: "watch later" });
+const books = listedCollection({ name: "books" });
 
 function renderPicker(link = savedLink(), variant: "popover" | "sheet" = "popover") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -32,7 +34,7 @@ function calls(method: string) {
 
 beforeEach(() => {
   request.mockReset();
-  const items = [rust, recipes, later];
+  const items = [rust, recipes, later, books];
   request.mockImplementation((path, _schema, init) => {
     if (path === "/collections" && init?.method === "POST") {
       const { name } = JSON.parse(init.body as string) as { name: string };
@@ -67,7 +69,7 @@ describe("CollectionPicker", () => {
   it("sends a quick tick and untick in order, waiting for the first to finish", async () => {
     let finishPut = () => {};
     request.mockImplementation((path, _schema, init) => {
-      if (path === "/collections") return Promise.resolve({ items: [rust, recipes, later] });
+      if (path === "/collections") return Promise.resolve({ items: [rust, recipes, later, books] });
       if (init?.method === "PUT") return new Promise((resolve) => { finishPut = () => { resolve(null); }; });
       return Promise.resolve(null);
     });
@@ -79,6 +81,21 @@ describe("CollectionPicker", () => {
     expect(calls("DELETE")).toHaveLength(0);
     finishPut();
     await waitFor(() => { expect(calls("DELETE")).toHaveLength(1); });
+  });
+
+  it("unticks and swaps the Undo toast for the error when filing fails", async () => {
+    request.mockImplementation((path, _schema, init) => {
+      if (path === "/collections") return Promise.resolve({ items: [rust, recipes, later, books] });
+      if (init?.method === "PUT") return Promise.reject(new ApiError("INTERNAL", "boom"));
+      return Promise.resolve(null);
+    });
+    const { user } = renderPicker();
+    const row = await screen.findByRole("button", { name: "Books" });
+    await user.click(row);
+    await waitFor(() => { expect(row).toHaveAttribute("aria-pressed", "false"); });
+    const error = await screen.findByText("Couldn't update Books. Try again.");
+    expect(screen.queryByText("Added to Books")).not.toBeInTheDocument();
+    expect(within(error.closest("li") ?? document.body).queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
   });
 
   it("offers Undo after filing, which takes the link back out", async () => {
@@ -116,7 +133,7 @@ describe("CollectionPicker", () => {
     const names = within(screen.getByRole("list", { name: "Collections" }))
       .getAllByRole("button")
       .map((button) => button.textContent);
-    expect(names).toEqual(["Rust", "Recipes", "Watch later"]);
+    expect(names).toEqual(["Rust", "Recipes", "Watch later", "Books"]);
   });
 
   it("creates and ticks a new collection from the sheet's New collection form", async () => {
