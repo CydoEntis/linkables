@@ -3,6 +3,7 @@ import { useId, useRef } from "react";
 import { cn } from "cn";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useLinksUi } from "./links-ui-store";
+import { deviceShareTip } from "./share-tip";
 import { useSaveLinkForm } from "./use-save-link-form";
 
 export function SaveFab() {
@@ -29,6 +30,7 @@ export function SaveSheet() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { ref: registerRef, ...field } = register("url");
   const errorId = useId();
+  const tip = deviceShareTip();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -70,9 +72,7 @@ export function SaveSheet() {
             {error}
           </p>
         ) : null}
-        <SheetDescription className="text-[13px] leading-normal">
-          Faster: in any app, tap Share, then linkables.
-        </SheetDescription>
+        {tip ? <SheetDescription className="text-[13px] leading-normal">{tip}</SheetDescription> : null}
       </SheetContent>
     </Sheet>
   );
