@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/client";
 import { useCollectionsUi } from "../collections/collections-ui-store";
+import { TestRouter } from "../test/router";
 import { LinkList } from "./LinkList";
 import type { LinksView } from "./links-search";
 import { savedLink } from "./test-links";
@@ -20,7 +21,9 @@ function renderList(view: LinksView = "all") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <LinkList scope={{ view }} />
+      <TestRouter>
+        <LinkList scope={{ view }} />
+      </TestRouter>
     </QueryClientProvider>,
   );
 }

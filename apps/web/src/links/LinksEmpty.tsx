@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+import { SAVE_ANYWHERE_PATH } from "../save-anywhere/SaveAnywherePage";
 import type { LinksView } from "./links-search";
 import { deviceShareTip } from "./share-tip";
 import type { ListScope } from "./use-links";
@@ -40,6 +42,18 @@ export function LinksEmpty({ scope }: { scope: ListScope }) {
         </span>
         <span className="hidden md:inline">{copy.web}</span>
       </p>
+      {"view" in scope && scope.view !== "pinned" ? <SaveAnywhereLink /> : null}
     </div>
+  );
+}
+
+function SaveAnywhereLink() {
+  return (
+    <Link
+      to={SAVE_ANYWHERE_PATH}
+      className="flex min-h-11 items-center self-start text-sm font-semibold text-primary underline-offset-4 hover:underline md:text-[14.5px]"
+    >
+      See how to save from anywhere
+    </Link>
   );
 }

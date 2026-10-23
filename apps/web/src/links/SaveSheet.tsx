@@ -1,7 +1,9 @@
+import { Link } from "@tanstack/react-router";
 import { Check, Plus } from "lucide-react";
 import { useId, useRef } from "react";
 import { cn } from "cn";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { SAVE_ANYWHERE_PATH } from "../save-anywhere/SaveAnywherePage";
 import { useLinksUi } from "./links-ui-store";
 import { deviceShareTip } from "./share-tip";
 import { useSaveLinkForm } from "./use-save-link-form";
@@ -73,6 +75,13 @@ export function SaveSheet() {
           </p>
         ) : null}
         {tip ? <SheetDescription className="text-[13px] leading-normal">{tip}</SheetDescription> : null}
+        <Link
+          to={SAVE_ANYWHERE_PATH}
+          onClick={() => { setOpen(false); }}
+          className="-mt-2 flex min-h-11 items-center self-start text-[13px] font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          See how to save from anywhere
+        </Link>
       </SheetContent>
     </Sheet>
   );
