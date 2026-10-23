@@ -1,9 +1,10 @@
 import type { SavedLink } from "@linkables/shared/links";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { neighbourRowLink } from "../links/LinkRow";
 import { useLinksUi } from "../links/links-ui-store";
 import { useDeleteLink } from "../links/use-delete-link";
+import { isEditable } from "../links/use-paste-to-save";
 import { DetailsBody } from "./DetailsBody";
 import { useLinkDetails } from "./details-search";
 import { clampWidth, maxPanelWidth, readStoredWidth, storeWidth } from "./panel-width";
@@ -49,18 +50,14 @@ function DetailsPanel({ linkId, onClose }: DetailsProps) {
     panelRef.current?.focus({ preventScroll: true });
   }, [linkId]);
   useReturnFocusToRow(panelRef, linkId);
+  const onPanelKeyDown = panelKeyHandler(onClose);
 
   return (
     <section
       ref={panelRef}
       tabIndex={-1}
       aria-label="Link details"
-      onKeyDown={(event) => {
-        // Keys from the portalled picker bubble here through React; Esc there closes only the picker.
-        if (event.key !== "Escape" || event.defaultPrevented || !event.currentTarget.contains(event.target as Node)) return;
-        event.preventDefault();
-        onClose();
-      }}
+      onKeyDown={onPanelKeyDown}
       style={{ width }}
       className="fixed inset-y-0 right-0 z-40 flex animate-panel-in flex-col bg-card shadow-[-1px_0_0_var(--line-strong),-30px_0_80px_-30px_rgb(0_0_0/0.8)] outline-none"
     >
@@ -68,6 +65,23 @@ function DetailsPanel({ linkId, onClose }: DetailsProps) {
       <DetailsBody details={details} onClose={onClose} onDelete={onDelete} />
     </section>
   );
+}
+
+// Keys from the portalled picker bubble here through React, so only keys from
+// the panel's own DOM count: Esc closes the panel (in the picker it closes only
+// the picker), and Ctrl/⌘ K stays with the title or note being typed in instead
+// of opening the list's command palette.
+function panelKeyHandler(onClose: () => void) {
+  return (event: KeyboardEvent<HTMLElement>) => {
+    if (event.defaultPrevented || !event.currentTarget.contains(event.target as Node)) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+    } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && isEditable(event.target)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
 }
 
 // Closing hands focus back to the row it came from, or to the next row when the
