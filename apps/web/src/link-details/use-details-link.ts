@@ -8,7 +8,11 @@ import { useLinksUi } from "../links/links-ui-store";
 import { findListedLink, linksKeys } from "../links/use-links";
 import { shouldRetry } from "../query-client";
 
-export type DetailsLink = { status: "found"; link: SavedLink } | { status: "loading" } | { status: "gone" };
+export type DetailsLink =
+  | { status: "found"; link: SavedLink }
+  | { status: "loading" }
+  | { status: "gone" }
+  | { status: "failed"; retry: () => void };
 
 // Details show the link as the loaded lists have it, and fetch it on its own
 // only when no list holds it (an address opened directly, or a link deep in an
@@ -35,5 +39,5 @@ export function useDetailsLink(linkId: string): DetailsLink {
   if (listed) return { status: "found", link: listed };
   if (isApiError(own.error, ERROR_CODES.NOT_FOUND)) return { status: "gone" };
   if (own.data) return { status: "found", link: own.data };
-  return own.isError ? { status: "gone" } : { status: "loading" };
+  return own.isError ? { status: "failed", retry: () => void own.refetch() } : { status: "loading" };
 }
