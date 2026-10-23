@@ -46,6 +46,7 @@ export function LinkList({ scope }: { scope: ListScope }) {
                   now={now}
                   inCollection={"collectionId" in scope}
                   highlight={highlightFor(link.id)}
+                  belongs={belongsIn(scope, link)}
                   leaving={!stays(link)}
                 />
               </li>

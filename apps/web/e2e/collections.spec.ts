@@ -18,9 +18,14 @@ function sidebar(page: Page) {
   return page.getByRole("complementary");
 }
 
+// Every row has its own Add to… button.
+function rowButton(page: Page, title: RegExp, name: string) {
+  return page.getByRole("listitem").filter({ has: page.getByRole("link", { name: title }) }).getByRole("button", { name });
+}
+
 async function openAddTo(page: Page, title: RegExp) {
   await page.getByRole("link", { name: title }).hover();
-  await page.getByRole("button", { name: "Add to…" }).click();
+  await rowButton(page, title, "Add to…").click();
   return page.getByRole("dialog");
 }
 
@@ -58,6 +63,29 @@ test.describe("at 1280 px", () => {
 
     await sidebar(page).getByRole("link", { name: "To sort" }).click();
     await expect(page.getByRole("link", { name: row })).toContainText("To sort");
+  });
+
+  test("closing Add to… returns focus to it, or to the next row when the link leaves", async ({ page, seedLinks, request, user }) => {
+    await createCollection(request, user, "Rust");
+    await seedLinks([
+      { url: "https://example.com/second", resource: { title: "Second link", fetchStatus: "fetched" } },
+      { url: "https://example.com/first", resource: { title: "First link", fetchStatus: "fetched" } },
+    ]);
+    await page.goto("/?view=inbox");
+    await page.getByRole("link", { name: /^First link/ }).focus();
+    await page.keyboard.press("Tab");
+    const addTo = rowButton(page, /^First link/, "Add to…");
+    await expect(addTo).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("textbox", { name: "Find or create a collection" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(addTo).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await page.getByRole("dialog").getByRole("button", { name: "Rust" }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("link", { name: /^First link/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /^Second link/ })).toBeFocused();
   });
 
   test("dragging a row onto a sidebar collection files it", async ({ page, seedLinks, request, user }) => {
