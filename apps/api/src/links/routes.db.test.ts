@@ -1,5 +1,5 @@
-import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkaroo/shared/http";
-import { saveLinkResponseSchema } from "@linkaroo/shared/links";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
+import { saveLinkResponseSchema } from "@linkables/shared/links";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";

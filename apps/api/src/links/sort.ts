@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { LinkSort } from "@linkaroo/shared/links";
+import type { LinkSort } from "@linkables/shared/links";
 import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { resource, savedLink } from "../db/schema";

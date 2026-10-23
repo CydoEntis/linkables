@@ -1,11 +1,11 @@
-import { HTTP_STATUS } from "@linkaroo/shared/http";
+import { HTTP_STATUS } from "@linkables/shared/http";
 import {
   listLinksQuerySchema,
   saveLinkRequestSchema,
   updateLinkRequestSchema,
   URL_MAX_LENGTH,
-} from "@linkaroo/shared/links";
-import { canonicalize } from "@linkaroo/shared/url";
+} from "@linkables/shared/links";
+import { canonicalize } from "@linkables/shared/url";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { z } from "zod";

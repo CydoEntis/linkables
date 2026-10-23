@@ -1,4 +1,4 @@
-# linkaroo
+# linkables
 
 Save any URL, find it later, share it when needed. The plan, scope and phase
 order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in

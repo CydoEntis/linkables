@@ -1,4 +1,4 @@
-import type { Collection, ListCollectionsResponse } from "@linkaroo/shared/collections";
+import type { Collection, ListCollectionsResponse } from "@linkables/shared/collections";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import postgres from "postgres";

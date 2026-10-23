@@ -1,4 +1,4 @@
-# linkaroo — Glossary
+# linkables — Glossary
 
 **Resource**
 A URL and its extracted metadata (title, description, favicon, thumbnail, content

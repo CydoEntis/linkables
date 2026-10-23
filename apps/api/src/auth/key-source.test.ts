@@ -1,4 +1,4 @@
-import { failureEnvelopeSchema } from "@linkaroo/shared/http";
+import { failureEnvelopeSchema } from "@linkables/shared/http";
 import { exportJWK, generateKeyPair } from "jose";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mintToken, TEST_KEY_ID } from "../../test/auth/tokens";

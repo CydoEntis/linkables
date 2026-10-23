@@ -1,5 +1,5 @@
-import { successEnvelopeSchema } from "@linkaroo/shared/http";
-import { listLinksResponseSchema } from "@linkaroo/shared/links";
+import { successEnvelopeSchema } from "@linkables/shared/http";
+import { listLinksResponseSchema } from "@linkables/shared/links";
 import { expect, test } from "./fixtures";
 import { API_URL } from "./env";
 
@@ -12,7 +12,7 @@ test("a signed-in user sees GET /me answer with their id", async ({ page, user }
 test("signing out returns to the sign-in screen", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page.getByRole("heading", { name: "Sign in to linkaroo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in to linkables" })).toBeVisible();
 });
 
 test("seeded links come back from GET /links for their owner", async ({ request, user, seedLinks }) => {
@@ -33,6 +33,6 @@ test.describe("signed out", () => {
 
   test("a visitor without a session sees the sign-in screen", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Sign in to linkaroo" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to linkables" })).toBeVisible();
   });
 });

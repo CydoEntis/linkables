@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { TITLE_MAX } from "@linkaroo/shared/links";
+import { TITLE_MAX } from "@linkables/shared/links";
 import { describe, expect, it } from "vitest";
 import {
   DESCRIPTION_MAX,

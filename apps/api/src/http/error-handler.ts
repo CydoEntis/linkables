@@ -1,4 +1,4 @@
-import { HTTP_STATUS } from "@linkaroo/shared/http";
+import { HTTP_STATUS } from "@linkables/shared/http";
 import type { ErrorHandler, NotFoundHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { Logger } from "../log/logger";

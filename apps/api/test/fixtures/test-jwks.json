@@ -1,7 +1,7 @@
 {
   "keys": [
     {
-      "kid": "linkaroo-test-es256",
+      "kid": "linkables-test-es256",
       "alg": "ES256",
       "use": "sig",
       "kty": "EC",

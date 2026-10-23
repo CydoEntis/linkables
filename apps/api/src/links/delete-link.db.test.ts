@@ -1,5 +1,5 @@
-import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkaroo/shared/http";
-import { listLinksResponseSchema, saveLinkResponseSchema } from "@linkaroo/shared/links";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
+import { listLinksResponseSchema, saveLinkResponseSchema } from "@linkables/shared/links";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";

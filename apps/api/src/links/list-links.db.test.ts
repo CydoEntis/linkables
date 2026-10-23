@@ -1,5 +1,5 @@
-import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkaroo/shared/http";
-import { listLinksResponseSchema } from "@linkaroo/shared/links";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
+import { listLinksResponseSchema } from "@linkables/shared/links";
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";

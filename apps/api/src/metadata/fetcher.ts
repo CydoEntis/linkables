@@ -13,7 +13,7 @@ const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const HEAD_CLOSE = /<\/head>/i;
 const HEAD_CLOSE_LENGTH = "</head>".length;
-const USER_AGENT = "Mozilla/5.0 (compatible; linkaroo/1.0)";
+const USER_AGENT = "Mozilla/5.0 (compatible; linkables/1.0)";
 
 export type FetchFailureReason =
   | "blocked"

@@ -11,7 +11,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import { FETCH_STATUSES, RESOURCE_KINDS } from "@linkaroo/shared/links";
+import { FETCH_STATUSES, RESOURCE_KINDS } from "@linkables/shared/links";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 

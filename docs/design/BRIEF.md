@@ -1,6 +1,6 @@
-# linkaroo — Design brief
+# linkables — Design brief
 
-For the product designer. This brief covers every surface linkaroo will have, so
+For the product designer. This brief covers every surface linkables will have, so
 the design system is built once and scales. The designs will be implemented by AI
 coding agents (Claude Code) reading the Figma file through the Figma MCP server, so
 the handoff rules in section 8 matter as much as the visuals.
@@ -23,7 +23,7 @@ as sending a message to yourself."
 
 - Modern, minimal, fast. Friendly, not enterprise. No dashboards, gimmicks or
   clutter. Approachable for casual users, quick for power users (keyboard-first).
-- The name is playful (kangaroo, pouch, hop). There is no logo, palette or type yet;
+- The name is friendly and literal: links you can keep, sort and share. There is no logo, palette or type yet;
   the designer proposes the brand. A light, friendly personality on a calm, fast UI
   fits. Avoid the current AI-app clichés (purple-blue gradients, cream + serif +
   terracotta, Inter-by-default).
@@ -216,7 +216,7 @@ the iPhone Shortcut and drag and drop are Tier A now. Design prompt:
   screen with optional collection. The URL may arrive inside free text.
 - **iPhone**: Safari does not support share targets (checked Oct 2026). Design a
   **paste-first save screen** (big "Paste link" button) and an install guide for an
-  Apple Shortcut "Save to linkaroo" that appears in the share sheet.
+  Apple Shortcut "Save to linkables" that appears in the share sheet.
 - Home-screen app has no browser back or reload: every screen needs its own back
   control and a refresh affordance. Respect notch and home-indicator safe areas.
 
@@ -225,7 +225,7 @@ the iPhone Shortcut and drag and drop are Tier A now. Design prompt:
 - **Sharing (Phase 3):** share dialog for a collection (invite by email, roles
   owner/editor/viewer, visibility private/unlisted/public, copy link, revoke);
   accept-invite page; shared collection with "added by" on each card; public
-  read-only collection page for signed-out visitors with "Save to my linkaroo";
+  read-only collection page for signed-out visitors with "Save to my linkables";
   "Shared with me / Following" list; invitation email. Viewer sees disabled edit
   controls with a reason.
 - **AI (Phase 4):** summary panel on a link with a required source label ("From

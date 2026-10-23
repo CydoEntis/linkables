@@ -1,4 +1,4 @@
-import { canonicalize } from "@linkaroo/shared/url";
+import { canonicalize } from "@linkables/shared/url";
 import type { Db } from "../../api/src/db/client";
 import { resource, savedLink } from "../../api/src/db/schema";
 

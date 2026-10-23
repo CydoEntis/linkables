@@ -36,7 +36,7 @@ export function testDatabaseUrl(): string {
   if (!url) {
     throw new Error(
       "TEST_DATABASE_URL is not set. Start Postgres with `docker compose up -d` and set " +
-        "TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/linkaroo_test (env or apps/api/.env).",
+        "TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/linkables_test (env or apps/api/.env).",
     );
   }
   return checkTestDatabaseUrl(url);
