@@ -63,9 +63,15 @@ export function linkRoutes({ db, now }: LinkRoutesDeps) {
       rateLimitPerUser({ limit: SAVES_PER_MINUTE, windowMs: 60_000, now }),
       validator("json", parseWith(saveLinkRequestSchema, "Invalid request body")),
       async (c) => {
-        const { url, collectionId } = c.req.valid("json");
+        const { url, collectionId, source } = c.req.valid("json");
         const canonicalUrl = canonicalUrlFor(url);
-        const saved = await saveLink(db, { userId: c.get("userId"), originalUrl: url, canonicalUrl, collectionId });
+        const saved = await saveLink(db, {
+          userId: c.get("userId"),
+          originalUrl: url,
+          canonicalUrl,
+          collectionId,
+          source,
+        });
         return ok(c, saved, saved.duplicate ? HTTP_STATUS.OK : HTTP_STATUS.CREATED);
       },
     )

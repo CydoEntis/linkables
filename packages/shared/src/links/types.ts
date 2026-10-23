@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { LINK_SORTS, LINK_VIEWS, RESOURCE_KINDS } from "./constants";
+import type { LINK_SORTS, LINK_SOURCES, LINK_VIEWS, RESOURCE_KINDS } from "./constants";
 import type {
   listLinksQuerySchema,
   listLinksResponseSchema,
@@ -17,6 +17,7 @@ export type SaveLinkResponse = z.infer<typeof saveLinkResponseSchema>;
 export type ListLinksQuery = z.input<typeof listLinksQuerySchema>;
 export type ListLinksResponse = z.infer<typeof listLinksResponseSchema>;
 export type UpdateLinkRequest = z.input<typeof updateLinkRequestSchema>;
+export type LinkSource = (typeof LINK_SOURCES)[number];
 export type LinkView = (typeof LINK_VIEWS)[number];
 export type LinkSort = (typeof LINK_SORTS)[number];
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];

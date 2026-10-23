@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   FETCH_STATUSES,
   LINK_SORTS,
+  LINK_SOURCES,
   LINK_VIEWS,
   LIST_LIMIT_DEFAULT,
   LIST_LIMIT_MAX,
@@ -17,6 +18,7 @@ import { isDateOnly } from "./dates";
 export const saveLinkRequestSchema = z.object({
   url: z.string().trim().max(URL_MAX_LENGTH, { error: `url must be at most ${String(URL_MAX_LENGTH)} characters` }),
   collectionId: z.uuid().optional(),
+  source: z.enum(LINK_SOURCES).optional(),
 });
 
 export const resourceSummarySchema = z.strictObject({
@@ -38,6 +40,7 @@ export const savedLinkSchema = z.strictObject({
   note: z.string().nullable(),
   pinned: z.boolean(),
   savedAt: z.iso.datetime(),
+  savedFrom: z.enum(LINK_SOURCES).nullable(),
   // The caller's collections holding this link, ordered by name ignoring case.
   collections: z.array(z.strictObject({ id: z.uuid(), name: z.string() })),
   resource: resourceSummarySchema,

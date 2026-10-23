@@ -1,0 +1,1 @@
+ALTER TABLE "saved_link" ADD COLUMN "saved_from" text;

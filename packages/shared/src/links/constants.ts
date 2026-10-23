@@ -4,6 +4,10 @@ export const RESOURCE_KINDS = ["video", "page", "other"] as const;
 
 export const FETCH_STATUSES = ["pending", "fetched", "fetch_failed"] as const;
 
+// Where a link was saved, derived by the client from its platform. Stored as
+// text, so a new value needs no migration.
+export const LINK_SOURCES = ["iphone", "ipad", "android", "mac", "windows", "linux", "chromeos", "extension", "other"] as const;
+
 export const LINK_VIEWS = ["all", "inbox"] as const;
 
 export const LINK_SORTS = ["newest", "oldest", "title"] as const;

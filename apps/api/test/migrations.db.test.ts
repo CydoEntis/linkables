@@ -97,3 +97,20 @@ describe("collection pin and last use migration", () => {
     expect(item?.created_at).toEqual(new Date("2026-01-02T00:00:00Z"));
   });
 });
+
+describe("saved from migration", () => {
+  it("applies on a database at 0002 and leaves existing links without a source", async () => {
+    await apply("0000_init.sql");
+    await apply("0001_collection_name_ignores_case.sql");
+    await apply("0002_collection_pin_and_last_use.sql");
+    await scratch`
+      with r as (insert into resource (canonical_url) values ('https://example.com/') returning id)
+      insert into saved_link (user_id, resource_id, original_url) select ${userA}, id, 'https://example.com/' from r`;
+
+    await apply("0003_saved_link_saved_from.sql");
+
+    const rows = await scratch<{ original_url: string; saved_from: string | null }[]>`
+      select original_url, saved_from from saved_link`;
+    expect(rows).toEqual([{ original_url: "https://example.com/", saved_from: null }]);
+  });
+});
