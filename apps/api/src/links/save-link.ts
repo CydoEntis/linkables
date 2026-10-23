@@ -1,8 +1,9 @@
 import type { SaveLinkResponse } from "@linkables/shared/links";
 import { and, eq } from "drizzle-orm";
 import { requireCollection } from "../collections/collections";
+import { fileLink } from "../collections/membership";
 import type { Db, Tx } from "../db/client";
-import { collectionItem, job, resource, savedLink } from "../db/schema";
+import { job, resource, savedLink } from "../db/schema";
 import { InternalError } from "../http/errors";
 import { toSavedLink } from "./to-saved-link";
 
@@ -55,7 +56,7 @@ export function saveLink(db: Db, input: SaveLinkInput): Promise<SaveLinkResponse
     const res = await upsertResource(tx, input.canonicalUrl);
     const { link, duplicate } = await insertSavedLink(tx, input, res.id);
     if (collectionId !== undefined) {
-      await tx.insert(collectionItem).values({ collectionId, savedLinkId: link.id }).onConflictDoNothing();
+      await fileLink(tx, { userId: input.userId, collectionId, linkId: link.id });
     }
     return { ...toSavedLink(link, res), duplicate };
   });
