@@ -65,7 +65,7 @@ Contrast was measured in headless Chrome with the WCAG formula.
 - **Collection pages have a path**, `/c/<id>`, so they can be bookmarked and, later, shared.
 - **Pickers keep their order while open** (the extension pop-up's rule, used for the web Add to… popover and the phone Add to sheet), so a ticked collection does not jump under the pointer.
 - **Keyboard access to swipe actions**: tabbing to a row's tiles opens them as a swipe would. Add to… is the keyboard way to file instead of dragging.
-- **Deleting a collection** waits out the 5 s Undo window before it reaches the server; closing the tab inside that window keeps the collection.
+- **Deleting a collection** reaches the server only when its Undo toast closes (5 s, longer while the toast is hovered); closing the tab before then keeps the collection. Going back to its page meanwhile shows "Deleted" with Undo.
 - **Account menu** (avatar, email, Get the bookmark button, Sign out) at the foot of the sidebar and in the phone header. The handoff draws the avatar with no menu; the brief (5.2) asks for an account menu.
 - **Load more** button at the end of the list (brief 5.4 left infinite scroll vs. Load more open).
 - **Pending rows stop polling** two minutes after this device first sees the newest pending row (2 s, then 5 s, then 15 s); a row still pending after that keeps "Getting details…" until the list next loads.
