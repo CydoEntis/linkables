@@ -14,13 +14,18 @@ type SaveBarProps = {
 
 const isLink = (text: string) => saveLinkFormSchema.safeParse({ url: text }).success;
 
-// A link is offered for saving, never searched for, as in the handoff.
-const searchFor = (text: string) => (isLink(text) ? undefined : text.trim() || undefined);
+const searchText = (text: string) => text.trim() || undefined;
 
 // The handoff's search/paste bar: a link gets the lime Save button, anything else searches as you type.
 export function SaveBar({ className, query, onQueryChange }: SaveBarProps) {
-  const { register, onSubmit, value, setValue, clearError, canSave, error } = useSaveLinkForm({ reValidateMode: "onSubmit" });
-  const search = useSearchText({ query, onQueryChange, text: value, setText: setValue, toQuery: searchFor });
+  const form = useSaveLinkForm({ reValidateMode: "onSubmit", defaultUrl: query });
+  const { register, onSubmit, value, setValue, clearError, error } = form;
+  // Typed text that is a link is offered for saving, never searched for, as in
+  // the handoff; a search that came from the URL stays a search even when it looks like a link.
+  const fromUrl = query !== undefined && value.trim() === query;
+  const canSave = form.canSave && !fromUrl;
+  const toQuery = (text: string) => (text.trim() === query ? query : isLink(text) ? undefined : searchText(text));
+  const search = useSearchText({ query, onQueryChange, text: value, setText: setValue, toQuery });
   const field = register("url", { onChange: clearError });
   const errorId = useId();
   const searching = !canSave && value.trim() !== "";

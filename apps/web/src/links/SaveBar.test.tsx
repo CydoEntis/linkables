@@ -105,6 +105,16 @@ describe("SaveBar", () => {
     expect(onQueryChange).not.toHaveBeenCalled();
   });
 
+  it("keeps a link-like search from the URL as a search", async () => {
+    answerSave(() => new Promise(() => undefined));
+    const { field, onQueryChange } = renderBar("node.js");
+    expect(field).toHaveValue("node.js");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(onQueryChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Save link" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+  });
+
   it("shows the search from the URL and clears it with the Clear button", async () => {
     answerSave(() => Promise.resolve(null));
     const { field, user, onQueryChange } = renderBar("rust");

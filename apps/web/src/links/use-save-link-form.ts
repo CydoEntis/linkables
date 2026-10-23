@@ -5,20 +5,25 @@ import { saveLinkFormSchema, type SaveLinkFormInput, type SaveLinkFormOutput } f
 import { useSaveLink } from "./use-save-link";
 
 // The search bar passes "onSubmit": its text is often a search, which must not be checked as a link while typing.
-type SaveLinkFormOptions = { onSubmitted?: () => void; onInvalid?: () => void; reValidateMode?: "onChange" | "onSubmit" };
+type SaveLinkFormOptions = {
+  onSubmitted?: () => void;
+  onInvalid?: () => void;
+  reValidateMode?: "onChange" | "onSubmit";
+  defaultUrl?: string | undefined;
+};
 
 // Saving is optimistic: the field clears at once, and a link the API rejects comes back with its message.
-export function useSaveLinkForm({ onSubmitted, onInvalid, reValidateMode = "onChange" }: SaveLinkFormOptions = {}) {
+export function useSaveLinkForm({ onSubmitted, onInvalid, reValidateMode = "onChange", defaultUrl = "" }: SaveLinkFormOptions = {}) {
   const save = useSaveLink();
   const form = useForm<SaveLinkFormInput, unknown, SaveLinkFormOutput>({
     resolver: zodResolver(saveLinkFormSchema),
-    defaultValues: { url: "" },
+    defaultValues: { url: defaultUrl },
     reValidateMode,
   });
   const value = form.watch("url");
 
   const submitValid = form.handleSubmit(({ url }) => {
-    form.reset();
+    form.reset({ url: "" });
     onSubmitted?.();
     save(url, {
       onInvalid: (message) => {
