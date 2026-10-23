@@ -3,6 +3,7 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { withoutLinkDetails } from "../link-details/details-search";
 import { LinksScreen } from "../links/LinksScreen";
 import type { FiltersChange } from "../search/list-filters";
 import { AppShell } from "../shell/AppShell";
@@ -18,7 +19,7 @@ const route = getRouteApi("/c/$collectionId");
 
 export function CollectionPage() {
   const { collectionId } = route.useParams();
-  const filters = route.useSearch();
+  const filters = withoutLinkDetails(route.useSearch());
   const navigate = route.useNavigate();
   const onFiltersChange: FiltersChange = (patch, { replace = false } = {}) => {
     void navigate({ search: (previous) => ({ ...previous, ...patch }), replace });

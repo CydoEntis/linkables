@@ -78,6 +78,19 @@ test.describe("at 1280 px", () => {
     await expect(panel(page)).toBeVisible();
   });
 
+  test("opening and swapping details does not reload the list", async ({ page, seedLinks }) => {
+    await seedLinks([RUST, TOKYO]);
+    await page.goto("/?q=e");
+    await expect(page.getByRole("link", { name: /^Rust by Example/ })).toBeVisible();
+    const listLoads: string[] = [];
+    page.on("request", (request) => { if (request.method() === "GET" && request.url().includes("/api/v1/links")) listLoads.push(request.url()); });
+    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    await page.getByRole("link", { name: /^Tokyo night walk/ }).click();
+    await expect(panel(page).getByRole("heading", { name: /Tokyo night walk/ })).toBeVisible();
+    await page.waitForTimeout(500);
+    expect(listLoads).toEqual([]);
+  });
+
   test("pinning from the details pins the link", async ({ page, seedLinks }) => {
     await seedLinks([RUST]);
     await page.goto("/");
