@@ -7,6 +7,7 @@ import { buildBookmarklet } from "./bookmarklet";
 
 type BookmarkletDialogProps = { open: boolean; onOpenChange: (open: boolean) => void };
 
+const DRAG_HINT = "Drag it to your bookmarks bar, or use Copy the link.";
 const PASTE_HINT = "Now add a bookmark and paste this as its address.";
 
 export function BookmarkletDialog({ open, onOpenChange }: BookmarkletDialogProps) {
@@ -18,7 +19,7 @@ export function BookmarkletDialog({ open, onOpenChange }: BookmarkletDialogProps
         <DialogTitle>Get the bookmark button</DialogTitle>
         <DialogDescription>Drag this to your bookmarks bar</DialogDescription>
         <div className="flex justify-center rounded-2xl bg-muted py-7">
-          <BookmarkletButton href={href} />
+          <BookmarkletButton href={href} onClick={() => { setHint(DRAG_HINT); }} />
         </div>
         <div className="flex flex-col gap-2">
           <CopyLink href={href} onCopied={() => { setHint(PASTE_HINT); }} />
@@ -35,12 +36,15 @@ export function BookmarkletDialog({ open, onOpenChange }: BookmarkletDialogProps
 // React swaps any javascript: href for one that throws, as an XSS guard. This
 // one is built by the app from its own origin, so it is set on the element
 // after render instead.
-function BookmarkletButton({ href }: { href: string }) {
+function BookmarkletButton({ href, onClick }: { href: string; onClick: () => void }) {
   return (
     <a
       ref={(node) => { node?.setAttribute("href", href); }}
-      // A click here would save the linkables page itself; the button is for dragging.
-      onClick={(event) => { event.preventDefault(); }}
+      // Following the link here would save the linkables page itself; the button is for dragging.
+      onClick={(event) => {
+        event.preventDefault();
+        onClick();
+      }}
       className="flex h-11 cursor-grab items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-bold text-primary-foreground active:cursor-grabbing"
     >
       <Bookmark aria-hidden className="size-4" />

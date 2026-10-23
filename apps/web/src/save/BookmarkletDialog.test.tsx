@@ -10,6 +10,13 @@ function renderDialog() {
 }
 
 describe("BookmarkletDialog", () => {
+  it("explains how to use the button when it is clicked instead of dragged", async () => {
+    const { user, status } = renderDialog();
+    expect(status).toHaveTextContent("");
+    await user.click(screen.getByRole("link", { name: "Save to linkables" }));
+    expect(status).toHaveTextContent("Drag it to your bookmarks bar, or use Copy the link.");
+  });
+
   it("announces the next step in the same status line once the link is copied", async () => {
     const { user, status } = renderDialog();
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
