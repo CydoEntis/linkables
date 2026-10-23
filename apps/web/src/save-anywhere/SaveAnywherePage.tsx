@@ -1,9 +1,11 @@
 import { getRouteApi, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { z } from "zod";
 import { env } from "../config/env";
 import { Wordmark } from "../shell/Wordmark";
 import { currentSaveDevice } from "./save-device";
 import { SaveAnywhereSteps } from "./SaveAnywhereSteps";
+import { markWelcomeSeen } from "./welcome";
 
 export const SAVE_ANYWHERE_PATH = "/save-from-anywhere";
 
@@ -14,6 +16,7 @@ const route = getRouteApi(SAVE_ANYWHERE_PATH);
 
 export function SaveAnywherePage() {
   const { welcome = false } = route.useSearch();
+  useEffect(markWelcomeSeen, []);
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-[600px] flex-col gap-6 px-4 pt-[max(16px,env(safe-area-inset-top))] pb-16 md:pt-10">
       <header className="flex items-center justify-between gap-4">

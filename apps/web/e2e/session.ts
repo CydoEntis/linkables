@@ -1,4 +1,5 @@
 import { mintToken } from "../../api/test/auth/tokens";
+import { WELCOME_SEEN_KEY } from "../src/save-anywhere/welcome";
 import { SUPABASE_URL } from "./env";
 
 export type TestUser = { id: string; email: string; accessToken: string };
@@ -39,9 +40,9 @@ function sessionJson(user: TestUser): string {
   });
 }
 
-export function signedInState(user: TestUser, origin: string) {
-  return {
-    cookies: [],
-    origins: [{ origin, localStorage: [{ name: STORAGE_KEY, value: sessionJson(user) }] }],
-  };
+// welcomed: the first-sign-in Save from anywhere prompt was already seen, as for most tests.
+export function signedInState(user: TestUser, origin: string, { welcomed = true } = {}) {
+  const session = { name: STORAGE_KEY, value: sessionJson(user) };
+  const localStorage = welcomed ? [session, { name: WELCOME_SEEN_KEY, value: "1" }] : [session];
+  return { cookies: [], origins: [{ origin, localStorage }] };
 }
