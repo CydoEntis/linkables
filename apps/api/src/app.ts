@@ -26,6 +26,8 @@ export type AppDeps = {
   now?: () => number;
 };
 
+const PREFLIGHT_MAX_AGE_SECONDS = 2 * 60 * 60;
+
 export function createApp({ logger, corsOrigins, auth, db, now = Date.now }: AppDeps) {
   const v1 = new Hono<AuthEnv>()
     // Over the cap, bodyLimit throws a 413 HTTPException, which onError maps to VALIDATION.
@@ -40,7 +42,9 @@ export function createApp({ logger, corsOrigins, auth, db, now = Date.now }: App
     .use(requestLog(logger))
     .use(requestId)
     // CORS runs before auth so preflights never reach the token check.
-    .use(cors({ origin: corsOrigins, exposeHeaders: [REQUEST_ID_HEADER] }))
+    // Chrome drops a keepalive request (the web app's save as a page unloads) that
+    // still needs a preflight, so browsers keep one for 2 h, Chrome's cap.
+    .use(cors({ origin: corsOrigins, exposeHeaders: [REQUEST_ID_HEADER], maxAge: PREFLIGHT_MAX_AGE_SECONDS }))
     .get("/health", (c) => ok(c, { status: "ok" as const }))
     .route(API_V1_PREFIX, v1);
 

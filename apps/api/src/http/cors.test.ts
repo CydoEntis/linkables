@@ -37,4 +37,13 @@ describe("CORS", () => {
     expect(res.status).toBe(204);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ALLOWED);
   });
+
+  it("lets browsers keep a preflight for two hours, so a save sent as the page unloads needs none", async () => {
+    const res = await createTestApp({ corsOrigins: [ALLOWED] }).request("/api/v1/links/00000000-0000-4000-8000-000000000000", {
+      method: "OPTIONS",
+      headers: { Origin: ALLOWED, "Access-Control-Request-Method": "PATCH" },
+    });
+
+    expect(res.headers.get("Access-Control-Max-Age")).toBe("7200");
+  });
 });
