@@ -154,7 +154,9 @@ test.describe("at 1280 px", () => {
     await expect(page).not.toHaveURL(/q=/);
     await expect(page.getByRole("heading", { level: 1, name: "To sort" })).toBeVisible();
 
-    await page.locator("body").click();
+    // Leave focus on the page without clicking: a click in the middle could land on a row and open its details.
+    await expect(palette).toBeHidden();
+    await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); });
     await page.keyboard.press("?");
     await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
   });
