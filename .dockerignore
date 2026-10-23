@@ -1,0 +1,15 @@
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.claude
+.plan
+docs
+playwright-report
+test-results
+apps/web/e2e
+# Tests and the committed test key pair never ship.
+apps/api/test
+**/*.test.ts
