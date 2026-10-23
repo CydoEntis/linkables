@@ -60,7 +60,7 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
   boundary; trust the types inside.
 - All data access goes through the API and is scoped to the signed-in user's
   `sub`. No query returns another user's rows (plan Rule 3). Every new route gets
-  a two-user test and an entry in `apps/api/test/authz.test.ts`.
+  a two-user test and an entry in `apps/api/test/authz.db.test.ts`.
 - Anything that fetches a user-supplied URL goes through the SSRF-guarded
   fetcher (ADR-0003, `apps/api/src/metadata/fetcher.ts`). Never call `fetch` on a
   saved URL directly; never weaken the guard to make a test pass. The fetcher
