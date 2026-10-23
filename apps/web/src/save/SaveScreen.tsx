@@ -44,16 +44,16 @@ function ScreenBody({ state, title, onUndo, undoing = false, onRetry, onSaveUrl 
     case "no-link":
       return (
         <>
-          <Status icon={<Unlink className="size-5" />} heading="No link found" detail="There was no link in what you shared. Paste one here." />
+          <Status icon={<Unlink className="size-5" />} heading="No link found" note="There was no link in what you shared. Paste one here." />
           <PasteForm onSaveUrl={onSaveUrl} />
-          <Footer />
+          <Footer quiet />
         </>
       );
     case "error":
       return (
         <>
-          <Status icon={<AlertCircle className="size-5 text-destructive" />} heading="Couldn't save" detail={state.message} />
-          <Footer>
+          <Status icon={<AlertCircle className="size-5 text-destructive" />} heading="Couldn't save" note={state.message} />
+          <Footer quiet>
             <button type="button" onClick={onRetry} className="h-[54px] rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground">
               Retry
             </button>
@@ -63,7 +63,7 @@ function ScreenBody({ state, title, onUndo, undoing = false, onRetry, onSaveUrl 
     case "removed":
       return (
         <>
-          <Status icon={<Undo2 className="size-5" />} heading="Removed" detail="The link is no longer in linkables." />
+          <Status icon={<Undo2 className="size-5" />} heading="Removed" note="The link is no longer in linkables." />
           <Footer />
         </>
       );
@@ -146,11 +146,18 @@ function Status({ icon, heading, detail, note, tone = "neutral", celebrate = fal
   );
 }
 
-function Footer({ children }: { children?: ReactNode }) {
+// quiet: the view already has its one lime action, so Open linkables steps back to a ghost button.
+function Footer({ children, quiet = false }: { children?: ReactNode; quiet?: boolean }) {
   return (
     <footer className="mt-auto flex gap-2.5 md:mt-0">
       {children}
-      <Link to="/" className="flex h-[54px] flex-1 items-center justify-center rounded-2xl bg-foreground text-base font-bold text-background">
+      <Link
+        to="/"
+        className={cn(
+          "flex h-[54px] flex-1 items-center justify-center rounded-2xl text-base font-bold",
+          quiet ? "bg-muted text-foreground hover:bg-accent" : "bg-foreground text-background",
+        )}
+      >
         Open linkables
       </Link>
     </footer>
