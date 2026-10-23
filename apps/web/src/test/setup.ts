@@ -14,4 +14,7 @@ vi.stubGlobal("matchMedia", (query: string) => ({
   dispatchEvent: vi.fn(),
 }));
 
+// jsdom does no layout, so every element reads as visible.
+Element.prototype.checkVisibility = () => true;
+
 afterEach(cleanup);
