@@ -7,6 +7,13 @@ export const linkDetailsSearchShape = { link: z.uuid().optional().catch(undefine
 
 export const linkDetailsSearchSchema = z.object(linkDetailsSearchShape);
 
+// The list's filters without ?link=: the open details must not change which list is loaded.
+export function withoutLinkDetails<Search extends { link?: string | undefined }>(search: Search): Omit<Search, "link"> {
+  const filters = { ...search };
+  delete filters.link;
+  return filters;
+}
+
 declare module "@tanstack/react-router" {
   interface HistoryState {
     // Set on the entry that opening details pushed, so Back can return to the list's own entry.
