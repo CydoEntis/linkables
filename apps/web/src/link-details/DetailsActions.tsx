@@ -6,7 +6,7 @@ import { Confetti } from "../save/Confetti";
 import { copyLink } from "../links/share-link";
 import { usePinLink } from "../links/use-pin-link";
 
-const ACTION = "relative flex h-[42px] items-center justify-center gap-[7px] rounded-lg text-[13.5px] font-semibold";
+const ACTION = "relative flex h-[42px] items-center max-md:h-11 justify-center gap-[7px] rounded-lg text-[13.5px] font-semibold";
 
 export function DetailsActions({ link, onDelete }: { link: SavedLink; onDelete: () => void }) {
   const pin = usePinLink(link);

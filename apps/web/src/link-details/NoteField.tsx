@@ -36,7 +36,7 @@ export function NoteField({ link }: { link: SavedLink }) {
         <p id={problemId} role="alert" className="flex items-center justify-between gap-2 text-[13px] text-destructive">
           {note.status === "invalid" ? "Your note has characters that can't be saved." : "Couldn't save your note."}
           {note.status === "failed" ? (
-            <button type="button" onClick={note.retry} className="min-h-8 rounded-md px-2 font-semibold text-foreground hover:bg-muted">
+            <button type="button" onClick={note.retry} className="min-h-8 rounded-md px-2 font-semibold max-md:min-h-11 text-foreground hover:bg-muted">
               Try again
             </button>
           ) : null}
