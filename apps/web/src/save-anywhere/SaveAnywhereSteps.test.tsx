@@ -1,9 +1,13 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SaveAnywhereSteps } from "./SaveAnywhereSteps";
 
 const SHORTCUT = "https://www.icloud.com/shortcuts/abc123";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function leadCard() {
   const [lead] = screen.getAllByRole("region");
@@ -29,6 +33,17 @@ describe("SaveAnywhereSteps", () => {
 
     expect(prompt).toHaveBeenCalledOnce();
     await vi.waitFor(() => { expect(screen.queryByRole("button", { name: "Install linkables" })).toBeNull(); });
+  });
+
+  it("shows only the plain steps on the Android card of another device, even where this browser could install", async () => {
+    vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList);
+    render(<SaveAnywhereSteps device="desktop" shortcutUrl={SHORTCUT} />);
+    act(() => { window.dispatchEvent(Object.assign(new Event("beforeinstallprompt"), { prompt: vi.fn() })); });
+    await userEvent.click(screen.getByText("See other ways"));
+
+    const android = screen.getByRole("region", { name: "On Android" });
+    expect(within(android).getByText("Add linkables to your home screen")).toBeVisible();
+    expect(within(android).queryByRole("button", { name: "Install linkables" })).toBeNull();
   });
 
   it("leads iPhone with the shortcut link, the three-step guide and the Safari sign-in note", () => {
