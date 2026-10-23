@@ -33,7 +33,7 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 bg-popover text-popover-foreground transition-transform duration-300 ease-out-soft outline-none",
+          "fixed z-50 flex flex-col gap-4 bg-popover text-popover-foreground transition-transform duration-300 ease-out-soft outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
           "data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:data-ending-style:translate-y-full data-[side=bottom]:data-starting-style:translate-y-full",
           "data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:data-ending-style:translate-x-full data-[side=right]:data-starting-style:translate-x-full",
           className
