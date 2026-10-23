@@ -37,7 +37,8 @@ function useMembership(linkId: string, initial: string[]) {
     },
     onSettled: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: linksKeys.all }),
-      queryClient.invalidateQueries({ queryKey: collectionsKey }),
+      // Marked stale but not refetched here: the handoff freezes the order while the card is open.
+      queryClient.invalidateQueries({ queryKey: collectionsKey, refetchType: "none" }),
     ]),
   });
   return { ticked, toggle: (collectionId: string) => { toggle.mutate({ collectionId, on: !ticked.has(collectionId) }); } };
