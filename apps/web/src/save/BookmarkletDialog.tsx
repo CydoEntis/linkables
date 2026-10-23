@@ -7,8 +7,11 @@ import { buildBookmarklet } from "./bookmarklet";
 
 type BookmarkletDialogProps = { open: boolean; onOpenChange: (open: boolean) => void };
 
+const PASTE_HINT = "Now add a bookmark and paste this as its address.";
+
 export function BookmarkletDialog({ open, onOpenChange }: BookmarkletDialogProps) {
   const href = buildBookmarklet(window.location.origin);
+  const [hint, setHint] = useState("");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -17,7 +20,13 @@ export function BookmarkletDialog({ open, onOpenChange }: BookmarkletDialogProps
         <div className="flex justify-center rounded-2xl bg-muted py-7">
           <BookmarkletButton href={href} />
         </div>
-        <CopyLink href={href} />
+        <div className="flex flex-col gap-2">
+          <CopyLink href={href} onCopied={() => { setHint(PASTE_HINT); }} />
+          {/* Mounted before it has text: a live region added together with its text is often not read out. */}
+          <p role="status" className="text-center text-[13px] text-muted-foreground">
+            {hint}
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -41,27 +50,23 @@ function BookmarkletButton({ href }: { href: string }) {
 }
 
 // Some browsers will not let a javascript: link be dragged into the bookmarks bar.
-function CopyLink({ href }: { href: string }) {
+function CopyLink({ href, onCopied }: { href: string; onCopied: () => void }) {
   const [copied, setCopied] = useState(false);
 
   function copy() {
     navigator.clipboard.writeText(href).then(
-      () => { setCopied(true); },
+      () => {
+        setCopied(true);
+        onCopied();
+      },
       () => { toast.error("Couldn't copy the link."); },
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Button variant="ghost" size="touch" onClick={copy}>
-        {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-        {copied ? "Copied" : "Copy the link"}
-      </Button>
-      {copied ? (
-        <p role="status" className="text-center text-[13px] text-muted-foreground">
-          Now add a bookmark and paste this as its address.
-        </p>
-      ) : null}
-    </div>
+    <Button variant="ghost" size="touch" onClick={copy}>
+      {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
+      {copied ? "Copied" : "Copy the link"}
+    </Button>
   );
 }
