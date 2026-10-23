@@ -11,12 +11,10 @@ const savedAtCursorSchema = z.strictObject({
   id: z.uuid(),
 });
 
-// title is the row's sort key itself, not a hash, because the next page compares
-// rows against it. The longest key is a 2048-byte URL, so a cursor stays under 3 KB.
+// Only the id: the sort key can be a saved URL with its query string, and cursors
+// end up in request logs and browser history. The key is looked up per page.
 const titleCursorSchema = z.strictObject({
   sort: z.literal("title"),
-  // Postgres text cannot hold NUL, so a forged one would fail the query with a 500.
-  title: z.string().refine((value) => !value.includes("\u0000")),
   id: z.uuid(),
 });
 

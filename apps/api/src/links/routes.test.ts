@@ -129,7 +129,7 @@ describe("GET /links validation", () => {
     ["title", "newest"],
     ["newest", "title"],
   ])("rejects a %s cursor used with sort=%s", async (cursorSort, sort) => {
-    const key = cursorSort === "title" ? { title: "apple" } : { savedAt: "2026-01-01T00:00:00.000000Z" };
+    const key = cursorSort === "title" ? {} : { savedAt: "2026-01-01T00:00:00.000000Z" };
     const cursor = token({ sort: cursorSort, ...key, id: LINK_ID });
 
     await expectValidationError(await list(`sort=${sort}&cursor=${cursor}`));
@@ -141,8 +141,8 @@ describe("GET /links validation", () => {
     await expectValidationError(await list(`cursor=${cursor}`));
   });
 
-  it("rejects a title cursor holding a NUL, which Postgres text cannot hold", async () => {
-    const cursor = token({ sort: "title", title: "a\u0000", id: LINK_ID });
+  it("rejects a title cursor carrying a sort key", async () => {
+    const cursor = token({ sort: "title", title: "https://example.com/?token=secret", id: LINK_ID });
 
     await expectValidationError(await list(`sort=title&cursor=${cursor}`));
   });
