@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { pendingSaveHref } from "../save/pending-save";
 import { AuthPage } from "./AuthPage";
 import { useAuthState } from "./auth-state";
 import type { LinkProblem } from "./link-landing";
@@ -33,12 +34,18 @@ type SignInValues = z.infer<typeof signInSchema>;
 export function SignInPage() {
   const auth = useAuthState();
   if (auth.status !== "signed-out") return null;
-  return <SignInScreen linkProblem={auth.linkProblem} focusHeading={auth.afterSignOut} />;
+  return (
+    <SignInScreen
+      linkProblem={auth.linkProblem}
+      focusHeading={auth.afterSignOut}
+      title={pendingSaveHref() ? "Sign in to save this link" : undefined}
+    />
+  );
 }
 
-type SignInScreenProps = { linkProblem: LinkProblem | null; focusHeading: boolean };
+type SignInScreenProps = { linkProblem: LinkProblem | null; focusHeading: boolean; title?: string | undefined };
 
-export function SignInScreen({ linkProblem, focusHeading }: SignInScreenProps) {
+export function SignInScreen({ linkProblem, focusHeading, title = "Sign in to linkables" }: SignInScreenProps) {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [cameBack, setCameBack] = useState(false);
@@ -56,6 +63,7 @@ export function SignInScreen({ linkProblem, focusHeading }: SignInScreenProps) {
   }
   return (
     <EmailForm
+      title={title}
       defaultEmail={email}
       initialProblem={linkProblem}
       onSent={(address) => {
@@ -68,13 +76,14 @@ export function SignInScreen({ linkProblem, focusHeading }: SignInScreenProps) {
 }
 
 type EmailFormProps = {
+  title: string;
   defaultEmail: string;
   initialProblem: LinkProblem | null;
   onSent: (email: string) => void;
   focusHeading: boolean;
 };
 
-function EmailForm({ defaultEmail, initialProblem, onSent, focusHeading }: EmailFormProps) {
+function EmailForm({ title, defaultEmail, initialProblem, onSent, focusHeading }: EmailFormProps) {
   const [problem, setProblem] = useState<Problem | null>(initialProblem);
   const send = useMutation({ mutationFn: sendMagicLink });
   const form = useForm<SignInValues>({ resolver: zodResolver(signInSchema), defaultValues: { email: defaultEmail } });
@@ -96,7 +105,7 @@ function EmailForm({ defaultEmail, initialProblem, onSent, focusHeading }: Email
 
   return (
     <AuthPage
-      title="Sign in to linkables"
+      title={title}
       description="We'll email you a link that signs you in."
       focusHeading={focusHeading}
     >

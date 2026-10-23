@@ -3,6 +3,9 @@ import { AuthGate } from "./auth/AuthGate";
 import { SignInPage } from "./auth/SignInScreen";
 import { LinksPage } from "./links/LinksPage";
 import { DEFAULT_LINKS_SEARCH, linksSearchSchema } from "./links/links-search";
+import { SAVE_PATH } from "./save/pending-save";
+import { SavePage } from "./save/SavePage";
+import { saveSearchSchema } from "./save/save-search";
 import { NotFoundPage } from "./shell/NotFoundPage";
 
 const rootRoute = createRootRoute({ component: AuthGate, notFoundComponent: NotFoundPage });
@@ -21,7 +24,14 @@ const signInRoute = createRoute({
   component: SignInPage,
 });
 
-export const router = createRouter({ routeTree: rootRoute.addChildren([linksRoute, signInRoute]) });
+const saveRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: SAVE_PATH,
+  validateSearch: saveSearchSchema,
+  component: SavePage,
+});
+
+export const router = createRouter({ routeTree: rootRoute.addChildren([linksRoute, signInRoute, saveRoute]) });
 
 declare module "@tanstack/react-router" {
   interface Register {
