@@ -22,6 +22,11 @@ function answerSave(answer: (body: { url: string }) => Promise<unknown>) {
   });
 }
 
+function savedBody(): unknown {
+  const call = request.mock.calls.find(([path, , init]) => path === "/links" && init?.method === "POST");
+  return JSON.parse(call?.[2]?.body as string);
+}
+
 function renderBar() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -66,7 +71,7 @@ describe("SaveBar", () => {
     expect(screen.queryByRole("button", { name: "Save link" })).not.toBeInTheDocument();
     await user.type(field, ".org");
     await user.click(screen.getByRole("button", { name: "Save link" }));
-    expect(request).toHaveBeenCalledWith("/links", expect.anything(), expect.objectContaining({ body: JSON.stringify({ url: "https://rust.org" }) }));
+    expect(savedBody()).toEqual({ url: "https://rust.org", source: expect.any(String) as unknown });
   });
 
   it("explains a non-link under the bar without calling the API", async () => {

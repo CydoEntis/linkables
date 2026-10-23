@@ -34,7 +34,7 @@ it("saves a link pasted outside any field", async () => {
     expect(request).toHaveBeenCalledWith(
       "/links",
       expect.anything(),
-      expect.objectContaining({ body: JSON.stringify({ url: "https://example.com/pasted" }) }),
+      expect.objectContaining({ body: expect.stringContaining('"url":"https://example.com/pasted"') as unknown }),
     );
   });
 });
