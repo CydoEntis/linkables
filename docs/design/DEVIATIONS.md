@@ -43,7 +43,9 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **Saved between uses local days.** The URL holds the days picked (`from=2026-10-01`); the request sends each as the first and last instant of that day on this device. A reversed range is held back with "The first date is after the second."
 - **Everything is in the URL** (`q`, `sort`, `kind`, `pinned`, `from`, `to`, `collection`), so a filtered list can be bookmarked, survives a reload and steps back with Back. Typing more of a search replaces its history entry instead of adding one per pause. The sidebar views start fresh, without the search or filters.
 - **Esc** clears the search, and a second Esc leaves the field.
-- **Command palette** (Ctrl+K, or ⌘K on Apple keyboards): Search links for the typed text, Save a link, Get the bookmark button, Keyboard shortcuts, Go to All links / Pinned / To sort, and Go to each collection. The bar's hint reads "Ctrl K" where the keyboard has no ⌘.
+- **A search from the URL stays a search**, even when it looks like a link (`?q=nodejs.org`): the bar shows it with Clear, not Save. Typed text that is a link still gets Save.
+- **Searches longer than 200 characters** (the API's limit) search their first 200, and the bar says so; the phone field stops at 200.
+- **Command palette** (Ctrl+K, or ⌘K on Apple keyboards): Search links for the typed text, Save a link, Save from anywhere, Get the bookmark button, Keyboard shortcuts, Go to All links / Pinned / To sort, and Go to each collection. The bar's hint reads "Ctrl K" where the keyboard has no ⌘.
 - **"?" lists the shortcuts** (/, Esc, Ctrl/⌘ K, Ctrl/⌘ V, ?). The brief's single-key actions on a selected card (p, c, e) wait for link details, since rows have no selection yet.
 
 ## Share flow (`/save`)
