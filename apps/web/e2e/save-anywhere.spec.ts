@@ -147,6 +147,30 @@ test.describe("drag and drop at 1280 px", () => {
     expect(rows.map((row) => row.original_url)).toEqual(["https://example.test/dropped"]);
   });
 
+  test("after a row is dragged onto a collection and leaves To sort, an outside link still drops", async ({ page, seedLinks, request, user }) => {
+    const created = await request.post(`${API_URL}/api/v1/collections`, {
+      headers: { Authorization: `Bearer ${user.accessToken}` },
+      data: { name: "Watch later" },
+    });
+    expect(created.status()).toBe(201);
+    await seedLinks([{ url: "https://example.com/filed", resource: { title: "Filed by drag", fetchStatus: "fetched" } }]);
+    await page.goto("/?view=inbox");
+    const row = page.getByRole("link", { name: /^Filed by drag/ });
+    await row.dragTo(page.getByRole("complementary").getByRole("link", { name: /^Watch later/ }));
+    await expect(row).toHaveCount(0);
+
+    const dataTransfer = await page.evaluateHandle(() => {
+      const data = new DataTransfer();
+      data.setData("text/uri-list", "https://example.test/after-filing");
+      return data;
+    });
+    await page.dispatchEvent("main", "dragenter", { dataTransfer });
+    await expect(page.getByText("Drop to save")).toBeVisible();
+    await page.dispatchEvent("main", "dragover", { dataTransfer });
+    await page.dispatchEvent("main", "drop", { dataTransfer });
+    await expect(page.getByRole("link", { name: /example\.test\/after-filing/ })).toBeVisible();
+  });
+
   test("dragging a row within the app does not offer to save it", async ({ page, seedLinks }) => {
     await seedLinks([{ url: "https://example.com/row", resource: { title: "A saved row", fetchStatus: "fetched" } }]);
     await page.goto("/");
