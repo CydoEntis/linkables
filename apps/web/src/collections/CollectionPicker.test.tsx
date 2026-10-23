@@ -64,6 +64,23 @@ describe("CollectionPicker", () => {
     await waitFor(() => { expect(calls("DELETE")).toEqual([path]); });
   });
 
+  it("sends a quick tick and untick in order, waiting for the first to finish", async () => {
+    let finishPut = () => {};
+    request.mockImplementation((path, _schema, init) => {
+      if (path === "/collections") return Promise.resolve({ items: [rust, recipes, later] });
+      if (init?.method === "PUT") return new Promise((resolve) => { finishPut = () => { resolve(null); }; });
+      return Promise.resolve(null);
+    });
+    const { user } = renderPicker();
+    const row = await screen.findByRole("button", { name: "Rust" });
+    await user.click(row);
+    await user.click(row);
+    await waitFor(() => { expect(calls("PUT")).toHaveLength(1); });
+    expect(calls("DELETE")).toHaveLength(0);
+    finishPut();
+    await waitFor(() => { expect(calls("DELETE")).toHaveLength(1); });
+  });
+
   it("offers Undo after filing, which takes the link back out", async () => {
     const { link, user } = renderPicker();
     await user.click(await screen.findByRole("button", { name: "Watch later" }));

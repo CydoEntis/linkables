@@ -13,6 +13,9 @@ export type CollectionRef = SavedLink["collections"][number];
 export type MembershipChange = { link: SavedLink; collection: CollectionRef; filed: boolean };
 
 const MEMBERSHIP_KEY = ["membership"] as const;
+// One queue for every filing change: a quick tick and untick could otherwise
+// reach the server in either order and leave it disagreeing with the picker.
+const MEMBERSHIP_SCOPE = { id: "membership" };
 const UNDO_MS = 5000;
 
 // Matches the API's order for a link's collections: by name, ignoring case.
@@ -62,6 +65,7 @@ export function useMembership() {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationKey: MEMBERSHIP_KEY,
+    scope: MEMBERSHIP_SCOPE,
     mutationFn: ({ link, collection, filed }: MembershipChange) =>
       api.request(`/collections/${collection.id}/links/${link.id}`, z.null(), { method: filed ? "PUT" : "DELETE" }),
     onMutate: async (change) => {
