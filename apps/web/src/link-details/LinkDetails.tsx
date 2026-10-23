@@ -6,10 +6,10 @@ import { useLinksUi } from "../links/links-ui-store";
 import { useDeleteLink } from "../links/use-delete-link";
 import { DetailsBody } from "./DetailsBody";
 import { useLinkDetails } from "./details-search";
-import { readStoredWidth, storeWidth } from "./panel-width";
+import { clampWidth, maxPanelWidth, readStoredWidth, storeWidth } from "./panel-width";
 import { ResizeGrip } from "./ResizeGrip";
 import { useDetailsLink } from "./use-details-link";
-import { useWideScreen } from "./use-wide-screen";
+import { useViewportWidth, useWideScreen } from "./use-wide-screen";
 import { wrapTab } from "./wrap-tab";
 
 // The open link's details: a resizable side panel beside the list on the web,
@@ -38,7 +38,10 @@ function useDetails({ linkId, onClose }: DetailsProps) {
 // No scrim: the list stays usable, and clicking another row swaps the content.
 function DetailsPanel({ linkId, onClose }: DetailsProps) {
   const { details, onDelete } = useDetails({ linkId, onClose });
-  const [width, setWidth] = useState(readStoredWidth);
+  const [storedWidth, setWidth] = useState(readStoredWidth);
+  // A narrower window shrinks the panel without forgetting the width the user chose.
+  const maxWidth = maxPanelWidth(useViewportWidth());
+  const width = clampWidth(storedWidth, maxWidth);
   const panelRef = useRef<HTMLElement | null>(null);
 
   // Opening a link, or swapping to another, takes keyboard users to it.
@@ -59,9 +62,9 @@ function DetailsPanel({ linkId, onClose }: DetailsProps) {
         onClose();
       }}
       style={{ width }}
-      className="fixed inset-y-0 right-0 z-40 flex max-w-[calc(100%-300px)] animate-panel-in flex-col bg-card shadow-[-1px_0_0_var(--line-strong),-30px_0_80px_-30px_rgb(0_0_0/0.8)] outline-none"
+      className="fixed inset-y-0 right-0 z-40 flex animate-panel-in flex-col bg-card shadow-[-1px_0_0_var(--line-strong),-30px_0_80px_-30px_rgb(0_0_0/0.8)] outline-none"
     >
-      <ResizeGrip width={width} onResize={setWidth} onResizeEnd={storeWidth} />
+      <ResizeGrip width={width} maxWidth={maxWidth} onResize={setWidth} onResizeEnd={storeWidth} />
       <DetailsBody details={details} onClose={onClose} onDelete={onDelete} />
     </section>
   );

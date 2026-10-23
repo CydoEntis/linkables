@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clampWidth, PANEL_WIDTH, readStoredWidth, storeWidth, widthAfterKey } from "./panel-width";
+import { clampWidth, maxPanelWidth, PANEL_WIDTH, readStoredWidth, storeWidth, widthAfterKey } from "./panel-width";
 
 afterEach(() => {
   localStorage.clear();
@@ -22,6 +22,15 @@ describe("panel width", () => {
     expect(widthAfterKey(480, "Home")).toBe(PANEL_WIDTH.min);
     expect(widthAfterKey(480, "End")).toBe(PANEL_WIDTH.max);
     expect(widthAfterKey(895, "ArrowLeft")).toBe(PANEL_WIDTH.max);
+  });
+
+  it("leaves 300 px of the window for the list, but never goes under 360 px", () => {
+    expect(maxPanelWidth(1000)).toBe(700);
+    expect(maxPanelWidth(1600)).toBe(PANEL_WIDTH.max);
+    expect(maxPanelWidth(600)).toBe(PANEL_WIDTH.min);
+    expect(clampWidth(850, maxPanelWidth(1000))).toBe(700);
+    expect(widthAfterKey(700, "ArrowLeft", 700)).toBe(700);
+    expect(widthAfterKey(480, "End", 700)).toBe(700);
   });
 
   it("ignores other keys", () => {

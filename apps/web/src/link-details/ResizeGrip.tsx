@@ -2,10 +2,15 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { cn } from "cn";
 import { clampWidth, PANEL_WIDTH, widthAfterKey } from "./panel-width";
 
-type ResizeGripProps = { width: number; onResize: (width: number) => void; onResizeEnd: (width: number) => void };
+type ResizeGripProps = {
+  width: number;
+  maxWidth: number;
+  onResize: (width: number) => void;
+  onResizeEnd: (width: number) => void;
+};
 
 // The APG window-splitter pattern: a focusable separator that arrow keys move.
-export function ResizeGrip({ width, onResize, onResizeEnd }: ResizeGripProps) {
+export function ResizeGrip({ width, maxWidth, onResize, onResizeEnd }: ResizeGripProps) {
   const drag = useRef<{ x: number; width: number } | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -17,7 +22,7 @@ export function ResizeGrip({ width, onResize, onResizeEnd }: ResizeGripProps) {
 
   function onPointerMove(event: PointerEvent<HTMLDivElement>) {
     if (drag.current === null) return;
-    onResize(clampWidth(drag.current.width + drag.current.x - event.clientX));
+    onResize(clampWidth(drag.current.width + drag.current.x - event.clientX, maxWidth));
   }
 
   function onPointerUp() {
@@ -28,7 +33,7 @@ export function ResizeGrip({ width, onResize, onResizeEnd }: ResizeGripProps) {
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const next = widthAfterKey(width, event.key);
+    const next = widthAfterKey(width, event.key, maxWidth);
     if (next === null) return;
     event.preventDefault();
     onResize(next);
@@ -42,7 +47,7 @@ export function ResizeGrip({ width, onResize, onResizeEnd }: ResizeGripProps) {
       aria-label="Resize link details"
       aria-valuenow={width}
       aria-valuemin={PANEL_WIDTH.min}
-      aria-valuemax={PANEL_WIDTH.max}
+      aria-valuemax={maxWidth}
       tabIndex={0}
       title="Drag to resize"
       onPointerDown={onPointerDown}
