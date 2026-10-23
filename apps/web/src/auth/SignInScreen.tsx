@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { AuthPage } from "./AuthPage";
+import { useAuthState } from "./auth-state";
 import type { LinkProblem } from "./link-landing";
 import { sendMagicLink, type SendLinkProblem } from "./magic-link";
 
@@ -28,6 +29,12 @@ const signInSchema = z.object({
 });
 
 type SignInValues = z.infer<typeof signInSchema>;
+
+export function SignInPage() {
+  const auth = useAuthState();
+  if (auth.status !== "signed-out") return null;
+  return <SignInScreen linkProblem={auth.linkProblem} focusHeading={auth.afterSignOut} />;
+}
 
 type SignInScreenProps = { linkProblem: LinkProblem | null; focusHeading: boolean };
 
