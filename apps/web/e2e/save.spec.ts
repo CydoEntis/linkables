@@ -54,8 +54,28 @@ test.describe("at 375 px", () => {
     page.on("request", (request) => { if (request.method() === "POST") posts.push(request.url()); });
     await page.goto("/save?url=javascript:alert(1)");
     await expect(page.getByRole("heading", { name: "No link found" })).toBeVisible();
+    await page.waitForLoadState("networkidle");
     expect(posts).toEqual([]);
     expect(await savedUrls(db, user)).toEqual([]);
+  });
+
+  test("a long link never scrolls the page sideways while saving or once saved", async ({ page }) => {
+    const longUrl = `https://example.test/${"very-long-path-segment-".repeat(30)}`;
+    let releaseSave: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => { releaseSave = resolve; });
+    await page.route(`${API_URL}/api/v1/links`, async (route) => {
+      if (route.request().method() === "POST") await held;
+      await route.fallback();
+    });
+    const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+    await page.goto(`/save?url=${encodeURIComponent(longUrl)}`);
+    await expect(page.getByRole("heading", { name: "Saving…" })).toBeVisible();
+    expect(await overflow()).toBeLessThanOrEqual(0);
+
+    releaseSave();
+    await expect(page.getByRole("heading", { name: "Saved to linkables" })).toBeVisible();
+    expect(await overflow()).toBeLessThanOrEqual(0);
   });
 
   test("Undo removes a new save", async ({ page, db, user }, testInfo) => {
