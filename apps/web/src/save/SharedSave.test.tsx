@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
@@ -124,7 +124,7 @@ describe("SharedSave", () => {
     expect(save).toHaveBeenCalledTimes(2);
   });
 
-  it("files the saved link in a collection from the quick picks", async () => {
+  it("files the saved link in a collection from the quick picks without re-sorting them", async () => {
     const link = saved();
     const rust = { id: crypto.randomUUID(), name: "Rust", pinned: false, createdAt: link.savedAt, lastUsedAt: link.savedAt, linkCount: 0, cover: [] };
     answer({ save: () => Promise.resolve(link), collections: [rust] });
@@ -132,6 +132,8 @@ describe("SharedSave", () => {
     const pick = await screen.findByRole("button", { name: "Rust" });
     await user.click(pick);
     expect(pick).toHaveAttribute("aria-pressed", "true");
-    expect(calls("PUT", `/collections/${rust.id}/links/${link.id}`)).toHaveLength(1);
+    await waitFor(() => { expect(calls("PUT", `/collections/${rust.id}/links/${link.id}`)).toHaveLength(1); });
+    // A refetch would re-sort by last use and move rows under the finger.
+    expect(calls("GET", "/collections")).toHaveLength(1);
   });
 });
