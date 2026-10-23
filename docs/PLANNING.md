@@ -6,7 +6,7 @@ P1-22 merged.
 
 **Verify:** `pnpm verify` (DB tests need `docker compose up -d` and
 `TEST_DATABASE_URL`; see README).
-**Base branch:** `main` (origin `CydoEntis/linkaroo`).
+**Base branch:** `main` (origin `CydoEntis/linkables`).
 
 ## Goal
 
@@ -103,9 +103,9 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 - Tickets: Plane project `linkaroo` (LNK), workspace `ideayard`, project id
   `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 29 tickets, revised 2026-10-21 after the
   second Opus 5.5 audit; P1-23 to P1-25 added 2026-10-22.
-- Product renamed from linkaroo to linkables on 2026-10-22. The Supabase project,
-  the Plane project and the GitHub repo keep the old name until renamed in their
-  own dashboards; their refs and URLs don't change.
+- Product renamed from linkaroo to linkables on 2026-10-22; the GitHub repo is now
+  `CydoEntis/linkables` (the old URL redirects). The Supabase and Plane projects
+  keep the old name until renamed in their dashboards; their refs don't change.
 - Supabase project: `linkaroo`, ref `tiechzmcvmdlceyovskg`, region `us-east-1`,
   free plan, created 2026-10-22 (ES256 signing key by default).
 - **Blockers live only in each ticket body's `Blocked by:` line.** Do not create
