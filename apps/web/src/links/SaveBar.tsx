@@ -1,3 +1,4 @@
+import { SEARCH_QUERY_MAX_LENGTH } from "@linkables/shared/links";
 import { Search, X } from "lucide-react";
 import { useId, type KeyboardEvent } from "react";
 import { cn } from "cn";
@@ -14,7 +15,8 @@ type SaveBarProps = {
 
 const isLink = (text: string) => saveLinkFormSchema.safeParse({ url: text }).success;
 
-const searchText = (text: string) => text.trim() || undefined;
+// The API takes searches up to this length; the bar itself also takes long links.
+const searchText = (text: string) => text.trim().slice(0, SEARCH_QUERY_MAX_LENGTH).trim() || undefined;
 
 // The handoff's search/paste bar: a link gets the lime Save button, anything else searches as you type.
 export function SaveBar({ className, query, onQueryChange }: SaveBarProps) {
@@ -29,6 +31,7 @@ export function SaveBar({ className, query, onQueryChange }: SaveBarProps) {
   const field = register("url", { onChange: clearError });
   const errorId = useId();
   const searching = !canSave && value.trim() !== "";
+  const clipped = searching && value.trim().length > SEARCH_QUERY_MAX_LENGTH;
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Escape") return;
@@ -100,6 +103,7 @@ export function SaveBar({ className, query, onQueryChange }: SaveBarProps) {
           </kbd>
         ) : null}
       </label>
+      {clipped ? <p className="px-1 pt-2 text-[13px] text-muted-foreground">Searches use the first {SEARCH_QUERY_MAX_LENGTH} characters.</p> : null}
       {error ? (
         <p id={errorId} role="alert" className="px-1 pt-2 text-[13px] text-destructive">
           {error}
