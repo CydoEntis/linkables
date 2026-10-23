@@ -1,4 +1,5 @@
 import type { ListedCollection } from "@linkables/shared/collections";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useState, type DragEvent } from "react";
@@ -6,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "cn";
 import { LINK_DRAG_TYPE } from "../links/LinkRow";
 import { useLinksUi } from "../links/links-ui-store";
+import { findCachedLink } from "../links/use-links";
 import { useCollectionsUi } from "./collections-ui-store";
 import { displayName } from "./display-name";
 import { MiniCover } from "./MiniCover";
@@ -16,7 +18,7 @@ import { useMembership } from "./use-membership";
 
 export function SidebarCollections({ activeId }: { activeId: string | undefined }) {
   const collections = useCollections();
-  const dragging = useLinksUi((state) => state.dragging !== null);
+  const dragging = useLinksUi((state) => state.draggingId !== null);
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -106,6 +108,7 @@ function SidebarCollection({ collection, active }: { collection: ListedCollectio
   const [over, setOver] = useState(false);
   const bumping = useCollectionsUi((state) => state.bumpId === collection.id);
   const setFiled = useMembership();
+  const queryClient = useQueryClient();
 
   function onDragOver(event: DragEvent<HTMLAnchorElement>) {
     if (!event.dataTransfer.types.includes(LINK_DRAG_TYPE)) return;
@@ -117,10 +120,9 @@ function SidebarCollection({ collection, active }: { collection: ListedCollectio
   function onDrop(event: DragEvent<HTMLAnchorElement>) {
     event.preventDefault();
     setOver(false);
-    const ui = useLinksUi.getState();
-    const link = ui.dragging;
-    ui.setDragging(null);
-    if (link === null) return;
+    useLinksUi.getState().setDraggingId(null);
+    const link = findCachedLink(queryClient, event.dataTransfer.getData(LINK_DRAG_TYPE));
+    if (link === undefined) return;
     useCollectionsUi.getState().bump(collection.id);
     if (link.collections.some((item) => item.id === collection.id)) return;
     setFiled({ link, collection: { id: collection.id, name: collection.name }, filed: true });

@@ -51,7 +51,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
         rel="noopener noreferrer"
         draggable={href !== undefined}
         onDragStart={(event) => { startDrag(event, link); }}
-        onDragEnd={() => { useLinksUi.getState().setDragging(null); }}
+        onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
         {...swipe.handlers}
         data-row-link
         className={cn(
@@ -72,7 +72,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
         onFocus={() => { setSwipeOpenId(link.id); }}
         onAddTo={() => {
           setSwipeOpenId(null);
-          useLinksUi.getState().setAddToLink(link);
+          useLinksUi.getState().setAddToLinkId(link.id);
         }}
         onShare={() => {
           setSwipeOpenId(null);
@@ -90,7 +90,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
 function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
   event.dataTransfer.setData(LINK_DRAG_TYPE, link.id);
   event.dataTransfer.effectAllowed = "copyLink";
-  useLinksUi.getState().setDragging(link);
+  useLinksUi.getState().setDraggingId(link.id);
 }
 
 type RowTextProps = { link: SavedLink; now: number; inCollection: boolean; pinned: boolean; opacity: number };
@@ -147,7 +147,7 @@ type RowActionsProps = { link: SavedLink; belongs: boolean; pinned: boolean; onP
 // Float over the row's end on hover or keyboard focus, so nothing shifts (handoff global rules).
 function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const dragging = useLinksUi((state) => state.dragging !== null);
+  const dragging = useLinksUi((state) => state.draggingId !== null);
 
   function onPickerOpenChange(open: boolean) {
     setPickerOpen(open);

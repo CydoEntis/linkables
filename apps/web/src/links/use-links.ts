@@ -1,6 +1,6 @@
 import { ERROR_CODES } from "@linkables/shared/http";
 import { listLinksResponseSchema, type ListLinksResponse, type SavedLink } from "@linkables/shared/links";
-import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient, type InfiniteData, type QueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { api } from "../api/api";
 import { isApiError } from "../api/client";
@@ -47,6 +47,15 @@ function listPath(scope: ListScope, cursor: string | undefined): string {
   if (cursor !== undefined) params.set("cursor", cursor);
   const query = params.toString();
   return query ? `/links?${query}` : "/links";
+}
+
+// The link as any loaded list has it, for UI that holds only an id.
+export function findCachedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
+  for (const [, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.all })) {
+    const found = data?.pages.flatMap((page) => page.items).find((item) => item.id === linkId);
+    if (found) return found;
+  }
+  return undefined;
 }
 
 export function isPending(link: SavedLink): boolean {
