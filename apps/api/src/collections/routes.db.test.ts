@@ -35,10 +35,14 @@ async function create(user: TestUser, name: string) {
   return data(res, collectionSchema);
 }
 
-async function names(user: TestUser) {
+async function list(user: TestUser) {
   const res = await send(user, "GET", "/collections");
   expect(res.status).toBe(200);
-  return (await data(res, listCollectionsResponseSchema)).items.map((item) => item.name);
+  return (await data(res, listCollectionsResponseSchema)).items;
+}
+
+async function names(user: TestUser) {
+  return (await list(user)).map((item) => item.name);
 }
 
 describe("collections", () => {
@@ -49,12 +53,11 @@ describe("collections", () => {
     expect(await names(a)).toEqual(["Reading"]);
   });
 
-  it("lists the caller's collections by name, ignoring case", async () => {
-    await create(a, "recipes");
+  it("lists a new collection first, as just used", async () => {
+    await create(a, "Recipes");
     await create(a, "Articles");
-    await create(a, "Music");
 
-    expect(await names(a)).toEqual(["Articles", "Music", "recipes"]);
+    expect(await names(a)).toEqual(["Articles", "Recipes"]);
   });
 
   it("rejects a duplicate name for the same user with CONFLICT", async () => {
@@ -122,6 +125,25 @@ describe("collections", () => {
     expect(await names(a)).toEqual(["rust"]);
   });
 
+  it("pins and unpins a collection", async () => {
+    const col = await create(a, "Reading");
+
+    const pinned = await send(a, "PATCH", `/collections/${col.id}`, { pinned: true });
+
+    expect(pinned.status).toBe(200);
+    expect(await data(pinned, collectionSchema)).toEqual({ ...col, pinned: true });
+    const unpinned = await send(a, "PATCH", `/collections/${col.id}`, { pinned: false });
+    expect(await data(unpinned, collectionSchema)).toEqual(col);
+  });
+
+  it("renames and pins a collection in one request", async () => {
+    const col = await create(a, "Reading");
+
+    const res = await send(a, "PATCH", `/collections/${col.id}`, { name: "Later", pinned: true });
+
+    expect(await data(res, collectionSchema)).toEqual({ ...col, name: "Later", pinned: true });
+  });
+
   it("deletes a collection", async () => {
     const col = await create(a, "Reading");
 
@@ -140,6 +162,7 @@ describe("collections", () => {
 
   it.each([
     ["PATCH", { name: "Mine now" }],
+    ["PATCH", { pinned: true }],
     ["DELETE", undefined],
   ])("returns NOT_FOUND to another user who sends %s", async (method, body) => {
     const col = await create(a, "Reading");
@@ -149,5 +172,6 @@ describe("collections", () => {
     expect(res.status).toBe(404);
     expect(await errorCode(res)).toBe("NOT_FOUND");
     expect(await names(a)).toEqual(["Reading"]);
+    expect((await list(a))[0]?.pinned).toBe(false);
   });
 });

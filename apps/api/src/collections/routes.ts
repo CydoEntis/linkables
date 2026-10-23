@@ -1,4 +1,4 @@
-import { collectionRequestSchema } from "@linkables/shared/collections";
+import { collectionRequestSchema, updateCollectionRequestSchema } from "@linkables/shared/collections";
 import { HTTP_STATUS } from "@linkables/shared/http";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
@@ -7,7 +7,7 @@ import type { AuthEnv } from "../auth/require-auth";
 import type { Db } from "../db/client";
 import { ok } from "../http/envelope";
 import { parseWith } from "../http/validate";
-import { createCollection, deleteCollection, listCollections, renameCollection } from "./collections";
+import { createCollection, deleteCollection, listCollections, updateCollection } from "./collections";
 import { addToCollection, removeFromCollection, type Membership } from "./membership";
 
 const collectionParams = validator("param", parseWith(z.object({ id: z.uuid() }), "Invalid path"));
@@ -16,6 +16,7 @@ const membershipParams = validator(
   parseWith(z.object({ id: z.uuid(), linkId: z.uuid() }), "Invalid path"),
 );
 const nameBody = validator("json", parseWith(collectionRequestSchema, "Invalid request body"));
+const updateBody = validator("json", parseWith(updateCollectionRequestSchema, "Invalid request body"));
 
 function membership(userId: string, { id, linkId }: { id: string; linkId: string }): Membership {
   return { userId, collectionId: id, linkId };
@@ -28,9 +29,9 @@ export function collectionRoutes({ db }: { db: Db }) {
       const created = await createCollection(db, c.get("userId"), c.req.valid("json").name);
       return ok(c, created, HTTP_STATUS.CREATED);
     })
-    .patch("/collections/:id", collectionParams, nameBody, async (c) => {
+    .patch("/collections/:id", collectionParams, updateBody, async (c) => {
       const owned = { userId: c.get("userId"), id: c.req.valid("param").id };
-      return ok(c, await renameCollection(db, owned, c.req.valid("json").name));
+      return ok(c, await updateCollection(db, owned, c.req.valid("json")));
     })
     .delete("/collections/:id", collectionParams, async (c) => {
       await deleteCollection(db, { userId: c.get("userId"), id: c.req.valid("param").id });

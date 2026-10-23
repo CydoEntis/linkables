@@ -1,9 +1,16 @@
-import type { Collection, ListCollectionsResponse } from "@linkables/shared/collections";
-import { and, asc, eq, sql } from "drizzle-orm";
+import {
+  COLLECTION_COVER_SIZE,
+  type Collection,
+  type CoverTile,
+  type ListCollectionsResponse,
+  type ListedCollection,
+  type UpdateCollectionRequest,
+} from "@linkables/shared/collections";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import postgres from "postgres";
 import type { Db, Tx } from "../db/client";
-import { collection } from "../db/schema";
+import { collection, collectionItem, resource, savedLink } from "../db/schema";
 import { ConflictError, NotFoundError } from "../http/errors";
 
 type CollectionRow = typeof collection.$inferSelect;
@@ -12,7 +19,13 @@ type Owned = { userId: string; id: string };
 const UNIQUE_VIOLATION = "23505";
 
 function toCollection(row: CollectionRow): Collection {
-  return { id: row.id, name: row.name, createdAt: row.createdAt.toISOString() };
+  return {
+    id: row.id,
+    name: row.name,
+    pinned: row.pinned,
+    createdAt: row.createdAt.toISOString(),
+    lastUsedAt: row.lastUsedAt.toISOString(),
+  };
 }
 
 function found(row: CollectionRow | undefined): CollectionRow {
@@ -47,13 +60,79 @@ export async function requireCollection(db: Db | Tx, { userId, id }: Owned): Pro
   if (row === undefined) throw new NotFoundError("Collection not found");
 }
 
+// A filing joins only the caller's links, even inside the caller's own collection.
+function ownedFiling(userId: string) {
+  return and(eq(savedLink.id, collectionItem.savedLinkId), eq(savedLink.userId, userId));
+}
+
+function linkCounts(db: Db, userId: string) {
+  return db
+    .select({ linkCount: count().as("link_count") })
+    .from(collectionItem)
+    .innerJoin(savedLink, ownedFiling(userId))
+    .where(eq(collectionItem.collectionId, collection.id))
+    .as("link_counts");
+}
+
+function newestFilings(db: Db, userId: string) {
+  return db
+    .select({
+      kind: resource.kind,
+      thumbnailUrl: resource.thumbnailUrl,
+      canonicalUrl: resource.canonicalUrl,
+      filedAt: collectionItem.createdAt,
+      linkId: savedLink.id,
+    })
+    .from(collectionItem)
+    .innerJoin(savedLink, ownedFiling(userId))
+    .innerJoin(resource, eq(resource.id, savedLink.resourceId))
+    .where(eq(collectionItem.collectionId, collection.id))
+    .orderBy(desc(collectionItem.createdAt), desc(savedLink.id))
+    .limit(COLLECTION_COVER_SIZE)
+    .as("cover");
+}
+
+type CoverRow = Omit<CoverTile, "domain"> & { canonicalUrl: string };
+
+function toCoverTile({ kind, thumbnailUrl, canonicalUrl }: CoverRow): CoverTile {
+  return { kind, thumbnailUrl, domain: new URL(canonicalUrl).hostname };
+}
+
+type ListRow = { collection: CollectionRow; linkCount: number; tile: CoverRow | null };
+
+// Rows arrive in list order, one per cover tile (or one with no tile), so the
+// first row of each collection fixes its place.
+function groupByCollection(rows: ListRow[]): ListedCollection[] {
+  const byId = new Map<string, ListedCollection>();
+  for (const { collection: row, linkCount, tile } of rows) {
+    const item = byId.get(row.id) ?? { ...toCollection(row), linkCount, cover: [] };
+    if (tile !== null) item.cover.push(toCoverTile(tile));
+    byId.set(row.id, item);
+  }
+  return [...byId.values()];
+}
+
 export async function listCollections(db: Db, userId: string): Promise<ListCollectionsResponse> {
+  const counts = linkCounts(db, userId);
+  const cover = newestFilings(db, userId);
   const rows = await db
-    .select()
+    .select({
+      collection,
+      linkCount: counts.linkCount,
+      tile: { kind: cover.kind, thumbnailUrl: cover.thumbnailUrl, canonicalUrl: cover.canonicalUrl },
+    })
     .from(collection)
+    .innerJoinLateral(counts, sql`true`)
+    .leftJoinLateral(cover, sql`true`)
     .where(eq(collection.userId, userId))
-    .orderBy(asc(sql`lower(${collection.name})`), asc(collection.name));
-  return { items: rows.map(toCollection) };
+    .orderBy(
+      desc(collection.pinned),
+      desc(collection.lastUsedAt),
+      asc(collection.id),
+      desc(cover.filedAt),
+      desc(cover.linkId),
+    );
+  return { items: groupByCollection(rows) };
 }
 
 export async function createCollection(db: Db, userId: string, name: string): Promise<Collection> {
@@ -61,11 +140,11 @@ export async function createCollection(db: Db, userId: string, name: string): Pr
   return toCollection(found(row));
 }
 
-export async function renameCollection(db: Db, owned: Owned, name: string): Promise<Collection> {
+export async function updateCollection(db: Db, owned: Owned, changes: UpdateCollectionRequest): Promise<Collection> {
   const [row] = await uniqueName(
     db
       .update(collection)
-      .set({ name })
+      .set(changes)
       .where(and(eq(collection.id, owned.id), eq(collection.userId, owned.userId)))
       .returning(),
   );
