@@ -1,5 +1,6 @@
 import type { SavedLink } from "@linkables/shared/links";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { domainOf, safeHref, savedOnLabel } from "../links/link-display";
 import { CollectionTags } from "./CollectionTags";
 import { DetailsActions } from "./DetailsActions";
@@ -22,6 +23,8 @@ export function DetailsBody({ details, onClose, onDelete }: DetailsBodyProps) {
           <LinkFacts key={link.id} link={link} onDelete={() => { onDelete(link); }} />
         ) : details.status === "loading" ? (
           <p role="status" className="py-10 text-center text-sm text-muted-foreground">Loading…</p>
+        ) : details.status === "failed" ? (
+          <LoadProblem onRetry={details.retry} />
         ) : (
           <Gone />
         )}
@@ -95,6 +98,17 @@ function Gone() {
     <div className="flex flex-col gap-2 py-10">
       <p className="text-[17px] font-bold">Couldn't find this link</p>
       <p className="text-sm text-muted-foreground">It may have been deleted.</p>
+    </div>
+  );
+}
+
+function LoadProblem({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div role="alert" className="flex flex-col items-start gap-3 py-10">
+      <p className="text-[17px] font-bold">Couldn't load this link</p>
+      <Button variant="ghost" size="touch" onClick={onRetry}>
+        Try again
+      </Button>
     </div>
   );
 }

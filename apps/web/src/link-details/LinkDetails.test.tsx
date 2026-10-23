@@ -291,6 +291,23 @@ describe("a link no loaded list holds", () => {
     expect(reads(link.id)).toHaveLength(1);
   });
 
+  it("offers Try again when the read fails for any other reason, and Try again reads it again", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) });
+    const link = savedLink({ resource: { title: "Back after a blip" } });
+    let failing = true;
+    await renderUnlisted(link, () =>
+      failing ? Promise.reject(new ApiError(ERROR_CODES.INTERNAL, "Something went wrong")) : Promise.resolve(link),
+    );
+    await act(() => vi.advanceTimersByTimeAsync(30_000));
+    expect(within(details()).getByRole("alert")).toHaveTextContent("Couldn't load this link");
+    expect(within(details()).queryByText("Couldn't find this link")).not.toBeInTheDocument();
+
+    failing = false;
+    await user.click(within(details()).getByRole("button", { name: "Try again" }));
+    expect(await within(details()).findByRole("heading", { name: /Back after a blip/ })).toBeInTheDocument();
+  });
+
   it("takes a rename into its own copy at once", async () => {
     const link = savedLink({ resource: { title: "Fetched title" } });
     const { queryClient } = await renderUnlisted(link, () => Promise.resolve(link));
