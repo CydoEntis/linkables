@@ -2,7 +2,7 @@ import type { SaveLinkResponse } from "@linkables/shared/links";
 import { getRouteApi } from "@tanstack/react-router";
 import { displayTitle } from "../links/link-display";
 import { useLinks } from "../links/use-links";
-import { SaveScreen } from "./SaveScreen";
+import { SaveAnnouncement, SaveScreen } from "./SaveScreen";
 import { extractSharedUrl } from "./shared-url";
 import { useSharedSave } from "./use-shared-save";
 
@@ -15,9 +15,13 @@ export function SavePage() {
 
 export function SharedSave({ sharedUrl }: { sharedUrl: string | null }) {
   const { state, saveUrl, retry, undo, undoing } = useSharedSave(sharedUrl);
-
   const screen = { state, onUndo: undo, undoing, onRetry: retry, onSaveUrl: saveUrl };
-  return state.status === "saved" ? <SavedScreen {...screen} link={state.link} /> : <SaveScreen {...screen} />;
+  return (
+    <>
+      {state.status === "saved" ? <SavedScreen {...screen} link={state.link} /> : <SaveScreen {...screen} />}
+      <SaveAnnouncement state={state} />
+    </>
+  );
 }
 
 // The list query already polls pending rows, so the title appears once the metadata lands.
