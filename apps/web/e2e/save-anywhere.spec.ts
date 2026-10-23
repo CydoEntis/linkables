@@ -126,8 +126,9 @@ test.describe("drag and drop at 1280 px", () => {
 
     await page.dispatchEvent("main", "dragenter", { dataTransfer });
     await expect(page.getByText("Drop to save")).toBeVisible();
-    await shot(page, testInfo, "drop-to-save-1280");
+    // A real drag repeats dragover; one more keeps the overlay up for the screenshot.
     await page.dispatchEvent("main", "dragover", { dataTransfer });
+    await shot(page, testInfo, "drop-to-save-1280");
     const saved = page.waitForResponse((response) => response.url() === `${API_URL}/api/v1/links` && response.request().method() === "POST");
     await page.dispatchEvent("main", "drop", { dataTransfer });
     expect((await saved).status()).toBe(201);
