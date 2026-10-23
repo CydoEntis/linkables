@@ -52,6 +52,12 @@ function DetailsPanel({ linkId, onClose }: DetailsProps) {
       ref={panelRef}
       tabIndex={-1}
       aria-label="Link details"
+      onKeyDown={(event) => {
+        // Keys from the portalled picker bubble here through React; Esc there closes only the picker.
+        if (event.key !== "Escape" || event.defaultPrevented || !event.currentTarget.contains(event.target as Node)) return;
+        event.preventDefault();
+        onClose();
+      }}
       style={{ width }}
       className="fixed inset-y-0 right-0 z-40 flex max-w-[calc(100%-300px)] animate-panel-in flex-col bg-card shadow-[-1px_0_0_var(--line-strong),-30px_0_80px_-30px_rgb(0_0_0/0.8)] outline-none"
     >
