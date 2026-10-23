@@ -42,6 +42,10 @@ from the work computer, with no Discord message and no open tab.
   → [ADR-0005](adr/0005-hosting.md)
 - Web UI on Tailwind CSS v4 and shadcn/ui (Base UI), Lucide icons; design brief
   and prompt in `docs/design/`. → [ADR-0006](adr/0006-ui-kit.md)
+- Screens follow the designer's handoff (`docs/design/handoff/`, dark theme only
+  until a light theme is drawn). The UI calls the Inbox **To sort**; pinned items
+  sort first everywhere; Undo replaces confirm dialogs. Forms use react-hook-form
+  with the shared Zod schemas. → [ADR-0006](adr/0006-ui-kit.md)
 - The API follows the Dev Deck API contract (envelope, 8 error codes, `/api/v1`
   prefix); P1-01 builds it. → `AGENTS.md`, API contract
 
@@ -101,7 +105,7 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
 - Tickets: Plane project `linkaroo` (LNK), workspace `ideayard`, project id
-  `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 29 tickets, revised 2026-10-21 after the
+  `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 33 tickets, revised 2026-10-21 after the
   second Opus 5.5 audit; P1-23 to P1-25 added 2026-10-22.
 - Product renamed from linkaroo to linkables on 2026-10-22; the GitHub repo is now
   `CydoEntis/linkables` (the old URL redirects). The Supabase and Plane projects
@@ -128,7 +132,9 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
   | P1-11 search | LNK-11 | P1-21 [owner] Supabase project | LNK-25 |
   | P1-12 sort and filter | LNK-12 | P1-22 e2e test harness | LNK-26 |
   | P1-23 `/save` page, installable app, Android share | LNK-27 | P1-24 bookmark button | LNK-28 |
-  | P1-25 iPhone Shortcut, Save from anywhere page | LNK-29 | | |
+  | P1-25 iPhone Shortcut, Save from anywhere page | LNK-29 | P1-26 collection names ignore case | LNK-30 |
+  | P1-27 pinned links first | LNK-31 | P1-28 collection pin, recent order, covers | LNK-32 |
+  | P1-29 link collections and saved-from device | LNK-33 | | |
 
   - Critical path to the success condition (P1-18 and P1-14a both done):
     P1-01 → P1-17 → P1-02 → P1-05 → P1-10 → P1-14a, where P1-14a also needs
@@ -138,6 +144,10 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
     home, see it in the Inbox at work). Phase 1's exit adds P1-09 → P1-12 → P1-14c,
     P1-14b, P1-14d, P1-11 + P1-13 + P1-15 → P1-19, and P1-23 → P1-24 → P1-25
     (P1-23 needs P1-03b and P1-14a), all ending at P1-16.
+  - **Build order from here (2026-10-22, after the design handoff):** API P1-26, P1-27,
+    P1-28, P1-29 alongside P1-14a; then mobile saving first, because it is the main
+    selling point: P1-23 → P1-25 → P1-24; then P1-14b, P1-14c, P1-14d; then P1-18
+    and the success check P1-16.
   - P1-04, P1-06 and P1-17 can start right after P1-01; P1-08 after P1-04. P1-16, P1-20 and
     P1-21 are yours, not an agent's; do P1-21 early, since P1-20 and P1-18 wait on it.
   - Rules not yet true: see Rules above.

@@ -70,7 +70,11 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - Logs never contain a URL's query string or fragment; use the redacting logger.
 - Migrations are Drizzle migrations, committed, never edited after merge.
 - React: function components; server state in TanStack Query; all API calls go
-  through the one API client module.
+  through the one API client module. Screens follow `docs/design/handoff/`
+  (README for tokens, copy and behaviour; open `prototype.dc.html` to see it).
+- Forms: react-hook-form with `@hookform/resolvers/zod` and shadcn's form field
+  components. Validate with the same Zod schemas from `packages/shared` that the
+  API uses; never hand-roll form state or duplicate a schema in the web app.
 - Tests: Vitest beside the source; DB integration tests run serially; one test
   per behaviour, named after it.
 
