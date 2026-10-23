@@ -1,4 +1,4 @@
-import type { SaveLinkResponse } from "@linkables/shared/links";
+import type { LinkSource, SaveLinkResponse } from "@linkables/shared/links";
 import { and, eq } from "drizzle-orm";
 import { requireCollection } from "../collections/collections";
 import { fileLink } from "../collections/membership";
@@ -14,6 +14,7 @@ export type SaveLinkInput = {
   originalUrl: string;
   canonicalUrl: string;
   collectionId: string | undefined;
+  source: LinkSource | undefined;
 };
 
 function found<T>(row: T | undefined, what: string): T {
@@ -35,10 +36,11 @@ async function upsertResource(tx: Tx, canonicalUrl: string): Promise<ResourceRow
   return found(existing, "resource");
 }
 
+// A duplicate save keeps the link's original source: only the insert sets it.
 async function insertSavedLink(tx: Tx, input: SaveLinkInput, resourceId: string) {
   const [created] = await tx
     .insert(savedLink)
-    .values({ userId: input.userId, resourceId, originalUrl: input.originalUrl })
+    .values({ userId: input.userId, resourceId, originalUrl: input.originalUrl, savedFrom: input.source })
     .onConflictDoNothing()
     .returning();
   if (created) return { link: created, duplicate: false };

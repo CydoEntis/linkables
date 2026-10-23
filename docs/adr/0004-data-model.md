@@ -28,7 +28,11 @@ Option 3.
 - `saved_link` (per user): `id`, `user_id` (uuid, the token's `sub`),
   `resource_id`, `original_url` (as submitted; may hold user-specific query
   parameters, so it never goes on `resource`), `title_override`, `note`, `pinned`
-  (default false), `saved_at`; unique (`user_id`, `resource_id`).
+  (default false), `saved_at`, `saved_from` (nullable; the platform the link was
+  first saved from, one of the shared `LINK_SOURCES`); unique (`user_id`,
+  `resource_id`). `saved_from` is plain text checked by the request schema, not a
+  Postgres enum, so a new platform needs no migration. Only the insert sets it,
+  so saving the link again keeps the original.
 - `collection`: `id`, `user_id`, `name` (stored as typed, trimmed), `pinned`
   (default false), `created_at`, `last_used_at`; unique (`user_id`,
   `lower(name)`), so names that differ only in case are the same name for one

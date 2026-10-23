@@ -22,6 +22,13 @@
       "when": 1792718839088,
       "tag": "0002_collection_pin_and_last_use",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792719661319,
+      "tag": "0003_saved_link_saved_from",
+      "breakpoints": true
     }
   ]
 }

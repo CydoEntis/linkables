@@ -31,6 +31,7 @@ export function toSavedLink(
     note: link.note,
     pinned: link.pinned,
     savedAt: link.savedAt.toISOString(),
+    savedFrom: link.savedFrom,
     collections,
     resource: {
       id: res.id,

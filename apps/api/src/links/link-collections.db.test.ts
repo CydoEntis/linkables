@@ -1,9 +1,10 @@
-import { successEnvelopeSchema } from "@linkables/shared/http";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
 import { listLinksResponseSchema, savedLinkSchema, saveLinkResponseSchema } from "@linkables/shared/links";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
-import { collection, collectionItem } from "../db/schema";
+import { collection, collectionItem, savedLink } from "../db/schema";
 
 const { db, close } = connectTestDb();
 const { a, b } = await testUsers();
@@ -124,5 +125,38 @@ describe("a link's collections", () => {
     expect((await list(b))[0]?.collections).toEqual([own]);
     expect((await patch(b, mine.id)).collections).toEqual([own]);
     expect((await save(b)).collections).toEqual([own]);
+  });
+});
+
+describe("where a link was saved from", () => {
+  it("stores and returns the source", async () => {
+    const link = await save(a, { url: URL, source: "iphone" });
+
+    expect(link.savedFrom).toBe("iphone");
+    expect((await list(a))[0]?.savedFrom).toBe("iphone");
+  });
+
+  it("is null when no source is sent", async () => {
+    const link = await save(a);
+
+    expect(link.savedFrom).toBeNull();
+    const [row] = await db.select({ savedFrom: savedLink.savedFrom }).from(savedLink).where(eq(savedLink.id, link.id));
+    expect(row?.savedFrom).toBeNull();
+  });
+
+  it("rejects an unknown source and saves nothing", async () => {
+    const res = await post(a, { url: URL, source: "toaster" });
+
+    expect(res.status).toBe(400);
+    expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("VALIDATION");
+    expect(await db.$count(savedLink)).toBe(0);
+  });
+
+  it("keeps the original source on a duplicate save", async () => {
+    const first = await save(a, { url: URL, source: "iphone" });
+
+    const again = await save(a, { url: URL, source: "windows" });
+
+    expect(again).toMatchObject({ id: first.id, duplicate: true, savedFrom: "iphone" });
   });
 });

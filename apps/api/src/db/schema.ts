@@ -13,7 +13,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { FETCH_STATUSES, RESOURCE_KINDS } from "@linkables/shared/links";
+import { FETCH_STATUSES, RESOURCE_KINDS, type LinkSource } from "@linkables/shared/links";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -52,6 +52,7 @@ export const savedLink = pgTable(
     note: text("note"),
     pinned: boolean("pinned").notNull().default(false),
     savedAt: timestamp("saved_at", { withTimezone: true }).notNull().defaultNow(),
+    savedFrom: text("saved_from").$type<LinkSource>(),
   },
   (table) => [unique().on(table.userId, table.resourceId)],
 ).enableRLS();
