@@ -3,6 +3,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useRef, useState } from "react";
+import { isVisible } from "@/components/ui/is-visible";
 import { wrapTab } from "@/components/ui/wrap-tab";
 import { displayName } from "../collections/display-name";
 import { useCollections } from "../collections/use-collections";
@@ -37,7 +38,7 @@ const toNothing: AfterClose = () => false;
 // The bar takes a link to save; on a phone, where the bar is hidden, the save sheet opens.
 function focusSaveField(): AfterClose {
   const bar = document.querySelector<HTMLInputElement>("[data-save-field]");
-  if (bar?.checkVisibility()) return () => bar;
+  if (bar && isVisible(bar)) return () => bar;
   useLinksUi.getState().setSaveSheetOpen(true);
   return toNothing;
 }
