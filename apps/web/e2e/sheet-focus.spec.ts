@@ -3,34 +3,14 @@ import { successEnvelopeSchema } from "@linkables/shared/http";
 import type { Locator, Page } from "@playwright/test";
 import { API_URL } from "./env";
 import { expect, test } from "./fixtures";
+import { expectFocusTrapped } from "./focus-trap";
 
 const RUST = { url: "https://doc.rust-lang.org/rust-by-example/", resource: { title: "Rust by Example", fetchStatus: "fetched" as const } };
-
-// Records every focus that lands outside a dialog, so a step out that is
-// pulled back on the next frame still counts.
-async function watchFocusEscapes(page: Page) {
-  await page.evaluate(() => {
-    const escapes: string[] = [];
-    (window as unknown as { focusEscapes: string[] }).focusEscapes = escapes;
-    document.addEventListener("focusin", (event) => {
-      const target = event.target as Element;
-      if (target.closest("[role=dialog]") === null) escapes.push(target.outerHTML.slice(0, 120));
-    });
-  });
-}
-
-async function expectTabStaysInside(page: Page, key: "Tab" | "Shift+Tab") {
-  for (let i = 0; i < 20; i++) await page.keyboard.press(key);
-  expect(await page.evaluate(() => (window as unknown as { focusEscapes: string[] }).focusEscapes)).toEqual([]);
-  expect(await page.evaluate(() => document.activeElement?.closest("[role=dialog]") !== null)).toBe(true);
-}
 
 async function expectTrapAndEscape(page: Page, trigger: Locator) {
   const sheet = page.getByRole("dialog");
   await expect(sheet).toBeVisible();
-  await watchFocusEscapes(page);
-  await expectTabStaysInside(page, "Tab");
-  await expectTabStaysInside(page, "Shift+Tab");
+  await expectFocusTrapped(page);
   await page.keyboard.press("Escape");
   await expect(sheet).toHaveCount(0);
   await expect(trigger).toBeFocused();

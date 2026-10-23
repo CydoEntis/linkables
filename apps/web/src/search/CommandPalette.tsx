@@ -3,6 +3,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useRef, useState } from "react";
+import { wrapTab } from "@/components/ui/wrap-tab";
 import { displayName } from "../collections/display-name";
 import { useCollections } from "../collections/use-collections";
 import { LINKS_VIEWS, VIEW_LABELS } from "../links/links-search";
@@ -99,6 +100,7 @@ export function CommandPalette({ open, onOpenChange, ...handlers }: CommandPalet
           <DialogPrimitive.Popup
             data-command-palette
             finalFocus={() => afterClose.current()}
+            onKeyDown={wrapTab}
             className="flex max-h-[min(32rem,76vh)] w-full max-w-[560px] flex-col overflow-hidden rounded-[20px] bg-popover text-popover-foreground shadow-float outline-none transition-[opacity,scale] duration-150 data-ending-style:scale-97 data-ending-style:opacity-0 data-starting-style:scale-97 data-starting-style:opacity-0"
           >
             <DialogPrimitive.Title className="sr-only">Command palette</DialogPrimitive.Title>

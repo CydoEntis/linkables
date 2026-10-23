@@ -56,12 +56,13 @@ describe("wrapTab", () => {
     expect(screen.getByRole("button", { name: "First" })).toHaveFocus();
   });
 
-  it("skips hidden, disabled and focus-guard elements when finding the edges", () => {
+  it("skips hidden, disabled, untabbable and focus-guard elements when finding the edges", () => {
     renderPopup(
       <>
         <button type="button" disabled>Disabled</button>
         <div hidden><button type="button">Hidden</button></div>
         <span tabIndex={0} data-base-ui-focus-guard="" />
+        <input tabIndex={-1} aria-hidden="true" />
       </>,
     );
     screen.getByRole("button", { name: "Last" }).focus();
