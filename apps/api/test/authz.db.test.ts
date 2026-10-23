@@ -35,6 +35,7 @@ const SHARED_URL = "https://shared.example/page";
 const SHARED_NAME = "Reading";
 const A_INBOX_URL = "https://inbox-a.example/page";
 const A_TITLE = `${A_MARKER} title`;
+const A_PINNED = true;
 
 // Every route except GET /health. A new route adds a case here and a two-user
 // test beside its source.
@@ -147,7 +148,7 @@ async function seed(): Promise<Seed> {
           originalUrl: `${A_ONLY_URL}?by=${A_MARKER}`,
           titleOverride: A_TITLE,
           note: `${A_MARKER} note`,
-          pinned: true,
+          pinned: A_PINNED,
         },
         { userId: a.id, resourceId: resources(A_INBOX_URL).id, originalUrl: A_INBOX_URL, note: `${A_MARKER} inbox note` },
         { userId: a.id, resourceId: resources(SHARED_URL).id, originalUrl: `${SHARED_URL}?by=${A_MARKER}` },
@@ -270,7 +271,7 @@ describe("authz", () => {
     const app = createTestApp({ db });
     const ids = await seed();
     const titleCursor = (id: string) => {
-      const cursor = encodeCursor(cursorAt("title", { id, titleKey: A_TITLE, cursorSavedAt: "" }));
+      const cursor = encodeCursor(cursorAt("title", { id, pinned: A_PINNED, titleKey: A_TITLE, cursorSavedAt: "" }));
       return send(app, "GET", { path: `/api/v1/links?sort=title&cursor=${cursor}` }, b);
     };
 
