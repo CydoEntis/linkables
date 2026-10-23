@@ -1,10 +1,12 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { MailCheck } from "lucide-react";
-import { useId, useState, type SubmitEvent } from "react";
+import { useId, useState } from "react";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AuthPage } from "./AuthPage";
 import type { LinkProblem } from "./link-landing";
 import { sendMagicLink, type SendLinkProblem } from "./magic-link";
@@ -21,7 +23,11 @@ const PROBLEM_MESSAGES: Record<Problem, string> = {
   invalid: "This sign-in link didn't work. Send a new one.",
 };
 
-const emailSchema = z.email();
+const signInSchema = z.object({
+  email: z.string().trim().pipe(z.email({ error: PROBLEM_MESSAGES["invalid-email"] })),
+});
+
+type SignInValues = z.infer<typeof signInSchema>;
 
 type SignInScreenProps = { linkProblem: LinkProblem | null; focusHeading: boolean };
 
@@ -31,44 +37,50 @@ export function SignInScreen({ linkProblem, focusHeading }: SignInScreenProps) {
   const [cameBack, setCameBack] = useState(false);
 
   if (sentTo !== null) {
-    return <CheckEmail email={sentTo} onUseDifferentEmail={() => {
+    return (
+      <CheckEmail
+        email={sentTo}
+        onUseDifferentEmail={() => {
           setSentTo(null);
           setCameBack(true);
-        }} />;
+        }}
+      />
+    );
   }
-  return <EmailForm
-      email={email}
-      onEmailChange={setEmail}
+  return (
+    <EmailForm
+      defaultEmail={email}
       initialProblem={linkProblem}
-      onSent={setSentTo}
+      onSent={(address) => {
+        setEmail(address);
+        setSentTo(address);
+      }}
       focusHeading={focusHeading || cameBack}
-    />;
+    />
+  );
 }
 
 type EmailFormProps = {
-  email: string;
-  onEmailChange: (email: string) => void;
+  defaultEmail: string;
   initialProblem: LinkProblem | null;
   onSent: (email: string) => void;
   focusHeading: boolean;
 };
 
-function EmailForm({ email, onEmailChange, initialProblem, onSent, focusHeading }: EmailFormProps) {
+function EmailForm({ defaultEmail, initialProblem, onSent, focusHeading }: EmailFormProps) {
   const [problem, setProblem] = useState<Problem | null>(initialProblem);
   const send = useMutation({ mutationFn: sendMagicLink });
+  const form = useForm<SignInValues>({ resolver: zodResolver(signInSchema), defaultValues: { email: defaultEmail } });
   const problemId = useId();
+  const emailError = form.formState.errors.email?.message;
+  const invalid = emailError !== undefined || problem === "invalid-email";
+  const message = emailError ?? (problem ? PROBLEM_MESSAGES[problem] : null);
 
-  function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const address = email.trim();
-    if (!emailSchema.safeParse(address).success) {
-      setProblem("invalid-email");
-      return;
-    }
+  function submit({ email }: SignInValues) {
     setProblem(null);
-    send.mutate(address, {
+    send.mutate(email, {
       onSuccess: (result) => {
-        if (result.ok) onSent(address);
+        if (result.ok) onSent(email);
         else setProblem(result.problem);
       },
       onError: () => { setProblem("failed"); },
@@ -81,24 +93,21 @@ function EmailForm({ email, onEmailChange, initialProblem, onSent, focusHeading 
       description="We'll email you a link that signs you in."
       focusHeading={focusHeading}
     >
-      <form noValidate onSubmit={submit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+      <form noValidate onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
+        <Field data-invalid={invalid || undefined}>
+          <FieldLabel htmlFor="email">Email</FieldLabel>
           <Input
             id="email"
             type="email"
             autoComplete="email"
             required
-            value={email}
-            onChange={(event) => { onEmailChange(event.target.value); }}
-            aria-invalid={problem === "invalid-email" || undefined}
-            aria-describedby={problem ? problemId : undefined}
+            {...form.register("email")}
+            aria-invalid={invalid || undefined}
+            aria-describedby={message ? problemId : undefined}
             className="h-11"
           />
-        </div>
-        <p id={problemId} role="alert" className="text-sm text-destructive empty:hidden">
-          {problem ? PROBLEM_MESSAGES[problem] : null}
-        </p>
+          <FieldError id={problemId}>{message}</FieldError>
+        </Field>
         <Button type="submit" disabled={send.isPending} className="h-11 w-full">
           {send.isPending ? "Sending…" : "Email me a sign-in link"}
         </Button>
