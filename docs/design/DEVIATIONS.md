@@ -49,7 +49,7 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **A search from the URL stays a search**, even when it looks like a link (`?q=nodejs.org`): the bar shows it with Clear, not Save. Typed text that is a link still gets Save.
 - **Searches longer than 200 characters** (the API's limit) search their first 200, and the bar says so; the phone field stops at 200.
 - **Command palette** (Ctrl+K, or ⌘K on Apple keyboards): Search links for the typed text, Save a link, Save from anywhere, Get the bookmark button, Keyboard shortcuts, Go to All links / Pinned / To sort, and Go to each collection. The bar's hint reads "Ctrl K" where the keyboard has no ⌘.
-- **"?" lists the shortcuts** (/, Esc, Ctrl/⌘ K, Ctrl/⌘ V, ?). The brief's single-key actions on a selected card (p, c, e) wait for link details, since rows have no selection yet.
+- **"?" lists the shortcuts** (/, Esc, Ctrl/⌘ K, Ctrl/⌘ V, ?). The brief's single-key actions on a selected card (p, c, e) are not built: rows have no selection, and pin and edit live in link details.
 
 ## Share flow (`/save`)
 
@@ -95,7 +95,7 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **Account menu** (avatar, email, Get the bookmark button, Sign out) at the foot of the sidebar and in the phone header. The handoff draws the avatar with no menu; the brief (5.2) asks for an account menu.
 - **Link details have an address**: `?link=<id>` on any list opens them, so they can be linked to; the browser's Back closes them, and swapping rows replaces the entry instead of adding one. Rows are links to that address, so a modified click opens the details in a new tab. Dragged out of the app, a row still carries the saved URL.
 - **Details show the link as the loaded lists have it** (the API has no single-link read). A link filed out of the open list keeps showing its last copy; one that is not loaded at all, or deleted, shows "Couldn't find this link".
-- **Opening details moves focus to the panel**, and Back returns it to the row. Open ↗ leaves the panel open.
+- **Opening details moves focus to the panel**, and Back or Esc returns it to the row. Open ↗ leaves the panel open. Details keep any search or filters in the address, and Ctrl/⌘ K inside the title or note stays with the field.
 - **Phone link details: + Add to** opens the same floating picker as the web panel inside the full-screen details, not the phone's Add to sheet.
 - **The note's autosave** waits for a 500 ms pause in typing (and saves at once when the field loses focus or the details close), shows "Saving…" then "Saved" quietly, and says so inline, with Try again, when a save fails.
 - **Deleting a link** reaches the server only when its Undo toast closes, as for collections; the row and the details go at once.
