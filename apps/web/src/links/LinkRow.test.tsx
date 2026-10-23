@@ -125,6 +125,12 @@ describe("LinkRow", () => {
     }
   });
 
+  it("offers Delete among the phone's swipe actions", () => {
+    renderRow(savedLink({ resource: { title: "Rust by Example" } }));
+    const tiles = screen.getAllByRole("group", { name: "Rust by Example" }).at(-1);
+    expect(tiles && within(tiles).getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
   it("leaves out where the link is filed on a collection page", () => {
     renderRow(savedLink({ collections: [{ id: crypto.randomUUID(), name: "Rust" }] }), true);
     expect(screen.queryByText(/in Rust/)).not.toBeInTheDocument();

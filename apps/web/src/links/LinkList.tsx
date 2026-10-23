@@ -22,6 +22,7 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const highlightFor = useRowHighlight();
   const leavingIds = useLinksUi((state) => state.leavingIds);
   const heldId = useLinksUi((state) => state.heldId);
+  const deletingIds = useLinksUi((state) => state.deletingIds);
   const loaded = useHeldRow(query.data?.pages.flatMap((page) => page.items) ?? []);
 
   const narrowed = isNarrowed(filters);
@@ -39,8 +40,9 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
 
   // A link filed out of this list on this device goes at once (after its leave
   // animation), without waiting for the refetch; a held row waits for its popover.
+  // A link inside its delete Undo window leaves the same way.
   const belongs = (link: SavedLink) => belongsIn(scope, link, filters);
-  const stays = (link: SavedLink) => belongs(link) || link.id === heldId;
+  const stays = (link: SavedLink) => !deletingIds.includes(link.id) && (belongs(link) || link.id === heldId);
   const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
   const count = narrowed ? countLabel(links.length, query.hasNextPage, query.isPlaceholderData) : null;
   if (links.length === 0) {
