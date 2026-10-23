@@ -75,3 +75,25 @@ describe("collection name migration", () => {
     expect(constraint).toBeDefined();
   });
 });
+
+describe("collection pin and last use migration", () => {
+  it("backfills last use from creation and filing time from save time", async () => {
+    await apply("0000_init.sql");
+    await apply("0001_collection_name_ignores_case.sql");
+    await scratch`
+      with r as (insert into resource (canonical_url) values ('https://example.com/') returning id),
+        l as (insert into saved_link (user_id, resource_id, original_url, saved_at)
+          select ${userA}, id, 'https://example.com/', '2026-01-02T00:00:00Z' from r returning id),
+        c as (insert into collection (user_id, name, created_at)
+          values (${userA}, 'Rust', '2026-01-01T00:00:00Z') returning id)
+      insert into collection_item (collection_id, saved_link_id) select c.id, l.id from c, l`;
+
+    await apply("0002_collection_pin_and_last_use.sql");
+
+    const [col] = await scratch<{ pinned: boolean; last_used_at: Date }[]>`
+      select pinned, last_used_at from collection`;
+    expect(col).toEqual({ pinned: false, last_used_at: new Date("2026-01-01T00:00:00Z") });
+    const [item] = await scratch<{ created_at: Date }[]>`select created_at from collection_item`;
+    expect(item?.created_at).toEqual(new Date("2026-01-02T00:00:00Z"));
+  });
+});

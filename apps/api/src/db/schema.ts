@@ -62,7 +62,9 @@ export const collection = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     userId: uuid("user_id").notNull(),
     name: text("name").notNull(),
+    pinned: boolean("pinned").notNull().default(false),
     createdAt: createdAt(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("collection_user_id_lower_name_unique").on(table.userId, sql`lower(${table.name})`)],
 ).enableRLS();
@@ -76,6 +78,7 @@ export const collectionItem = pgTable(
     savedLinkId: uuid("saved_link_id")
       .notNull()
       .references(() => savedLink.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
   },
   (table) => [
     primaryKey({ columns: [table.collectionId, table.savedLinkId] }),
