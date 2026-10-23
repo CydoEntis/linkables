@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "cn";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { displayName } from "./display-name";
@@ -17,6 +17,7 @@ export function CollectionChip({ activeId, allActive }: CollectionChipProps) {
   const collections = useCollections();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const popupRef = useRef<HTMLDivElement | null>(null);
   const active = collections.data?.find((collection) => collection.id === activeId);
   const on = allActive || activeId !== undefined;
   const close = () => {
@@ -39,7 +40,8 @@ export function CollectionChip({ activeId, allActive }: CollectionChipProps) {
       </button>
       <Sheet open={open} onOpenChange={(next) => { if (!next) close(); }}>
         <SheetContent
-          initialFocus={false}
+          ref={popupRef}
+          initialFocus={popupRef}
           className="max-h-[86%] gap-3.5 rounded-t-3xl px-[18px] pt-2.5 pb-[calc(34px+env(safe-area-inset-bottom))] shadow-[0_-1px_0_var(--line-strong)]"
         >
           <span aria-hidden className="h-1 w-9 shrink-0 self-center rounded-sm bg-[#333]" />

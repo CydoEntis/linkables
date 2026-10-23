@@ -1,5 +1,6 @@
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
 import { cn } from "cn"
+import { wrapTab } from "./wrap-tab"
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -22,6 +23,7 @@ function SheetContent({
   className,
   children,
   side = "bottom",
+  onKeyDown,
   ...props
 }: SheetPrimitive.Popup.Props & { side?: "bottom" | "right" }) {
   return (
@@ -36,6 +38,10 @@ function SheetContent({
           "data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:data-ending-style:translate-x-full data-[side=right]:data-starting-style:translate-x-full",
           className
         )}
+        onKeyDown={(event) => {
+          wrapTab(event)
+          onKeyDown?.(event)
+        }}
         {...props}
       >
         {children}
