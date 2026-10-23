@@ -1,4 +1,4 @@
-import type { LinkSort, LinkView, ListLinksResponse, ResourceKind } from "@linkaroo/shared/links";
+import { isDateOnly, type LinkSort, type LinkView, type ListLinksResponse, type ResourceKind } from "@linkaroo/shared/links";
 import { and, eq, exists, notExists, sql } from "drizzle-orm";
 import { requireCollection } from "../collections/collections";
 import type { Db } from "../db/client";
@@ -40,8 +40,6 @@ function inCollection(db: Db, collectionId: string) {
       .where(and(eq(collectionItem.savedLinkId, savedLink.id), eq(collectionItem.collectionId, collectionId))),
   );
 }
-
-const isDateOnly = (bound: string) => bound.length === "YYYY-MM-DD".length;
 
 // A date bound is a whole UTC day, computed in SQL so 9999-12-31 + 1 day still works.
 function savedFrom(from: string) {
