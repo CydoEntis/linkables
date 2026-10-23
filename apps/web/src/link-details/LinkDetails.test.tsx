@@ -208,6 +208,23 @@ describe("link details on the web", () => {
     vi.unstubAllGlobals();
   });
 
+  it("closes with Esc from inside the panel", async () => {
+    const { router } = await renderDetails(savedLink());
+    expect(screen.getByRole("region", { name: "Link details" })).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => { expect(screen.queryByRole("region", { name: "Link details" })).not.toBeInTheDocument(); });
+    expect(router.state.location.search).toEqual({});
+  });
+
+  it("closes only the picker when Esc is pressed inside it", async () => {
+    await renderDetails(savedLink());
+    await userEvent.click(screen.getByRole("button", { name: "+ Add to" }));
+    await screen.findByRole("textbox", { name: "Find or create a collection" });
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => { expect(screen.queryByRole("textbox", { name: "Find or create a collection" })).not.toBeInTheDocument(); });
+    expect(screen.getByRole("region", { name: "Link details" })).toBeInTheDocument();
+  });
+
   it("opens as a side panel that arrow keys resize, and remembers the width", async () => {
     await renderDetails(savedLink());
     const panel = screen.getByRole("region", { name: "Link details" });
