@@ -29,7 +29,9 @@ Option 3.
   `resource_id`, `original_url` (as submitted; may hold user-specific query
   parameters, so it never goes on `resource`), `title_override`, `note`, `pinned`
   (default false), `saved_at`; unique (`user_id`, `resource_id`).
-- `collection`: `id`, `user_id`, `name`, `created_at`; unique (`user_id`, `name`).
+- `collection`: `id`, `user_id`, `name` (stored as typed, trimmed), `created_at`;
+  unique (`user_id`, `lower(name)`), so names that differ only in case are the
+  same name for one user (owner decision, 2026-10-22).
 - `collection_item`: (`collection_id`, `saved_link_id`) as the primary key, both
   foreign keys `on delete cascade`.
 - `job`: `id` bigserial, `resource_id` (`on delete cascade`), `run_after`,
