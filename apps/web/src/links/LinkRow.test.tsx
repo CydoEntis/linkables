@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { LinkRow } from "./LinkRow";
 import { savedLink } from "./test-links";
+import { PIN_HOLD_MS } from "./use-pin-link";
 
 const request = vi.hoisted(() => vi.fn<(path: string, schema: unknown, init?: RequestInit) => Promise<unknown>>());
 vi.mock("../api/api", () => ({ api: { request } }));
@@ -99,6 +100,18 @@ describe("LinkRow", () => {
     await userEvent.click(pin);
     expect(pin).toHaveAttribute("aria-pressed", "true");
     expect(request).toHaveBeenCalledWith(`/links/${link.id}`, expect.anything(), expect.objectContaining({ method: "PATCH", body: JSON.stringify({ pinned: true }) }));
+  });
+
+  it("keeps showing the latest pin choice while earlier ones settle", async () => {
+    const link = savedLink();
+    request.mockResolvedValueOnce({ ...link, pinned: true }).mockReturnValue(new Promise(() => undefined));
+    renderRow(link);
+    const pin = screen.getByTitle("Pin");
+    await userEvent.click(pin);
+    await userEvent.click(screen.getByTitle("Unpin"));
+    await userEvent.click(screen.getByTitle("Pin"));
+    await new Promise((resolve) => setTimeout(resolve, PIN_HOLD_MS + 300));
+    expect(screen.getByTitle("Unpin")).toHaveAttribute("aria-pressed", "true");
   });
 
   it("leaves out where the link is filed on a collection page", () => {
