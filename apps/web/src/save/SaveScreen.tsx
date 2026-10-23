@@ -8,6 +8,7 @@ import { cn } from "cn";
 import { saveLinkFormSchema, type SaveLinkFormInput, type SaveLinkFormOutput } from "../links/save-link-form";
 import { CollectionPicks } from "./CollectionPicks";
 import { Confetti } from "./Confetti";
+import { usePopupWindow } from "./use-popup-window";
 import type { SharedSave } from "./use-shared-save";
 
 type SaveScreenProps = {
@@ -21,9 +22,22 @@ type SaveScreenProps = {
 };
 
 export function SaveScreen({ state, title, onUndo, undoing = false, onRetry, onSaveUrl }: SaveScreenProps) {
+  const popup = usePopupWindow();
   return (
-    <main className="flex min-h-svh flex-col px-[18px] pt-[max(28px,env(safe-area-inset-top))] pb-[calc(24px+env(safe-area-inset-bottom))] md:items-center md:justify-center md:py-12">
-      <div className="flex w-full max-w-md flex-1 flex-col gap-6 md:flex-none md:rounded-[20px] md:bg-card md:p-6">
+    <main
+      className={
+        popup
+          ? "flex min-h-svh flex-col justify-center p-3"
+          : "flex min-h-svh flex-col px-[18px] pt-[max(28px,env(safe-area-inset-top))] pb-[calc(24px+env(safe-area-inset-bottom))] md:items-center md:justify-center md:py-12"
+      }
+    >
+      <div
+        className={
+          popup
+            ? "flex w-full flex-col gap-5 rounded-[18px] bg-card p-5"
+            : "flex w-full max-w-md flex-1 flex-col gap-6 md:flex-none md:rounded-[20px] md:bg-card md:p-6"
+        }
+      >
         <ScreenBody state={state} title={title} onUndo={onUndo} undoing={undoing} onRetry={onRetry} onSaveUrl={onSaveUrl} />
       </div>
     </main>
@@ -176,18 +190,34 @@ function Status({ icon, heading, detail, note, tone = "neutral", celebrate = fal
   );
 }
 
-// quiet: the view already has its one lime action, so Open linkables steps back to a ghost button.
+// quiet: the view already has its one lime action, so the secondary action steps back to a ghost button.
 function Footer({ children, quiet = false }: { children?: ReactNode; quiet?: boolean }) {
+  const popup = usePopupWindow();
+  const secondary = cn(
+    "flex h-[54px] flex-1 items-center justify-center rounded-2xl text-base font-bold",
+    quiet ? "bg-muted text-foreground hover:bg-accent" : "bg-foreground text-background",
+  );
+  if (!popup) {
+    return (
+      <footer className="mt-auto flex gap-2.5 md:mt-0">
+        {children}
+        <Link to="/" className={secondary}>
+          Open linkables
+        </Link>
+      </footer>
+    );
+  }
+  // Closing waits for the user's click: any site can open this popup, and closing
+  // it automatically would hide what was saved and its Undo.
   return (
-    <footer className="mt-auto flex gap-2.5 md:mt-0">
-      {children}
-      <Link
-        to="/"
-        className={cn(
-          "flex h-[54px] flex-1 items-center justify-center rounded-2xl text-base font-bold",
-          quiet ? "bg-muted text-foreground hover:bg-accent" : "bg-foreground text-background",
-        )}
-      >
+    <footer className="flex flex-col items-center gap-3">
+      <div className="flex w-full gap-2.5">
+        {children}
+        <button type="button" onClick={() => { window.close(); }} className={secondary}>
+          Close
+        </button>
+      </div>
+      <Link to="/" target="_blank" className="rounded-md px-2 py-1 text-[13px] font-semibold text-muted-foreground hover:text-foreground">
         Open linkables
       </Link>
     </footer>
