@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LinksScreen } from "../links/LinksScreen";
+import type { FiltersChange } from "../search/list-filters";
 import { AppShell } from "../shell/AppShell";
 import { CollectionTitle } from "./CollectionTitle";
 import { useCollectionsUi, type PendingDelete } from "./collections-ui-store";
@@ -17,6 +18,11 @@ const route = getRouteApi("/c/$collectionId");
 
 export function CollectionPage() {
   const { collectionId } = route.useParams();
+  const filters = route.useSearch();
+  const navigate = route.useNavigate();
+  const onFiltersChange: FiltersChange = (patch, { replace = false } = {}) => {
+    void navigate({ search: (previous) => ({ ...previous, ...patch }), replace });
+  };
   const collections = useCollections();
   const collection = collections.data?.find((item) => item.id === collectionId);
   const pendingDelete = useCollectionsUi((state) => state.deleting[collectionId]);
@@ -26,6 +32,8 @@ export function CollectionPage() {
   return (
     <LinksScreen
       scope={{ collectionId }}
+      filters={filters}
+      onFiltersChange={onFiltersChange}
       heading={collection ? <CollectionHeader collection={collection} /> : <div aria-hidden className="h-[60px] md:mt-[30px] md:mb-3.5 md:h-[52px]" />}
     />
   );

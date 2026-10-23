@@ -68,7 +68,7 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("heading", { name: "Pinned" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
     expect((await page.getByRole("complementary").boundingBox())?.width).toBe(272);
-    expect((await page.locator("form label").boundingBox())?.height).toBe(52);
+    expect((await page.locator("form label").filter({ visible: true }).boundingBox())?.height).toBe(52);
     const screenshot = await page.screenshot({ fullPage: true, animations: "disabled" });
     await testInfo.attach("links-1280", { body: screenshot, contentType: "image/png" });
   });

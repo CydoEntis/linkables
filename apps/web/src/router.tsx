@@ -8,6 +8,7 @@ import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
 import { SAVE_ANYWHERE_PATH, SaveAnywherePage, saveAnywhereSearchSchema } from "./save-anywhere/SaveAnywherePage";
+import { listFiltersSchema } from "./search/list-filters";
 import { NotFoundPage } from "./shell/NotFoundPage";
 
 const rootRoute = createRootRoute({ component: AuthGate, notFoundComponent: NotFoundPage });
@@ -24,6 +25,7 @@ const linksRoute = createRoute({
 const collectionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/c/$collectionId",
+  validateSearch: listFiltersSchema,
   component: CollectionPage,
 });
 

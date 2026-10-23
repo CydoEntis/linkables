@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/client";
 import { useCollectionsUi } from "../collections/collections-ui-store";
+import type { ListFilters } from "../search/list-filters";
 import { TestRouter } from "../test/router";
 import { LinkList } from "./LinkList";
 import type { LinksView } from "./links-search";
@@ -17,15 +18,22 @@ function page(titles: string[], cursor: string | null = null): ListLinksResponse
   return { items: titles.map((title) => savedLink({ resource: { title } })), cursor };
 }
 
-function renderList(view: LinksView = "all") {
+function renderList(view: LinksView = "all", filters: ListFilters = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const onFiltersChange = vi.fn();
   render(
     <QueryClientProvider client={queryClient}>
       <TestRouter>
-        <LinkList scope={{ view }} />
+        <LinkList scope={{ view }} filters={filters} onFiltersChange={onFiltersChange} />
       </TestRouter>
     </QueryClientProvider>,
   );
+  return { onFiltersChange };
+}
+
+function requestedParams(): Record<string, string> {
+  const [path] = request.mock.calls[0] ?? [""];
+  return Object.fromEntries(new URLSearchParams(path.split("?")[1]));
 }
 
 beforeEach(() => {
@@ -77,5 +85,57 @@ describe("LinkList", () => {
     expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · To sort");
     useCollectionsUi.getState().stopDeleting(japan.id);
     expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · in Japan");
+  });
+
+  it("searches every link from To sort, leaving the view out", async () => {
+    request.mockResolvedValue(page([]));
+    renderList("inbox", { q: "rust" });
+    await screen.findByText("No links match “rust”");
+    expect(request).toHaveBeenCalledWith("/links?q=rust", expect.anything(), expect.anything());
+  });
+
+  it("sends the sort and filters, with dates as the local day's first and last instants", async () => {
+    const collection = crypto.randomUUID();
+    request.mockResolvedValue(page([]));
+    renderList("all", { sort: "title", kind: "video", pinned: true, from: "2026-10-01", to: "2026-10-20", collection });
+    await screen.findByText("No links match these filters");
+    const params = requestedParams();
+    expect(params).toMatchObject({ sort: "title", kind: "video", pinned: "true", collectionId: collection });
+    expect(Date.parse(params.from ?? "")).toBe(new Date(2026, 9, 1).getTime());
+    expect(Date.parse(params.to ?? "")).toBe(new Date(2026, 9, 20, 23, 59, 59, 999).getTime());
+  });
+
+  it("tells no matches apart from an empty list and offers to clear the search", async () => {
+    request.mockResolvedValue(page([]));
+    const { onFiltersChange } = renderList("all", { q: "zebra" });
+    expect(await screen.findByText("No links match “zebra”")).toBeInTheDocument();
+    expect(screen.queryByText("No links yet")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(onFiltersChange).toHaveBeenCalledWith({ q: undefined });
+  });
+
+  it("lists results in one list with a count, without day headings", async () => {
+    request.mockResolvedValue({
+      items: [savedLink({ resource: { title: "Rust by Example" } }), savedLink({ pinned: true, resource: { title: "Rust book" } })],
+      cursor: null,
+    });
+    renderList("all", { q: "rust" });
+    expect(await screen.findByText("2 matches")).toBeInTheDocument();
+    expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
+    expect(screen.getAllByText("Rust", { selector: "mark" })).toHaveLength(2);
+  });
+
+  it("says when there are more matches than loaded", async () => {
+    request.mockResolvedValue(page(["Rust"], "cursor-1"));
+    renderList("all", { q: "rust" });
+    expect(await screen.findByText("1+ matches")).toBeInTheDocument();
+  });
+
+  it("keeps a sorted list flat, in the API's order", async () => {
+    request.mockResolvedValue(page(["Alpha", "Beta"]));
+    renderList("all", { sort: "title" });
+    await screen.findByText("Alpha");
+    expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
+    expect(request).toHaveBeenCalledWith("/links?sort=title", expect.anything(), expect.anything());
   });
 });

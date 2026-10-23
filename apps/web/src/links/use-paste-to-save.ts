@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent } from "react";
 import { saveUrlSchema } from "./save-link-form";
 import { useSaveLink } from "./use-save-link";
 
-function isEditable(target: EventTarget | null): boolean {
+export function isEditable(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select") !== null);
 }
 

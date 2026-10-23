@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
@@ -28,11 +28,12 @@ function savedBody(): unknown {
   return JSON.parse(call?.[2]?.body as string);
 }
 
-function renderBar() {
+function renderBar(query?: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const onQueryChange = vi.fn<(query: string | undefined) => void>();
   render(
     <QueryClientProvider client={queryClient}>
-      <SaveBar />
+      <SaveBar query={query} onQueryChange={onQueryChange} />
       <SaveStatus />
       <TestRouter>
         <LinkList scope={{ view: "all" }} />
@@ -40,7 +41,7 @@ function renderBar() {
       <Toaster />
     </QueryClientProvider>,
   );
-  return { field: screen.getByRole("textbox", { name: "Search or paste a link" }), user: userEvent.setup() };
+  return { field: screen.getByRole("textbox", { name: "Search or paste a link" }), user: userEvent.setup(), onQueryChange };
 }
 
 beforeEach(() => {
@@ -77,13 +78,51 @@ describe("SaveBar", () => {
     expect(savedBody()).toEqual({ url: "https://rust.org", source: expect.any(String) as unknown });
   });
 
-  it("explains a non-link under the bar without calling the API", async () => {
+  it("searches for text that is not a link once typing pauses", async () => {
     answerSave(() => Promise.resolve(null));
-    const { field, user } = renderBar();
+    const { field, user, onQueryChange } = renderBar();
+    await user.type(field, "tokyo walk");
+    expect(onQueryChange).not.toHaveBeenCalled();
+    await waitFor(() => { expect(onQueryChange).toHaveBeenCalledWith("tokyo walk"); });
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("searches at once on Enter and never saves a non-link", async () => {
+    answerSave(() => Promise.resolve(null));
+    const { field, user, onQueryChange } = renderBar();
     await user.type(field, "not a link{Enter}");
-    expect(screen.getByRole("alert")).toHaveTextContent("Links must start with http:// or https://");
-    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(onQueryChange).toHaveBeenCalledWith("not a link");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(request).not.toHaveBeenCalledWith("/links", expect.anything(), expect.objectContaining({ method: "POST" }));
+  });
+
+  it("never searches for a link", async () => {
+    answerSave(() => new Promise(() => undefined));
+    const { field, user, onQueryChange } = renderBar();
+    await user.type(field, "rust.org");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(onQueryChange).not.toHaveBeenCalled();
+  });
+
+  it("shows the search from the URL and clears it with the Clear button", async () => {
+    answerSave(() => Promise.resolve(null));
+    const { field, user, onQueryChange } = renderBar("rust");
+    expect(field).toHaveValue("rust");
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(field).toHaveValue("");
+    expect(field).toHaveFocus();
+    expect(onQueryChange).toHaveBeenCalledWith(undefined);
+  });
+
+  it("clears the search on Esc, then leaves the bar on a second Esc", async () => {
+    answerSave(() => Promise.resolve(null));
+    const { field, user, onQueryChange } = renderBar("rust");
+    await user.type(field, "{Escape}");
+    expect(field).toHaveValue("");
+    expect(onQueryChange).toHaveBeenCalledWith(undefined);
+    await user.type(field, "{Escape}");
+    expect(field).not.toHaveFocus();
   });
 
   it("says Already saved for a duplicate and adds no second row", async () => {

@@ -3,6 +3,7 @@ import { Pin, Plus, Share } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import { cn } from "cn";
 import { AddToPopover } from "../collections/AddToPopover";
+import { MatchedText } from "../search/MatchedText";
 import { displayTitle, domainOf, filedLabel, relativeTime, safeHref, savedFromLabel } from "./link-display";
 import { LinkThumb } from "./LinkThumb";
 import { useLinksUi } from "./links-ui-store";
@@ -28,10 +29,12 @@ type LinkRowProps = {
   // Whether the link still belongs in this list; one that does not leaves once its popover closes.
   belongs?: boolean;
   leaving?: boolean;
+  // The search to highlight in the title and domain.
+  query?: string | undefined;
 };
 
 // The row opens the saved URL itself; link details come in a later version.
-export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false }: LinkRowProps) {
+export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
   const swipeOpen = useLinksUi((state) => state.swipeOpenId === link.id);
   const setSwipeOpenId = useLinksUi((state) => state.setSwipeOpenId);
@@ -61,7 +64,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
         )}
       >
         <LinkThumb link={link} />
-        <RowText link={link} now={now} inCollection={inCollection} pinned={pin.pinned} opacity={textOpacity} />
+        <RowText link={link} now={now} inCollection={inCollection} pinned={pin.pinned} opacity={textOpacity} query={query} />
         {href ? <span className="sr-only">(opens in a new tab)</span> : null}
       </a>
       <RowActions link={link} belongs={belongs} pinned={pin.pinned} onPin={pin.toggle} />
@@ -94,9 +97,9 @@ function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
   useLinksUi.getState().setDraggingId(link.id);
 }
 
-type RowTextProps = { link: SavedLink; now: number; inCollection: boolean; pinned: boolean; opacity: number };
+type RowTextProps = { link: SavedLink; now: number; inCollection: boolean; pinned: boolean; opacity: number; query: string | undefined };
 
-function RowText({ link, now, inCollection, pinned, opacity }: RowTextProps) {
+function RowText({ link, now, inCollection, pinned, opacity, query }: RowTextProps) {
   const title = displayTitle(link);
   const pending = isPending(link);
   const time = relativeTime(link.savedAt, now);
@@ -113,10 +116,10 @@ function RowText({ link, now, inCollection, pinned, opacity }: RowTextProps) {
             title.isUrl && "text-muted-foreground",
           )}
         >
-          {title.text}
+          <MatchedText text={title.text} query={query} />
         </span>
         <span className="truncate text-xs text-muted-foreground md:text-[13px]">
-          {domainOf(link.originalUrl)}
+          <MatchedText text={domainOf(link.originalUrl)} query={query} />
           {pending ? (
             " · Getting details…"
           ) : (
