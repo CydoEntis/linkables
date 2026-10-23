@@ -35,7 +35,7 @@ Contrast was measured in headless Chrome with the WCAG formula.
 ## Share flow (`/save`)
 
 - **A full page, not a sheet over the other app.** Android opens a share target as the installed app, so the "Saved to linkables" card fills the screen instead of rising over YouTube. The card's content follows the handoff: lime ✓ with confetti, title, up to four collections to tick, "All collections ›", Undo.
-- **"Open linkables" instead of "Done"**, and the page does not close itself on Android: a web page cannot close an app window it did not open. Only the desktop bookmark popup (`?popup=1`) closes itself, 4 s after a save unless it is touched.
+- **"Open linkables" instead of "Done"**, and `/save` never closes itself. On Android a web page cannot close the app window it was opened in. Closing on its own would also take away Undo: any site can open `/save?url=…`, and the user must see what was saved. The bookmark-button ticket designs its popup's closing with that risk in mind.
 - **Share copy follows the device.** Android shows "add linkables to your home screen, then … Share → linkables" until installed, then "in any app, tap Share, then linkables". Desktop shows no tip, since it has no share target.
 - **One theme colour** (`#121212`) for light and dark in the manifest and `theme-color`: only the dark theme is drawn.
 

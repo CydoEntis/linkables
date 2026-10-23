@@ -32,7 +32,7 @@ function calls(method: string, path: string | RegExp) {
 
 function renderShared(sharedUrl: string | null) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const rootRoute = createRootRoute({ component: () => <SharedSave sharedUrl={sharedUrl} popup={false} /> });
+  const rootRoute = createRootRoute({ component: () => <SharedSave sharedUrl={sharedUrl} /> });
   const router = createRouter({ routeTree: rootRoute, history: createMemoryHistory({ initialEntries: ["/save"] }) });
   render(
     <QueryClientProvider client={queryClient}>
