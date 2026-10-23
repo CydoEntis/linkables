@@ -19,11 +19,18 @@ async function savedUrls(db: Db, user: TestUser): Promise<string[]> {
 }
 
 // Counts window.close() calls in every page of the context, popups included.
-async function stubWindowClose(context: BrowserContext) {
-  await context.addInitScript(() => {
+// closes: whether the browser lets the window close, as it does for a window script opened.
+async function stubWindowClose(context: BrowserContext, { closes }: { closes: boolean }) {
+  await context.addInitScript((closable) => {
     window.closeCalls = 0;
     window.close = () => { window.closeCalls = (window.closeCalls ?? 0) + 1; };
-  });
+    if (closable) Object.defineProperty(window, "closed", { get: () => (window.closeCalls ?? 0) > 0 });
+  }, closes);
+}
+
+// What the bookmarklet's window.open does to the window it opens.
+async function nameWindowAsPopup(context: BrowserContext) {
+  await context.addInitScript(() => { window.name = "linkables-save"; });
 }
 
 // Kept in test-results after a passing run, so the screens can be looked at.
@@ -52,7 +59,7 @@ test("the account menu offers a draggable Save to linkables button built from th
 });
 
 test("clicking the bookmark button on a page saves it in a compact popup that only closes when asked", async ({ page, context, db, user }, testInfo) => {
-  await stubWindowClose(context);
+  await stubWindowClose(context, { closes: true });
   await context.route("https://news.example.test/**", (route) => route.fulfill({ contentType: "text/html", body: "<h1>A story</h1>" }));
   const href = await (await openBookmarkletDialog(page)).getByRole("link", { name: "Save to linkables" }).getAttribute("href");
 
@@ -76,13 +83,26 @@ test("clicking the bookmark button on a page saves it in a compact popup that on
 
   await popup.getByRole("button", { name: "Close" }).click();
   expect(await popup.evaluate(() => window.closeCalls)).toBe(1);
+  expect(new URL(popup.url()).pathname).toBe("/save");
+});
+
+test.describe("in a small tab the bookmark button did not open", () => {
+  test.use({ viewport: { width: 500, height: 700 } });
+
+  test("/save keeps the full layout with Open linkables and no Close", async ({ page }) => {
+    await page.goto("/save?url=https://example.test/small-tab");
+    await expect(page.getByRole("heading", { name: "Saved to linkables" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open linkables" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Close" })).toHaveCount(0);
+  });
 });
 
 test.describe("in a 420 × 640 window", () => {
   test.use({ viewport: POPUP });
 
   test("every /save state shows the compact card with Close", async ({ page, context }, testInfo) => {
-    await stubWindowClose(context);
+    await nameWindowAsPopup(context);
+    await stubWindowClose(context, { closes: false });
     await page.goto("/save?url=https://example.test/compact");
     await expect(page.getByRole("heading", { name: "Saved to linkables" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
@@ -105,5 +125,15 @@ test.describe("in a 420 × 640 window", () => {
     await shot(page, testInfo, "popup-no-link");
 
     expect(await page.evaluate(() => window.closeCalls)).toBe(0);
+  });
+
+  test("Close goes to the app when the browser refuses to close the window", async ({ page, context }) => {
+    await nameWindowAsPopup(context);
+    await stubWindowClose(context, { closes: false });
+    await page.goto("/save?url=https://example.test/refused");
+    await expect(page.getByRole("heading", { name: "Saved to linkables" })).toBeVisible();
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page).toHaveURL(`${WEB_URL}/`);
+    await expect(page.getByRole("heading", { name: "All links", level: 1 })).toBeVisible();
   });
 });
