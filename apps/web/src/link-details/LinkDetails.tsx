@@ -11,7 +11,6 @@ import { clampWidth, maxPanelWidth, readStoredWidth, storeWidth } from "./panel-
 import { ResizeGrip } from "./ResizeGrip";
 import { useDetailsLink } from "./use-details-link";
 import { useViewportWidth, useWideScreen } from "./use-wide-screen";
-import { wrapTab } from "./wrap-tab";
 
 // The open link's details: a resizable side panel beside the list on the web,
 // a full-screen sheet on phones.
@@ -109,7 +108,6 @@ function DetailsSheet({ linkId, onClose }: DetailsProps) {
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent
         aria-label="Link details"
-        onKeyDown={wrapTab}
         className="inset-0 animate-sheet-up gap-0 bg-background pt-[env(safe-area-inset-top)]"
       >
         <SheetTitle className="sr-only">Link details</SheetTitle>

@@ -14,6 +14,7 @@ export function AddToSheet() {
   const setLinkId = useLinksUi((state) => state.setAddToLinkId);
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
   // Copied from the cache each time the sheet opens, so it shows the link's
   // current collections; kept while open, since filing can move the row out of
   // the loaded list; kept while closing, so the sheet does not empty as it slides away.
@@ -27,7 +28,8 @@ export function AddToSheet() {
   return (
     <Sheet open={linkId !== null && link !== null} onOpenChange={(open) => { if (!open) setLinkId(null); }}>
       <SheetContent
-        initialFocus={false}
+        ref={popupRef}
+        initialFocus={popupRef}
         className="max-h-[86%] gap-3.5 rounded-t-3xl px-[18px] pt-2.5 pb-[calc(34px+env(safe-area-inset-bottom))] shadow-[0_-1px_0_var(--line-strong)]"
       >
         <span aria-hidden className="h-1 w-9 shrink-0 self-center rounded-sm bg-[#333]" />
