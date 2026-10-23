@@ -75,6 +75,18 @@ async function walk(user: TestUser, query: string) {
   return ids;
 }
 
+function titlePage(user: TestUser, cursor: string) {
+  return app.request(`/api/v1/links?sort=title&cursor=${cursor}`, { headers: user.headers });
+}
+
+async function expectInvalidCursor(res: Response) {
+  expect(res.status).toBe(400);
+  expect(failureEnvelopeSchema.parse(await res.json()).error).toMatchObject({
+    code: "VALIDATION",
+    message: "Cursor is no longer valid",
+  });
+}
+
 type FilterCase = { name: string; query: string; match: Seed; miss: Seed };
 
 const filterCases: FilterCase[] = [
@@ -258,5 +270,31 @@ describe("GET /links sort", () => {
 
     expect(res.status).toBe(400);
     expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("VALIDATION");
+  });
+
+  it("keeps the title and URL of the last link out of a title cursor", async () => {
+    await seed(a, [{ url: "https://aardvark.example/?token=secret" }, { title: "Zebra" }]);
+    const { items, cursor } = await list(a, "sort=title&limit=1");
+
+    const decoded = Buffer.from(String(cursor), "base64url").toString("utf8");
+
+    expect(JSON.parse(decoded)).toEqual({ sort: "title", id: items[0]?.id });
+    expect(decoded).not.toMatch(/aardvark|secret/i);
+  });
+
+  it("rejects a title cursor whose link was deleted mid-walk", async () => {
+    await seed(a, [{ title: "a" }, { title: "b" }]);
+    const { items, cursor } = await list(a, "sort=title&limit=1");
+    await app.request(`/api/v1/links/${String(items[0]?.id)}`, { method: "DELETE", headers: a.headers });
+
+    await expectInvalidCursor(await titlePage(a, String(cursor)));
+  });
+
+  it("rejects a title cursor naming another user's link", async () => {
+    await seed(b, [{ title: "b's link" }, { title: "more" }]);
+    await seed(a, [{ title: "a" }, { title: "z" }]);
+    const { cursor } = await list(b, "sort=title&limit=1");
+
+    await expectInvalidCursor(await titlePage(a, String(cursor)));
   });
 });

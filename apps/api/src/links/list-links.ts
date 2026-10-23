@@ -5,7 +5,7 @@ import type { Db } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
 import { encodeCursor, type Cursor } from "./cursor";
 import { matchesSearch } from "./search";
-import { after, cursorAt, orderBy, sortKeys } from "./sort";
+import { after, cursorAt, cursorSavedAt, orderBy } from "./sort";
 import { toSavedLink } from "./to-saved-link";
 
 export type ListLinksInput = {
@@ -74,10 +74,10 @@ export async function listLinks(db: Db, input: ListLinksInput): Promise<ListLink
   const { userId, sort, limit, cursor, collectionId } = input;
   if (collectionId !== undefined) await requireCollection(db, { userId, id: collectionId });
   const rows = await db
-    .select({ link: savedLink, resource, ...sortKeys })
+    .select({ link: savedLink, resource, cursorSavedAt })
     .from(savedLink)
     .innerJoin(resource, eq(resource.id, savedLink.resourceId))
-    .where(and(matchesFilters(db, input), cursor ? after(cursor) : undefined))
+    .where(and(matchesFilters(db, input), cursor ? await after(db, userId, cursor) : undefined))
     .orderBy(...orderBy(sort))
     .limit(limit + 1);
 
