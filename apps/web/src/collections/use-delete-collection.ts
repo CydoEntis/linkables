@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "../api/api";
 import { isApiError } from "../api/client";
-import { linksKeys, type LinksPages } from "../links/use-links";
+import { linksKeys } from "../links/use-links";
 import { useCollectionsUi } from "./collections-ui-store";
 import { displayName } from "./display-name";
 import { collectionsKeys } from "./use-collections";
@@ -13,23 +13,6 @@ import { collectionsKeys } from "./use-collections";
 export const DELETE_UNDO_MS = 5000;
 
 type Deletable = { id: string; name: string };
-
-function forgetInLinks(queryClient: QueryClient, collectionId: string) {
-  queryClient.setQueriesData<LinksPages>({ queryKey: linksKeys.all }, (data) =>
-    data === undefined
-      ? data
-      : {
-          ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            items: page.items.map((item) => ({
-              ...item,
-              collections: item.collections.filter((collection) => collection.id !== collectionId),
-            })),
-          })),
-        },
-  );
-}
 
 function refresh(queryClient: QueryClient) {
   return Promise.all([
@@ -73,7 +56,6 @@ export function useDeleteCollection() {
       if (settled) return;
       settled = true;
       useCollectionsUi.getState().stopDeleting(collection.id);
-      void queryClient.invalidateQueries({ queryKey: linksKeys.all });
     };
 
     useCollectionsUi.getState().startDeleting(collection.id, {
@@ -83,7 +65,6 @@ export function useDeleteCollection() {
         toast.dismiss(toastId);
       },
     });
-    forgetInLinks(queryClient, collection.id);
     void navigate({ to: "/" });
     toast(`Deleted ${displayName(collection.name)}. Its links are still saved.`, {
       id: toastId,
