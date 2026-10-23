@@ -15,10 +15,10 @@ type SearchTextOptions = {
 const trimmed = (text: string) => text.trim() || undefined;
 
 // Typing reaches the URL once it pauses; a search changed elsewhere (Back, a
-// cleared chip, the command palette) comes back into the field.
+// cleared chip, the command palette) comes back into the field. The field must
+// start with the URL's search as its text, so only typing ever changes the URL.
 export function useSearchText({ query, onQueryChange, text, setText, toQuery = trimmed }: SearchTextOptions) {
-  // null until the field first takes the URL's search, on mount.
-  const sent = useRef<string | undefined | null>(null);
+  const sent = useRef(query);
   const target = toQuery(text);
   const send = useEffectEvent((next: string | undefined) => {
     sent.current = next;

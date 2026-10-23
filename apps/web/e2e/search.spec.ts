@@ -49,6 +49,17 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("heading", { level: 1, name: "All links" })).toBeVisible();
   });
 
+  test("a search that looks like a link stays a search when the page loads", async ({ page, seedLinks }) => {
+    await seedLinks(LINKS);
+    await page.goto("/?q=seriouseats.com");
+    await expect(row(page, CURRY)).toBeVisible();
+    await expect(row(page, RUST)).toHaveCount(0);
+    await page.waitForTimeout(500);
+    await expect(page).toHaveURL(/[?&]q=seriouseats\.com/);
+    await expect(page.getByRole("textbox", { name: "Search or paste a link" })).toHaveValue("seriouseats.com");
+    await expect(page.getByRole("button", { name: "Save link" })).toHaveCount(0);
+  });
+
   test("searching from To sort covers every link", async ({ page, seedLinks }) => {
     await seedLinks(LINKS);
     await page.goto("/?view=inbox");
@@ -165,6 +176,12 @@ test.describe("at 375 px", () => {
     await expect(row(page, RUST)).toHaveCount(0);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBe(0);
+    await page.goto("/?q=seriouseats.com");
+    await page.reload();
+    await expect(row(page, CURRY)).toBeVisible();
+    await page.waitForTimeout(500);
+    await expect(page).toHaveURL(/[?&]q=seriouseats\.com/);
+    await expect(field).toHaveValue("seriouseats.com");
     await testInfo.attach("search-375", { body: await page.screenshot({ animations: "disabled" }), contentType: "image/png" });
   });
 });
