@@ -4,6 +4,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 // Imported for its side effect: a bad env fails at boot, not on the first API call.
 import "./config/env";
+// Self-hosted so a page view never tells a font CDN who is using linkables.
+import "@fontsource-variable/familjen-grotesk/wght.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
+import "@fontsource/unbounded/600.css";
 import "./index.css";
 import { queryClient } from "./query-client";
 import { router } from "./router";

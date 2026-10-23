@@ -29,7 +29,7 @@
     --color-primary-soft: var(--primary-soft);
     --color-scrim: var(--scrim);
 
-    --font-sans: "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "Familjen Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
     --font-display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
