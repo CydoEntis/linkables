@@ -47,13 +47,18 @@ export function toSavedLink(
   };
 }
 
-// For a link the caller has just written, so a missing row is a bug, not a 404.
-export async function loadSavedLink(db: Db | Tx, userId: string, linkId: string): Promise<SavedLink> {
+export async function findSavedLink(db: Db | Tx, userId: string, linkId: string): Promise<SavedLink | undefined> {
   const [row] = await db
     .select({ link: savedLink, resource, collections: collectionsOf(userId) })
     .from(savedLink)
     .innerJoin(resource, eq(resource.id, savedLink.resourceId))
     .where(and(eq(savedLink.id, linkId), eq(savedLink.userId, userId)));
-  if (row === undefined) throw new InternalError("saved link vanished after write");
-  return toSavedLink(row.link, row.resource, row.collections);
+  return row && toSavedLink(row.link, row.resource, row.collections);
+}
+
+// For a link the caller has just written, so a missing row is a bug, not a 404.
+export async function loadSavedLink(db: Db | Tx, userId: string, linkId: string): Promise<SavedLink> {
+  const link = await findSavedLink(db, userId, linkId);
+  if (link === undefined) throw new InternalError("saved link vanished after write");
+  return link;
 }

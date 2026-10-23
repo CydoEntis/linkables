@@ -59,6 +59,10 @@ const cases: Record<string, Case> = {
     request: ({ collectionId }) => ({ path: "/api/v1/links", body: { url: A_ONLY_URL, collectionId } }),
     idFields: ["collectionId"],
   },
+  "GET /api/v1/links/:id": {
+    request: ({ linkId }) => ({ path: `/api/v1/links/${linkId}` }),
+    idFields: ["linkId"],
+  },
   "PATCH /api/v1/links/:id": {
     request: ({ linkId }) => ({ path: `/api/v1/links/${linkId}`, body: { note: "changed by b", pinned: false } }),
     idFields: ["linkId"],
