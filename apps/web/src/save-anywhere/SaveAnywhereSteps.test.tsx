@@ -53,7 +53,7 @@ describe("SaveAnywhereSteps", () => {
     render(<SaveAnywhereSteps device="desktop" shortcutUrl={SHORTCUT} />);
     expect(leadCard()).toHaveAccessibleName("On a computer");
     expect(screen.getByRole("link", { name: "Save to linkables" })).toHaveAttribute("href", expect.stringMatching(/^javascript:/));
-    expect(screen.getByText("Or drag any link onto this window.")).toBeVisible();
+    expect(screen.getByText("Or drag any link onto your links list.")).toBeVisible();
   });
 
   it("keeps the other devices behind See other ways", async () => {

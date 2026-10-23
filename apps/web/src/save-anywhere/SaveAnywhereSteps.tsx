@@ -117,7 +117,7 @@ function DesktopSteps() {
       <Step>Drag this button to your bookmarks bar</Step>
       <Note>Then click it on any page to save that page.</Note>
       <BookmarkletPanel />
-      <Note>Or drag any link onto this window.</Note>
+      <Note>Or drag any link onto your links list.</Note>
       <p className="text-[13px] text-subtle-foreground">Chrome extension: coming soon</p>
     </>
   );
