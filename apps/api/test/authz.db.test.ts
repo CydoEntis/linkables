@@ -70,7 +70,7 @@ const cases: Record<string, Case> = {
   "GET /api/v1/collections": { request: () => ({ path: "/api/v1/collections" }) },
   "POST /api/v1/collections": { request: () => ({ path: "/api/v1/collections", body: { name: SHARED_NAME } }) },
   "PATCH /api/v1/collections/:id": {
-    request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}`, body: { name: SHARED_NAME } }),
+    request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}`, body: { name: SHARED_NAME, pinned: true } }),
     idFields: ["collectionId"],
   },
   "DELETE /api/v1/collections/:id": {
