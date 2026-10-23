@@ -19,7 +19,6 @@ Contrast was measured in headless Chrome with the WCAG formula.
 ## Not built yet (each is a later ticket)
 
 - **Sidebar counts** on All links, Pinned and To sort: there is no count endpoint.
-- **Drop on the window to save** (the "Drop to save" overlay).
 - **Get the extension** button: the extension is Phase 2.
 - **Deleting a link**: the swipe Delete tile and the Add to… popover's Delete item come with link details and editing.
 - **First-run swipe hint** ("Swipe a link left for actions") and the first row's nudge.
@@ -29,8 +28,7 @@ Contrast was measured in headless Chrome with the WCAG formula.
 - **⌘K hint** in the bar: hidden until the command palette exists, so it promises nothing that does not work.
 - **"Saved · Add to…" toast** after a new save, and **"Already saved in X"**. A duplicate says "Already saved" and flashes the existing row.
 - **Saving into the open collection**: a link saved on a collection's page lands in To sort, as in the prototype.
-- **iPhone saving from Share**: the shortcut and its setup guide are a later ticket. Until then the sheet tip and empty state on iPhone say "Saving from Share on iPhone is coming soon" instead of the handoff's "tap Share, then linkables".
-- **"Save from anywhere" welcome, drag and drop, and "See other ways"** (save-anywhere prompt screens 1, 5 and 7): later tickets. The bookmark button is reached from the account menu until the welcome screen exists.
+- **Demoted paste box and the "Save from anywhere" header hint** (save-anywhere screen 8): the bar keeps its size, and there is no hint in the header.
 - **New collection on the share card**: the card ticks existing collections only; creating one comes with the collections UI.
 - **App icons are placeholders**: rendered from `assets/linkables-logo.png` (the 3D render) on the `--bg` colour. The designer's flat SVG logo is still pending; the icons are redrawn from it when it lands.
 
@@ -58,6 +56,16 @@ Contrast was measured in headless Chrome with the WCAG formula.
 | Phone collection page | Only the chip names the collection | A compact header with the name, Share and Delete | Phones need a way to rename, share and delete. |
 | Swipe Pin tile | Amber | Grey, white when pinned (like the web Pin button) | Amber is not in the token set. |
 | Swipe tiles | Four (Add to · Share · Pin · Delete) | Three; Delete waits for link deletion (above) | |
+
+## Save from anywhere (save-anywhere screens 1, 3, 5 and 7)
+
+- **A page, not an overlay.** The welcome is the page `/save-from-anywhere`. The first time a device opens the list signed in, it goes there with **Skip** in the header; the device remembers this in local storage, so blocked storage never shows it twice. Afterwards it is reached from the account menu ("Save from anywhere"), the empty All links and To sort lists, and the phone save sheet ("See how to save from anywhere"), with **Back to links** instead of Skip.
+- **Each device's step is a card**, with "See other ways" opening the other two. Android shows **Install linkables** only when the browser offers its install dialog; otherwise it explains ⋮ → Install app. An installed Android app is told "In any app, tap Share, then linkables" instead.
+- **iPhone without a shortcut link** says "The iPhone shortcut is coming soon" and shows no button or guide, until the owner sets `VITE_IOS_SHORTCUT_URL` (`docs/ios-shortcut.md`). With the link, the 3-step guide uses simple drawn phones, and a note says to sign in to linkables in Safari, because the shortcut opens Safari and the home-screen app keeps its own sign-in.
+- **The iPhone tip** in the sheet and empty state reads "Faster: add the Save to linkables shortcut, then in any app tap Share → Save to linkables", with the link to the page beside it.
+- **"Or drag any link onto your links list"** instead of "onto this window": only the list takes drops. A drop on the welcome page would save while the page leaves, and an "Already saved" or error message would be lost.
+- **The empty list links to the page** ("See how to save from anywhere") instead of repeating the device's step inline; the phone keeps its share tip above the link.
+- **Drop to save** covers the main panel beside the sidebar, as drawn, and the whole window on phone widths. Drags that start inside the app (a row, the bookmark button) never show it. Text dropped with no link in it says "There was no link in what you dropped." Only All links, Pinned and To sort take drops: a collection's page saves to To sort (above), so a link dropped there would vanish from the page it was dropped on.
 
 ## Added where the handoff is silent
 
