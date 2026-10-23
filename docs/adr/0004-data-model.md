@@ -29,13 +29,19 @@ Option 3.
   `resource_id`, `original_url` (as submitted; may hold user-specific query
   parameters, so it never goes on `resource`), `title_override`, `note`, `pinned`
   (default false), `saved_at`; unique (`user_id`, `resource_id`).
-- `collection`: `id`, `user_id`, `name` (stored as typed, trimmed), `created_at`;
-  unique (`user_id`, `lower(name)`), so names that differ only in case are the
-  same name for one user (owner decision, 2026-10-22). `lower()` folds case by the
-  database's character type, so this needs a UTF-8 locale (local, CI and Supabase
-  all use en_US.UTF-8); a `C` locale would fold only ASCII.
+- `collection`: `id`, `user_id`, `name` (stored as typed, trimmed), `pinned`
+  (default false), `created_at`, `last_used_at`; unique (`user_id`,
+  `lower(name)`), so names that differ only in case are the same name for one
+  user (owner decision, 2026-10-22). `lower()` folds case by the database's
+  character type, so this needs a UTF-8 locale (local, CI and Supabase all use
+  en_US.UTF-8); a `C` locale would fold only ASCII. `last_used_at` starts at
+  creation and moves to now, in the same transaction, whenever a link is filed
+  into or out of the collection; a request that changes no filing leaves it.
+  Collections list by `pinned` desc, `last_used_at` desc, `id`.
 - `collection_item`: (`collection_id`, `saved_link_id`) as the primary key, both
-  foreign keys `on delete cascade`.
+  foreign keys `on delete cascade`; `created_at` is the filing time, which orders
+  a collection's cover (newest filings first). Rows filed before it existed took
+  their link's `saved_at`.
 - `job`: `id` bigserial, `resource_id` (`on delete cascade`), `run_after`,
   `locked_until`, `attempts`, `last_error`, `created_at` (the metadata fetch queue,
   ADR-0003).
