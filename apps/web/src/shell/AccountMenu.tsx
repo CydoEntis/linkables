@@ -1,10 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Bookmark, LogOut, Share } from "lucide-react";
+import { Bookmark, Download, LogOut, Share } from "lucide-react";
 import { useState } from "react";
 import { cn } from "cn";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useSignedInEmail } from "../auth/auth-state";
 import { signOut } from "../auth/supabase";
+import { useExportLinks } from "../export/use-export-links";
 import { BookmarkletDialog } from "../save/BookmarkletDialog";
 import { SAVE_ANYWHERE_PATH } from "../save-anywhere/SaveAnywherePage";
 
@@ -15,6 +16,7 @@ export function AccountMenu({ showEmail = false, className }: AccountMenuProps) 
   const initial = email.charAt(0).toUpperCase() || "?";
   const [bookmarkletOpen, setBookmarkletOpen] = useState(false);
   const navigate = useNavigate();
+  const exportLinks = useExportLinks();
 
   return (
     <>
@@ -42,6 +44,10 @@ export function AccountMenu({ showEmail = false, className }: AccountMenuProps) 
           <DropdownMenuItem onClick={() => { setBookmarkletOpen(true); }}>
             <Bookmark aria-hidden className="text-muted-foreground" />
             Get the bookmark button
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void exportLinks()}>
+            <Download aria-hidden className="text-muted-foreground" />
+            Export my links
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void signOut()}>
             <LogOut aria-hidden className="text-muted-foreground" />
