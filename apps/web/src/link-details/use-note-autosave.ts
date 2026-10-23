@@ -20,10 +20,12 @@ export function useNoteAutosave(link: SavedLink) {
   const unsaved = useRef<string | null>(null);
   const lastSent = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const invalidRef = useRef(false);
 
   // The inline status covers the open field; a save flushed on close can only speak up in a toast.
   function send(text: string, keepalive = false) {
     const parsed = noteSchema.safeParse(text);
+    invalidRef.current = !parsed.success;
     setInvalid(!parsed.success);
     if (!parsed.success) return;
     lastSent.current = text;
@@ -54,6 +56,7 @@ export function useNoteAutosave(link: SavedLink) {
       window.removeEventListener("pagehide", onPageHide);
       mounted.current = false;
       flushRef.current();
+      if (invalidRef.current) toast.error("Your note has characters that can't be saved, so it wasn't kept.");
     };
   }, []);
 
