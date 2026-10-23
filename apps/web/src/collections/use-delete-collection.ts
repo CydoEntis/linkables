@@ -53,28 +53,36 @@ async function sendDelete(queryClient: QueryClient, collection: Deletable) {
   unhide(collection.id);
 }
 
-// Undo instead of a confirm: the collection disappears at once and the DELETE
-// waits out the Undo window.
-// shortcut: closing the tab inside the Undo window drops the delete.
+// Undo instead of a confirm: the collection disappears at once, and the DELETE
+// goes when its toast closes. Hovering pauses the toast, so a timer of its own
+// could send the DELETE while Undo is still on screen.
+// shortcut: closing the tab while the toast is up drops the delete.
 export function useDeleteCollection() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   return (collection: Deletable) => {
+    let settled = false;
+    const send = () => {
+      if (settled) return;
+      settled = true;
+      void sendDelete(queryClient, collection);
+    };
+    const undo = () => {
+      if (settled) return;
+      settled = true;
+      useCollectionsUi.getState().unhide(collection.id);
+      void queryClient.invalidateQueries({ queryKey: linksKeys.all });
+    };
+
     useCollectionsUi.getState().hide(collection.id);
     forgetInLinks(queryClient, collection.id);
     void navigate({ to: "/" });
-    const timer = setTimeout(() => void sendDelete(queryClient, collection), DELETE_UNDO_MS);
     toast(`Deleted ${displayName(collection.name)}. Its links are still saved.`, {
       duration: DELETE_UNDO_MS,
-      action: {
-        label: "Undo",
-        onClick: () => {
-          clearTimeout(timer);
-          useCollectionsUi.getState().unhide(collection.id);
-          void queryClient.invalidateQueries({ queryKey: linksKeys.all });
-        },
-      },
+      onAutoClose: send,
+      onDismiss: send,
+      action: { label: "Undo", onClick: undo },
     });
   };
 }

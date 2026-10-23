@@ -87,6 +87,37 @@ test.describe("at 1280 px", () => {
     await expect(sidebar(page).getByRole("link", { name: /^Trip to japan/ })).toBeVisible();
   });
 
+  test("Undo still works after the toast is held open past five seconds", async ({ page, request, user }) => {
+    const japan = await createCollection(request, user, "trip to japan");
+    await page.goto(`/c/${japan.id}`);
+    await page.getByRole("button", { name: "Delete collection" }).click();
+    const toast = page.getByText(/^Deleted Trip to japan/);
+    await toast.hover();
+    await page.waitForTimeout(6_000);
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(sidebar(page).getByRole("link", { name: /^Trip to japan/ })).toBeVisible();
+    await page.mouse.move(640, 400);
+    await page.waitForTimeout(1_000);
+    await page.reload();
+    await expect(sidebar(page).getByRole("link", { name: /^Trip to japan/ })).toBeVisible();
+  });
+
+  test("without Undo the collection is deleted once its toast closes", async ({ page, request, user }) => {
+    const japan = await createCollection(request, user, "trip to japan");
+    await page.goto(`/c/${japan.id}`);
+    await page.getByRole("button", { name: "Delete collection" }).click();
+    const deleted = page.waitForResponse(
+      (response) => response.url() === `${API_URL}/api/v1/collections/${japan.id}` && response.request().method() === "DELETE",
+      { timeout: 10_000 },
+    );
+    await page.mouse.move(640, 100);
+    expect((await deleted).status()).toBe(200);
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 1, name: "All links" })).toBeVisible();
+    await expect(sidebar(page).getByRole("link", { name: /^Trip to japan/ })).toHaveCount(0);
+  });
+
+
   test("renaming a collection to a name the user has says so", async ({ page, request, user }) => {
     await createCollection(request, user, "Rust");
     const recipes = await createCollection(request, user, "recipes");
