@@ -46,7 +46,7 @@ function DeviceCard({ device, shortcutUrl, lead = false }: DeviceCardProps) {
       <h2 id={headingId} className="text-[12.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
         {DEVICE_NAMES[device]}
       </h2>
-      {device === "android" ? <AndroidSteps /> : null}
+      {device === "android" ? <AndroidSteps onThisDevice={lead} /> : null}
       {device === "iphone" ? <IphoneSteps shortcutUrl={shortcutUrl} /> : null}
       {device === "desktop" ? <DesktopSteps /> : null}
     </section>
@@ -61,10 +61,13 @@ function Note({ children }: { children: ReactNode }) {
   return <p className="text-[14.5px] leading-normal text-muted-foreground">{children}</p>;
 }
 
-function AndroidSteps() {
-  const install = useInstallPrompt();
+// The lead card is this device's. Only there do the browser's install dialog and
+// installed state describe the Android phone the card is about.
+function AndroidSteps({ onThisDevice }: { onThisDevice: boolean }) {
+  const installPrompt = useInstallPrompt();
+  const install = onThisDevice ? installPrompt : null;
   // Sharing to linkables needs the installed app: only it is a share target.
-  if (window.matchMedia("(display-mode: standalone)").matches) {
+  if (onThisDevice && window.matchMedia("(display-mode: standalone)").matches) {
     return <Step>In any app, tap Share, then linkables.</Step>;
   }
   return (
