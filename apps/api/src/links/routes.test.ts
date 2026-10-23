@@ -80,6 +80,12 @@ function list(query: string, headers: Record<string, string> = a.headers) {
   return createTestApp().request(`/api/v1/links?${query}`, { headers });
 }
 
+const LINK_ID = "3f2b8c1e-9d4a-4b6e-8f1a-2c3d4e5f6a7b";
+
+function token(cursor: object): string {
+  return Buffer.from(JSON.stringify(cursor)).toString("base64url");
+}
+
 describe("GET /links validation", () => {
   it("rejects a malformed cursor", async () => {
     await expectValidationError(await list("cursor=not-a-cursor"));
@@ -92,9 +98,7 @@ describe("GET /links validation", () => {
   });
 
   it("rejects a cursor dated in year 0, which Postgres cannot store", async () => {
-    const cursor = Buffer.from(
-      JSON.stringify({ savedAt: "0000-01-01T00:00:00.000000Z", id: "3f2b8c1e-9d4a-4b6e-8f1a-2c3d4e5f6a7b" }),
-    ).toString("base64url");
+    const cursor = token({ sort: "newest", savedAt: "0000-01-01T00:00:00.000000Z", id: LINK_ID });
 
     await expectValidationError(await list(`cursor=${cursor}`));
   });
@@ -117,6 +121,59 @@ describe("GET /links validation", () => {
 
   it.each(["%00", "a%00b", "a%0Ab", "%1B"])("rejects a search query with control character q=%s", async (q) => {
     await expectValidationError(await list(`q=${q}`));
+  });
+
+  it.each([
+    ["oldest", "newest"],
+    ["newest", "oldest"],
+    ["title", "newest"],
+    ["newest", "title"],
+  ])("rejects a %s cursor used with sort=%s", async (cursorSort, sort) => {
+    const key = cursorSort === "title" ? { title: "apple" } : { savedAt: "2026-01-01T00:00:00.000000Z" };
+    const cursor = token({ sort: cursorSort, ...key, id: LINK_ID });
+
+    await expectValidationError(await list(`sort=${sort}&cursor=${cursor}`));
+  });
+
+  it("rejects a cursor without a sort", async () => {
+    const cursor = token({ savedAt: "2026-01-01T00:00:00.000000Z", id: LINK_ID });
+
+    await expectValidationError(await list(`cursor=${cursor}`));
+  });
+
+  it("rejects a title cursor holding a NUL, which Postgres text cannot hold", async () => {
+    const cursor = token({ sort: "title", title: "a\u0000", id: LINK_ID });
+
+    await expectValidationError(await list(`sort=title&cursor=${cursor}`));
+  });
+
+  it.each(["kind=book", "kind=Video", "pinned=yes", "pinned=1", "pinned=", "sort=relevance", "sort=Title"])(
+    "rejects %s",
+    async (query) => {
+      await expectValidationError(await list(query));
+    },
+  );
+
+  it.each([
+    "from=yesterday",
+    "from=2026-13-01",
+    "to=2026-02-30",
+    "from=2026-3-1",
+    "from=0000-01-01",
+    "to=0000-01-01T00:00:00Z",
+    "from=2026-03-01T12:00:00",
+    "to=1772366400",
+  ])("rejects the date bound %s", async (query) => {
+    await expectValidationError(await list(query));
+  });
+
+  it.each([
+    "from=2026-03-02&to=2026-03-01",
+    "from=2026-03-01T12:00:00Z&to=2026-03-01T11:59:59Z",
+    "from=2026-03-02T00:00:00Z&to=2026-03-01",
+    "from=2026-03-01&to=2026-02-28T23:59:59Z",
+  ])("rejects a range that ends before it starts: %s", async (query) => {
+    await expectValidationError(await list(query));
   });
 
   it("rejects a request without a token", async () => {
