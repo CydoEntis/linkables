@@ -1,4 +1,4 @@
-import type { SavedLink, updateLinkRequestSchema } from "@linkaroo/shared/links";
+import type { SavedLink, updateLinkRequestSchema } from "@linkables/shared/links";
 import { and, eq } from "drizzle-orm";
 import type { z } from "zod";
 import type { Db } from "../db/client";

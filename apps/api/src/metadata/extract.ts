@@ -1,5 +1,5 @@
-import { TITLE_MAX, UNSAFE_TEXT_CHARS } from "@linkaroo/shared/links";
-import { YOUTUBE_HOSTS, YOUTUBE_VIDEO_ID } from "@linkaroo/shared/url";
+import { TITLE_MAX, UNSAFE_TEXT_CHARS } from "@linkables/shared/links";
+import { YOUTUBE_HOSTS, YOUTUBE_VIDEO_ID } from "@linkables/shared/url";
 import { z } from "zod";
 import { type HeadTag, scanHead } from "./head-scanner";
 

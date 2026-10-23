@@ -15,7 +15,7 @@ const PROBLEM_MESSAGES: Record<Problem, string> = {
   "invalid-email": "Enter a valid email address.",
   "rate-limited": "Too many sign-in emails. Wait a bit and try again.",
   offline: "You're offline. Connect to the internet and try again.",
-  "not-allowed": "This email can't sign in to linkaroo.",
+  "not-allowed": "This email can't sign in to linkables.",
   failed: "We couldn't send the link. Try again.",
   expired: "This link has expired. Send a new one.",
   invalid: "This sign-in link didn't work. Send a new one.",
@@ -77,7 +77,7 @@ function EmailForm({ email, onEmailChange, initialProblem, onSent, focusHeading 
 
   return (
     <AuthPage
-      title="Sign in to linkaroo"
+      title="Sign in to linkables"
       description="We'll email you a link that signs you in."
       focusHeading={focusHeading}
     >

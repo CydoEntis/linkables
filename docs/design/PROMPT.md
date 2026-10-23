@@ -6,7 +6,7 @@ with every surface and state, is `docs/design/BRIEF.md`.
 
 ---
 
-Design the web app for **linkaroo**, a personal link library: save any URL in
+Design the web app for **linkables**, a personal link library: save any URL in
 seconds, find it later from any device. It replaces sending yourself links on
 Discord and keeping hundreds of tabs open.
 
@@ -16,7 +16,7 @@ secondary | outline | ghost | destructive | link`, sizes `sm | default | lg |
 icon`; Dialog, Sheet, DropdownMenu, Command, Popover, Checkbox, Input, Textarea,
 Badge, Skeleton, Sonner toasts, Sidebar). Don't invent widgets where shadcn has one.
 
-**Brand:** none exists; create one. The name is playful (kangaroo, pouch, hop).
+**Brand:** none exists; create one. The name is friendly and literal: links you can keep, sort and share.
 Personality: friendly, calm, fast, minimal; never enterprise, no dashboards or
 clutter. Avoid AI-app clichés: purple-blue gradients, cream + serif + terracotta,
 Inter as the only font. Propose a small logo mark, a palette and a font pairing

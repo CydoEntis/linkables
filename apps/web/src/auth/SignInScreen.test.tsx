@@ -54,17 +54,17 @@ describe("SignInScreen", () => {
     renderScreen();
     const user = await submitEmail("owner@example.com");
     await user.click(await screen.findByRole("button", { name: "Use a different email" }));
-    expect(screen.getByRole("heading", { name: "Sign in to linkaroo" })).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "Sign in to linkables" })).toHaveFocus();
   });
 
   it("focuses the sign-in heading when it replaces the signed-in screen", () => {
     renderScreen(null, true);
-    expect(screen.getByRole("heading", { name: "Sign in to linkaroo" })).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "Sign in to linkables" })).toHaveFocus();
   });
 
   it("leaves focus alone on a fresh page load", () => {
     renderScreen();
-    expect(screen.getByRole("heading", { name: "Sign in to linkaroo" })).not.toHaveFocus();
+    expect(screen.getByRole("heading", { name: "Sign in to linkables" })).not.toHaveFocus();
   });
 
   it("goes back to the form with the address kept on Use a different email", async () => {

@@ -1,4 +1,4 @@
-import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkaroo/shared/http";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
 import { exportJWK, generateKeyPair, SignJWT, type JWTPayload } from "jose";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";

@@ -1,4 +1,4 @@
-# linkaroo
+# linkables
 
 Save any URL in seconds, find it later from any device, share it when needed.
 
@@ -26,8 +26,8 @@ pnpm db:migrate                          # applies apps/api/drizzle to MIGRATION
 pnpm verify                              # typecheck + lint + test
 ```
 
-The compose Postgres holds two databases: `linkaroo` for the running app
-(`DATABASE_URL`, `MIGRATION_DATABASE_URL`) and `linkaroo_test` for integration
+The compose Postgres holds two databases: `linkables` for the running app
+(`DATABASE_URL`, `MIGRATION_DATABASE_URL`) and `linkables_test` for integration
 tests (`TEST_DATABASE_URL`), which truncate every table and migrate it
 themselves. Values set in the shell win over `apps/api/.env`. The tests refuse
 a `TEST_DATABASE_URL` whose database name does not end in `_test` or whose

@@ -1,5 +1,5 @@
-import { listCollectionsResponseSchema, collectionSchema } from "@linkaroo/shared/collections";
-import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkaroo/shared/http";
+import { listCollectionsResponseSchema, collectionSchema } from "@linkables/shared/collections";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
 import { z } from "zod";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";

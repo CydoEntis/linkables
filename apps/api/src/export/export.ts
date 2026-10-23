@@ -1,4 +1,4 @@
-import { EXPORT_FORMAT_VERSION, type ExportResponse } from "@linkaroo/shared/export";
+import { EXPORT_FORMAT_VERSION, type ExportResponse } from "@linkables/shared/export";
 import { and, asc, eq } from "drizzle-orm";
 import type { Db, Tx } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";

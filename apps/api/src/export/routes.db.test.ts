@@ -1,5 +1,5 @@
-import { exportResponseSchema } from "@linkaroo/shared/export";
-import { successEnvelopeSchema } from "@linkaroo/shared/http";
+import { exportResponseSchema } from "@linkables/shared/export";
+import { successEnvelopeSchema } from "@linkables/shared/http";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";

@@ -1,4 +1,4 @@
-import { ERROR_CODES } from "@linkaroo/shared/http";
+import { ERROR_CODES } from "@linkables/shared/http";
 import { QueryClient } from "@tanstack/react-query";
 import { ApiError } from "./api/client";
 import { supabase } from "./auth/supabase";

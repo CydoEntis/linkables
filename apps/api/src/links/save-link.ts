@@ -1,4 +1,4 @@
-import type { SaveLinkResponse } from "@linkaroo/shared/links";
+import type { SaveLinkResponse } from "@linkables/shared/links";
 import { and, eq } from "drizzle-orm";
 import { requireCollection } from "../collections/collections";
 import type { Db, Tx } from "../db/client";

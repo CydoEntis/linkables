@@ -1,4 +1,4 @@
-# linkaroo — Plan
+# linkables — Plan
 
 Source of truth for scope and order. Records (ADRs, glossary, tickets) are linked
 here, never copied in. Last checked against code: 2026-10-22, after P1-01 to P1-11, P1-13, P1-17 and
@@ -103,6 +103,9 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 - Tickets: Plane project `linkaroo` (LNK), workspace `ideayard`, project id
   `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 29 tickets, revised 2026-10-21 after the
   second Opus 5.5 audit; P1-23 to P1-25 added 2026-10-22.
+- Product renamed from linkaroo to linkables on 2026-10-22. The Supabase project,
+  the Plane project and the GitHub repo keep the old name until renamed in their
+  own dashboards; their refs and URLs don't change.
 - Supabase project: `linkaroo`, ref `tiechzmcvmdlceyovskg`, region `us-east-1`,
   free plan, created 2026-10-22 (ES256 signing key by default).
 - **Blockers live only in each ticket body's `Blocked by:` line.** Do not create

@@ -4,7 +4,7 @@ import {
   failureEnvelopeSchema,
   metaSchema,
   type ErrorCode,
-} from "@linkaroo/shared/http";
+} from "@linkables/shared/http";
 import { z } from "zod";
 
 export const NETWORK_ERROR = "NETWORK_ERROR";

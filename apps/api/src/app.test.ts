@@ -1,4 +1,4 @@
-import { successEnvelopeSchema } from "@linkaroo/shared/http";
+import { successEnvelopeSchema } from "@linkables/shared/http";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createTestApp } from "../test/app";

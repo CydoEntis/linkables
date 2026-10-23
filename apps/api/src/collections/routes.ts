@@ -1,5 +1,5 @@
-import { collectionRequestSchema } from "@linkaroo/shared/collections";
-import { HTTP_STATUS } from "@linkaroo/shared/http";
+import { collectionRequestSchema } from "@linkables/shared/collections";
+import { HTTP_STATUS } from "@linkables/shared/http";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { z } from "zod";

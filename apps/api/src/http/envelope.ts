@@ -1,4 +1,4 @@
-import { API_VERSION, HTTP_STATUS, type Meta } from "@linkaroo/shared/http";
+import { API_VERSION, HTTP_STATUS, type Meta } from "@linkables/shared/http";
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "./env";

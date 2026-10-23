@@ -1,4 +1,4 @@
-import { ERROR_CODES, HTTP_STATUS, type ErrorCode } from "@linkaroo/shared/http";
+import { ERROR_CODES, HTTP_STATUS, type ErrorCode } from "@linkables/shared/http";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 type Details = Record<string, unknown>;

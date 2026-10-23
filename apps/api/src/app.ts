@@ -1,4 +1,4 @@
-import { API_V1_PREFIX } from "@linkaroo/shared/http";
+import { API_V1_PREFIX } from "@linkables/shared/http";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";

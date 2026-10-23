@@ -1,4 +1,4 @@
-import { isDateOnly, type LinkSort, type LinkView, type ListLinksResponse, type ResourceKind } from "@linkaroo/shared/links";
+import { isDateOnly, type LinkSort, type LinkView, type ListLinksResponse, type ResourceKind } from "@linkables/shared/links";
 import { and, eq, exists, notExists, sql } from "drizzle-orm";
 import { requireCollection } from "../collections/collections";
 import type { Db } from "../db/client";

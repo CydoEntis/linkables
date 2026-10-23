@@ -5,7 +5,7 @@ first designs so it keeps the look you already have.
 
 ---
 
-Keep the linkaroo look you already designed (same colours, fonts, logo, dark and
+Keep the linkables look you already designed (same colours, fonts, logo, dark and
 light). This round is about one thing: **saving a link without copy and paste.**
 Copy-paste is too much work, especially on a phone, and browsers often block apps
 from reading the clipboard. People should save from wherever they already are.
@@ -15,26 +15,26 @@ Design these screens, each in light and dark:
 
 1. **"Save from anywhere" welcome** (first time someone signs in). It shows the
    easiest way to save for the device they're on:
-   - Android phone: "Tap Share in any app, then linkaroo." Plus an "Add linkaroo
+   - Android phone: "Tap Share in any app, then linkables." Plus an "Add linkables
      to your home screen" button (sharing only works after that).
-   - iPhone: "Add the Save to linkaroo shortcut, then tap Share, then Save to
-     linkaroo." Plus an "Add the shortcut" button.
+   - iPhone: "Add the Save to linkables shortcut, then tap Share, then Save to
+     linkables." Plus an "Add the shortcut" button.
    - Desktop: "Drag this button to your bookmarks bar" (a draggable "Save to
-     linkaroo" button), plus "Or drag any link onto this window." Show "Chrome
+     linkables" button), plus "Or drag any link onto this window." Show "Chrome
      extension: coming soon" as a quiet note.
    One clear step per device, friendly, not a wall of text. Skippable.
 
 2. **Android share flow** (phone frames): someone is in YouTube, taps Share, sees
-   linkaroo in the share sheet, taps it, and a small linkaroo screen says
+   linkables in the share sheet, taps it, and a small linkables screen says
    "Saved to Inbox" with the video's title, an Undo, "Add to collection", and it
-   closes itself after a moment. Show the share sheet with the linkaroo icon in it.
+   closes itself after a moment. Show the share sheet with the linkables icon in it.
 
-3. **iPhone shortcut flow:** the share sheet with a "Save to linkaroo" shortcut,
-   then the linkaroo "Saved to Inbox" screen opening in Safari. Also a 3-step
+3. **iPhone shortcut flow:** the share sheet with a "Save to linkables" shortcut,
+   then the linkables "Saved to Inbox" screen opening in Safari. Also a 3-step
    setup guide for adding the shortcut (Get the shortcut → Add shortcut → Use it
    from Share), with simple illustrated steps.
 
-4. **Desktop bookmark button flow:** clicking "Save to linkaroo" in the bookmarks
+4. **Desktop bookmark button flow:** clicking "Save to linkables" in the bookmarks
    bar opens a small popup window: "Saved to Inbox" with title, Undo, "Add to
    collection", closes after a moment.
 

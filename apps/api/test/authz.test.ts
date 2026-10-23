@@ -1,4 +1,4 @@
-import { failureEnvelopeSchema } from "@linkaroo/shared/http";
+import { failureEnvelopeSchema } from "@linkables/shared/http";
 import { inspectRoutes } from "hono/dev";
 import { describe, expect, it } from "vitest";
 import { createTestApp } from "./app";

@@ -1,4 +1,4 @@
-import type { LinkSort } from "@linkaroo/shared/links";
+import type { LinkSort } from "@linkables/shared/links";
 import { z } from "zod";
 import { ValidationError } from "../http/errors";
 

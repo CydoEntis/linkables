@@ -184,7 +184,7 @@ importers:
       '@hono/node-server':
         specifier: 2.1.5
         version: 2.1.5(hono@4.13.13)
-      '@linkaroo/shared':
+      '@linkables/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       drizzle-orm:
@@ -227,7 +227,7 @@ importers:
       '@base-ui/react':
         specifier: 1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@linkaroo/shared':
+      '@linkables/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@supabase/supabase-js':

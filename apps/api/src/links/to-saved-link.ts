@@ -1,4 +1,4 @@
-import type { SavedLink } from "@linkaroo/shared/links";
+import type { SavedLink } from "@linkables/shared/links";
 import type { resource, savedLink } from "../db/schema";
 
 export function toSavedLink(link: typeof savedLink.$inferSelect, res: typeof resource.$inferSelect): SavedLink {
