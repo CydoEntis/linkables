@@ -5,6 +5,7 @@ import { api } from "../api/api";
 import { useLinksUi } from "./links-ui-store";
 import type { LinksView } from "./links-search";
 import { saveProblem } from "./save-link-form";
+import { saveSource } from "./save-source";
 import { linksKeys, type LinksPages } from "./use-links";
 
 export const SAVE_LINK_KEY = ["save-link"] as const;
@@ -22,11 +23,11 @@ export function useSaveLink() {
       api.request("/links", saveLinkResponseSchema, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, source: saveSource(navigator) }),
       }),
     onMutate: async (url) => {
       await queryClient.cancelQueries({ queryKey: linksKeys.all });
-      const placeholder = pendingLink(url);
+      const placeholder = pendingLink(url, saveSource(navigator));
       updateNewSaveLists(queryClient, (data) => withLink(data, placeholder));
       useLinksUi.getState().hop(placeholder.id);
       return { placeholderId: placeholder.id };
@@ -57,7 +58,7 @@ export function useSaveLink() {
   return save;
 }
 
-function pendingLink(url: string): SavedLink {
+function pendingLink(url: string, source: SavedLink["savedFrom"]): SavedLink {
   return {
     id: crypto.randomUUID(),
     originalUrl: url,
@@ -65,7 +66,7 @@ function pendingLink(url: string): SavedLink {
     note: null,
     pinned: false,
     savedAt: new Date().toISOString(),
-    savedFrom: null,
+    savedFrom: source,
     collections: [],
     resource: {
       id: crypto.randomUUID(),
