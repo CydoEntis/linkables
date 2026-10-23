@@ -140,6 +140,23 @@ describe("link details", () => {
     expect(patches()).toEqual([{ note: "read on the train" }]);
   });
 
+  it("saves the note with keepalive when the page is hidden, so closing the tab keeps it", async () => {
+    await renderDetails(savedLink());
+    await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "before closing");
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    act(() => { document.dispatchEvent(new Event("visibilitychange")); });
+    visibility.mockRestore();
+    await waitFor(() => { expect(patches()).toEqual([{ note: "before closing" }]); });
+    expect(request).toHaveBeenCalledWith(expect.any(String), expect.anything(), expect.objectContaining({ method: "PATCH", keepalive: true }));
+  });
+
+  it("saves the note when the page is being unloaded", async () => {
+    await renderDetails(savedLink());
+    await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "on pagehide");
+    act(() => { window.dispatchEvent(new Event("pagehide")); });
+    await waitFor(() => { expect(patches()).toEqual([{ note: "on pagehide" }]); });
+  });
+
   it("refuses a note with characters the API rejects, without sending it", async () => {
     await renderDetails(savedLink());
     await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "a‮b");

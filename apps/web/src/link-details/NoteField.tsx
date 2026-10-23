@@ -29,7 +29,7 @@ export function NoteField({ link }: { link: SavedLink }) {
         aria-invalid={problem || undefined}
         aria-describedby={problem ? problemId : undefined}
         onChange={(event) => { note.change(event.target.value); }}
-        onBlur={note.flush}
+        onBlur={() => { note.flush(); }}
         className="min-h-[84px] resize-y rounded-lg bg-muted px-3.5 py-3 text-sm leading-normal outline-none placeholder:text-subtle-foreground focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring aria-invalid:outline-destructive"
       />
       {problem ? (

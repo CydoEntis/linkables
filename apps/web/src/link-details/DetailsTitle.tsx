@@ -46,7 +46,7 @@ function TitleForm({ link, onDone }: { link: SavedLink; onDone: () => void }) {
       return;
     }
     try {
-      await update.mutateAsync({ titleOverride: title });
+      await update.mutateAsync({ edits: { titleOverride: title } });
       onDone();
     } catch (failure) {
       if (!(failure instanceof Error)) throw failure;
