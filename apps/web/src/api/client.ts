@@ -24,6 +24,10 @@ export class ApiError extends Error {
   }
 }
 
+export function isApiError(error: unknown, code: ApiErrorCode): error is ApiError {
+  return error instanceof ApiError && error.code === code;
+}
+
 export type ApiClientOptions = {
   baseUrl: string;
   getAccessToken: () => Promise<string | null>;
