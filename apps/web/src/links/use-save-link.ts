@@ -15,9 +15,10 @@ const VIEWS_SHOWING_NEW_SAVES: LinksView[] = ["all", "inbox"];
 
 type SaveOptions = { onInvalid?: (message: string) => void };
 
-export function useSaveLink() {
+// The save with its optimistic list updates; callers decide how to show the result.
+export function useSaveLinkMutation() {
   const queryClient = useQueryClient();
-  const mutation = useMutation({
+  return useMutation({
     mutationKey: SAVE_LINK_KEY,
     mutationFn: (url: string) =>
       api.request("/links", saveLinkResponseSchema, {
@@ -34,19 +35,24 @@ export function useSaveLink() {
     },
     onSuccess: ({ duplicate, ...saved }, _url, context) => {
       updateNewSaveLists(queryClient, (data) => withLink(withoutLink(data, context.placeholderId), duplicate ? null : saved));
-      if (duplicate) {
-        toast("Already saved");
-        useLinksUi.getState().flash(saved.id);
-      }
     },
     onError: (_error, _url, context) => {
       if (context) updateNewSaveLists(queryClient, (data) => withoutLink(data, context.placeholderId));
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: linksKeys.all }),
   });
+}
+
+export function useSaveLink() {
+  const mutation = useSaveLinkMutation();
 
   function save(url: string, { onInvalid }: SaveOptions = {}) {
     mutation.mutate(url, {
+      onSuccess: ({ duplicate, id }) => {
+        if (!duplicate) return;
+        toast("Already saved");
+        useLinksUi.getState().flash(id);
+      },
       onError: (error) => {
         const problem = saveProblem(error);
         if (problem.kind === "inline" && onInvalid) onInvalid(problem.message);
