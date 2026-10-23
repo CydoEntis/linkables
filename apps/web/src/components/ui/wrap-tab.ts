@@ -1,10 +1,10 @@
 import type { KeyboardEvent } from "react";
 
-const TABBABLE = 'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])';
+const TABBABLE = "a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]";
 
 function tabbables(container: HTMLElement): HTMLElement[] {
   return [...container.querySelectorAll<HTMLElement>(TABBABLE)].filter(
-    (element) => !element.hasAttribute("data-base-ui-focus-guard") && element.checkVisibility(),
+    (element) => element.tabIndex >= 0 && !element.hasAttribute("data-base-ui-focus-guard") && element.checkVisibility(),
   );
 }
 

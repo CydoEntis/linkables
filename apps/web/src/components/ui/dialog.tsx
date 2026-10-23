@@ -1,12 +1,13 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { X } from "lucide-react"
 import { cn } from "cn"
+import { wrapTab } from "./wrap-tab"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-function DialogContent({ className, children, ...props }: DialogPrimitive.Popup.Props) {
+function DialogContent({ className, children, onKeyDown, ...props }: DialogPrimitive.Popup.Props) {
   return (
     <DialogPrimitive.Portal data-slot="dialog-portal">
       <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
@@ -16,6 +17,10 @@ function DialogContent({ className, children, ...props }: DialogPrimitive.Popup.
           "fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-32px)] max-w-[500px] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-[20px] bg-popover p-6 text-popover-foreground shadow-float outline-none transition-[opacity,scale] duration-200 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0",
           className
         )}
+        onKeyDown={(event) => {
+          wrapTab(event)
+          onKeyDown?.(event)
+        }}
         {...props}
       >
         {children}
