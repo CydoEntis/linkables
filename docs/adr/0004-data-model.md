@@ -31,7 +31,9 @@ Option 3.
   (default false), `saved_at`; unique (`user_id`, `resource_id`).
 - `collection`: `id`, `user_id`, `name` (stored as typed, trimmed), `created_at`;
   unique (`user_id`, `lower(name)`), so names that differ only in case are the
-  same name for one user (owner decision, 2026-10-22).
+  same name for one user (owner decision, 2026-10-22). `lower()` folds case by the
+  database's character type, so this needs a UTF-8 locale (local, CI and Supabase
+  all use en_US.UTF-8); a `C` locale would fold only ASCII.
 - `collection_item`: (`collection_id`, `saved_link_id`) as the primary key, both
   foreign keys `on delete cascade`.
 - `job`: `id` bigserial, `resource_id` (`on delete cascade`), `run_after`,
