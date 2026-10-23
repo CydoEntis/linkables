@@ -31,6 +31,8 @@ export function isApiError(error: unknown, code: ApiErrorCode): error is ApiErro
 export type ApiClientOptions = {
   baseUrl: string;
   getAccessToken: () => Promise<string | null>;
+  // The token already held in memory, if it is still valid; see send().
+  peekAccessToken?: () => string | null;
   onUnauthenticated: () => Promise<void>;
   fetch?: typeof fetch;
 };
@@ -44,7 +46,10 @@ export function createApiClient(options: ApiClientOptions) {
   async function send(path: string, init: RequestInit): Promise<Response> {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
-    const token = await options.getAccessToken();
+    // A keepalive request is sent as the page goes away, which leaves no time to
+    // await anything first: it uses the token already held when there is one.
+    const held = init.keepalive === true ? (options.peekAccessToken?.() ?? null) : null;
+    const token = held ?? (await options.getAccessToken());
     if (token) headers.set("Authorization", `Bearer ${token}`);
     try {
       return await doFetch(root + path, { ...init, headers });
