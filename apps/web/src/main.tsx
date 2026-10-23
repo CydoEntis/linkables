@@ -6,12 +6,9 @@ import { App } from "./App";
 import "./config/env";
 import "./index.css";
 import { queryClient } from "./query-client";
-import { followSystemTheme } from "./theme/system-theme";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");
-
-followSystemTheme();
 
 createRoot(root).render(
   <StrictMode>
