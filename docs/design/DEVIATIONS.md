@@ -33,7 +33,7 @@ Contrast was measured in headless Chrome with the WCAG formula.
 
 - **Account menu** (avatar, email, Sign out) at the foot of the sidebar and in the phone header. The handoff draws the avatar with no menu; the brief (5.2) asks for an account menu.
 - **Load more** button at the end of the list (brief 5.4 left infinite scroll vs. Load more open).
-- **Pending rows stop polling** two minutes after the newest save (2 s, then 5 s, then 15 s); a row still pending after that keeps "Getting details…" until the list next loads.
+- **Pending rows stop polling** two minutes after this device first sees the newest pending row (2 s, then 5 s, then 15 s); a row still pending after that keeps "Getting details…" until the list next loads.
 - **Phone save button** stays enabled while grey; pressing it with an invalid link shows the reason instead of doing nothing.
 - **Fonts are self-hosted** (Fontsource packages) instead of loaded from Google Fonts, so a page view does not tell a font CDN who uses linkables.
 - **Sign-in screens** keep their earlier look; the handoff does not cover them.
