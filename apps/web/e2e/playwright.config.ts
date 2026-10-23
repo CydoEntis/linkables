@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 import { testJwks } from "../../api/test/auth/tokens";
 import { testDatabaseUrl } from "../../api/test/db-setup";
-import { API_URL, SUPABASE_URL, WEB_URL } from "./env";
+import { API_URL, IOS_SHORTCUT_URL, SUPABASE_URL, WEB_URL } from "./env";
 
 const databaseUrl = testDatabaseUrl();
 const ci = Boolean(process.env.CI);
@@ -48,6 +48,7 @@ export default defineConfig({
         VITE_SUPABASE_ANON_KEY: "e2e-anon-key",
         VITE_API_URL: API_URL,
         VITE_AUTH_REDIRECT_URL: `${WEB_URL}/`,
+        VITE_IOS_SHORTCUT_URL: IOS_SHORTCUT_URL,
       },
     },
   ],

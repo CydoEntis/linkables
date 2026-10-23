@@ -7,6 +7,7 @@ import { DEFAULT_LINKS_SEARCH, linksSearchSchema } from "./links/links-search";
 import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
+import { SAVE_ANYWHERE_PATH, SaveAnywherePage, saveAnywhereSearchSchema } from "./save-anywhere/SaveAnywherePage";
 import { NotFoundPage } from "./shell/NotFoundPage";
 
 const rootRoute = createRootRoute({ component: AuthGate, notFoundComponent: NotFoundPage });
@@ -39,8 +40,15 @@ const saveRoute = createRoute({
   component: SavePage,
 });
 
+const saveAnywhereRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: SAVE_ANYWHERE_PATH,
+  validateSearch: saveAnywhereSearchSchema,
+  component: SaveAnywherePage,
+});
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute]),
 });
 
 declare module "@tanstack/react-router" {

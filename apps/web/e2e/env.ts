@@ -6,3 +6,6 @@ export const WEB_URL = `http://127.0.0.1:${process.env.E2E_WEB_PORT ?? "5260"}`;
 // Never contacted: the fixture blocks this origin. It only has to match between
 // the web build (storage key), the API (token issuer) and the minted tokens.
 export const SUPABASE_URL = "http://dummy.test";
+
+// Never opened by the suite; only checked as the "Add the shortcut" link.
+export const IOS_SHORTCUT_URL = "https://www.icloud.com/shortcuts/e2e-shortcut";

@@ -11,25 +11,34 @@ const DRAG_HINT = "Drag it to your bookmarks bar, or use Copy the link.";
 const PASTE_HINT = "Now add a bookmark and paste this as its address.";
 
 export function BookmarkletDialog({ open, onOpenChange }: BookmarkletDialogProps) {
-  const href = buildBookmarklet(window.location.origin);
-  const [hint, setHint] = useState("");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogTitle>Get the bookmark button</DialogTitle>
         <DialogDescription>Drag this to your bookmarks bar</DialogDescription>
-        <div className="flex justify-center rounded-2xl bg-muted py-7">
-          <BookmarkletButton href={href} onClick={() => { setHint(DRAG_HINT); }} />
-        </div>
-        <div className="flex flex-col gap-2">
-          <CopyLink href={href} onCopied={() => { setHint(PASTE_HINT); }} />
-          {/* Mounted before it has text: a live region added together with its text is often not read out. */}
-          <p role="status" className="text-center text-[13px] text-muted-foreground">
-            {hint}
-          </p>
-        </div>
+        <BookmarkletPanel />
       </DialogContent>
     </Dialog>
+  );
+}
+
+// The draggable button with its copy fallback, also shown on Save from anywhere.
+export function BookmarkletPanel() {
+  const href = buildBookmarklet(window.location.origin);
+  const [hint, setHint] = useState("");
+  return (
+    <>
+      <div className="flex justify-center rounded-2xl bg-muted py-7">
+        <BookmarkletButton href={href} onClick={() => { setHint(DRAG_HINT); }} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <CopyLink href={href} onCopied={() => { setHint(PASTE_HINT); }} />
+        {/* Mounted before it has text: a live region added together with its text is often not read out. */}
+        <p role="status" className="text-center text-[13px] text-muted-foreground">
+          {hint}
+        </p>
+      </div>
+    </>
   );
 }
 
