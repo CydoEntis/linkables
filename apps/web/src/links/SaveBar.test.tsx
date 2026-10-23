@@ -33,7 +33,7 @@ function renderBar() {
     <QueryClientProvider client={queryClient}>
       <SaveBar />
       <SaveStatus />
-      <LinkList view="all" />
+      <LinkList scope={{ view: "all" }} />
       <Toaster />
     </QueryClientProvider>,
   );
