@@ -121,6 +121,20 @@ test.describe("at 1280 px", () => {
     await expect(panel(page).getByRole("textbox", { name: "Note" })).toHaveValue("Chapter 4 on ownership");
   });
 
+  // The first save to a link warms the browser's CORS preflight for it; a keepalive
+  // request that still needs a preflight is dropped as the page unloads.
+  test("a note typed just before a reload is kept", async ({ page, seedLinks }) => {
+    await seedLinks([RUST]);
+    await page.goto("/");
+    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    const note = panel(page).getByRole("textbox", { name: "Note" });
+    await note.fill("first thought");
+    await expect(panel(page).getByText("Saved", { exact: true })).toBeVisible();
+    await note.fill("first thought, then reloaded");
+    await page.reload();
+    await expect(panel(page).getByRole("textbox", { name: "Note" })).toHaveValue("first thought, then reloaded");
+  });
+
   test("delete offers Undo, and deletes for real once the toast closes", async ({ page, seedLinks }) => {
     await seedLinks([RUST]);
     await page.goto("/");

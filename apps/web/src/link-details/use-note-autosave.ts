@@ -1,7 +1,8 @@
 import { updateLinkRequestSchema, type SavedLink } from "@linkables/shared/links";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useUpdateLink } from "./use-update-link";
+import { saveAsPageLeaves, useUpdateLink } from "./use-update-link";
 
 export const NOTE_SAVE_DELAY_MS = 500;
 
@@ -11,10 +12,13 @@ const noteSchema = updateLinkRequestSchema.shape.note.unwrap().unwrap();
 
 // The note saves itself shortly after typing stops, and at once when the field
 // loses focus, the details close, or the page is hidden or unloaded.
-// shortcut: a save that waits behind an earlier one still in flight, or that
-// needs a token refresh, may not leave a closing page in time.
+// shortcut: a save as the page leaves can still be lost when no unexpired token
+// is in memory (it must wait for one), or when the browser holds no CORS
+// preflight for the link yet: Chrome drops a keepalive request that needs one.
+// The link's first save, and any save in the API's preflight max-age, warm it.
 export function useNoteAutosave(link: SavedLink) {
   const update = useUpdateLink(link.id);
+  const queryClient = useQueryClient();
   const [value, setValue] = useState(link.note ?? "");
   const [invalid, setInvalid] = useState(false);
   const unsaved = useRef<string | null>(null);
@@ -29,7 +33,9 @@ export function useNoteAutosave(link: SavedLink) {
     setInvalid(!parsed.success);
     if (!parsed.success) return;
     lastSent.current = text;
-    void update.mutateAsync({ edits: { note: parsed.data }, keepalive }).catch((error: unknown) => {
+    const edits = { note: parsed.data };
+    const saved = keepalive ? saveAsPageLeaves(queryClient, link.id, edits) : update.mutateAsync({ edits });
+    void saved.catch((error: unknown) => {
       if (!(error instanceof Error)) throw error;
       if (!mounted.current) toast.error("Couldn't save your note. Try again.");
     });

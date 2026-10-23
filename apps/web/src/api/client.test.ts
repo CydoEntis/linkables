@@ -110,3 +110,32 @@ describe("api client", () => {
     await expect(api.request("/me", meSchema)).rejects.toMatchObject({ code: "INTERNAL" });
   });
 });
+
+describe("keepalive requests", () => {
+  it("start the fetch before any await when a token is held, so a closing page still sends them", () => {
+    const fetchSpy = vi.fn<typeof fetch>(okMe);
+    const api = createApiClient({
+      baseUrl: API_URL,
+      getAccessToken: () => Promise.resolve("slow-token"),
+      peekAccessToken: () => "held-token",
+      onUnauthenticated: () => Promise.resolve(),
+      fetch: fetchSpy,
+    });
+    void api.request("/me", meSchema, { method: "PATCH", keepalive: true });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(new Headers(fetchSpy.mock.calls[0]?.[1]?.headers).get("Authorization")).toBe("Bearer held-token");
+  });
+
+  it("wait for the token as usual when none is held", async () => {
+    const fetchSpy = vi.fn<typeof fetch>(okMe);
+    const api = createApiClient({
+      baseUrl: API_URL,
+      getAccessToken: () => Promise.resolve("fresh-token"),
+      peekAccessToken: () => null,
+      onUnauthenticated: () => Promise.resolve(),
+      fetch: fetchSpy,
+    });
+    await api.request("/me", meSchema, { keepalive: true });
+    expect(new Headers(fetchSpy.mock.calls[0]?.[1]?.headers).get("Authorization")).toBe("Bearer fresh-token");
+  });
+});

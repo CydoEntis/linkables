@@ -171,8 +171,10 @@ describe("link details", () => {
   it("saves the note when the page is being unloaded", async () => {
     await renderDetails(savedLink());
     await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "on pagehide");
-    act(() => { window.dispatchEvent(new Event("pagehide")); });
-    await waitFor(() => { expect(patches()).toEqual([{ note: "on pagehide" }]); });
+    // No await between the event and the check: a reload gives the page no microtasks to spare.
+    window.dispatchEvent(new Event("pagehide"));
+    expect(patches()).toEqual([{ note: "on pagehide" }]);
+    expect(request).toHaveBeenCalledWith(expect.any(String), expect.anything(), expect.objectContaining({ keepalive: true }));
   });
 
   it("says so when an unsaveable note is dropped as the details close", async () => {
