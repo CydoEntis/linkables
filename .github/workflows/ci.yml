@@ -83,3 +83,26 @@ jobs:
             apps/web/e2e/playwright-report/
             apps/web/e2e/test-results/
           retention-days: 7
+
+  image:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: linkables_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -f apps/api/Dockerfile -t linkables-api:ci .
+      - run: deploy/smoke-test.sh linkables-api:ci
+        env:
+          SMOKE_DATABASE_URL: postgres://postgres:postgres@localhost:5432/linkables_smoke
