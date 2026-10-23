@@ -27,7 +27,7 @@ export function useSaveLinkMutation() {
         body: JSON.stringify({ url, source: saveSource(navigator) }),
       }),
     onMutate: async (url) => {
-      await queryClient.cancelQueries({ queryKey: linksKeys.all });
+      await queryClient.cancelQueries({ queryKey: linksKeys.lists });
       const placeholder = pendingLink(url, saveSource(navigator));
       updateNewSaveLists(queryClient, (data) => withLink(data, placeholder));
       useLinksUi.getState().hop(placeholder.id);

@@ -101,6 +101,39 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("link", { name: /^The oldest link/ })).toHaveCount(0);
   });
 
+  test("saving a link while the details are still loading does not cut their read short", async ({ page, seedLinks }) => {
+    const oldest = { url: "https://example.com/oldest", resource: { title: "The oldest link", fetchStatus: "fetched" as const } };
+    const newer = Array.from({ length: LIST_LIMIT_DEFAULT }, (_, index) => ({ url: `https://example.com/newer-${String(index)}` }));
+    const [target] = await seedLinks([oldest, ...newer]);
+    const detailUrl = `${API_URL}/api/v1/links/${target?.id ?? ""}`;
+    let release: () => void = () => undefined;
+    let readStarted: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const reading = new Promise<void>((resolve) => { readStarted = resolve; });
+    await page.route(detailUrl, async (route) => {
+      if (route.request().method() === "GET") {
+        readStarted();
+        await held;
+      }
+      await route.fallback();
+    });
+    const aborted: string[] = [];
+    page.on("requestfailed", (request) => { if (request.url() === detailUrl) aborted.push(request.failure()?.errorText ?? ""); });
+
+    await page.goto(`/?link=${target?.id ?? ""}`);
+    await reading;
+    await expect(panel(page).getByRole("status")).toHaveText("Loading…");
+    const bar = page.getByRole("textbox", { name: "Search or paste a link" });
+    await bar.fill("https://example.com/saved-meanwhile");
+    const saved = page.waitForResponse((response) => response.url() === `${API_URL}/api/v1/links` && response.request().method() === "POST");
+    await bar.press("Enter");
+    expect((await saved).status()).toBe(201);
+
+    release();
+    await expect(panel(page).getByRole("heading", { name: /The oldest link/ })).toBeVisible();
+    expect(aborted).toEqual([]);
+  });
+
   test("pinning from the details pins the link", async ({ page, seedLinks }) => {
     await seedLinks([RUST]);
     await page.goto("/");
