@@ -138,4 +138,22 @@ describe("LinkList", () => {
     expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
     expect(request).toHaveBeenCalledWith("/links?sort=title", expect.anything(), expect.anything());
   });
+
+  it("announces the count from one status region, also when nothing matches", async () => {
+    request.mockImplementation((path) => Promise.resolve(path.includes("zebra") ? page([]) : page(["Rust"])));
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const list = (q: string) => (
+      <QueryClientProvider client={queryClient}>
+        <TestRouter>
+          <LinkList scope={{ view: "all" }} filters={{ q }} />
+        </TestRouter>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(list("rust"));
+    const status = await screen.findByText("1 match");
+    rerender(list("zebra"));
+    await screen.findByText("No links match “zebra”");
+    expect(status).toBeInTheDocument();
+    expect(status).toHaveTextContent("0 matches");
+  });
 });

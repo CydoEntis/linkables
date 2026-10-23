@@ -1,5 +1,5 @@
 import type { SavedLink } from "@linkables/shared/links";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { ApiError, NETWORK_ERROR } from "../api/client";
@@ -25,9 +25,16 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const loaded = useHeldRow(query.data?.pages.flatMap((page) => page.items) ?? []);
 
   const narrowed = isNarrowed(filters);
-  if (query.isPending) return <LinkListSkeleton />;
+  // One status region in every state, so a change to "0 matches" is announced too.
+  const withStatus = (body: ReactNode, count: string | null = null) => (
+    <>
+      <ResultCount text={count} />
+      {body}
+    </>
+  );
+  if (query.isPending) return withStatus(<LinkListSkeleton />);
   if (query.isError && query.data === undefined) {
-    return <LoadProblem error={query.error} onRetry={() => void query.refetch()} />;
+    return withStatus(<LoadProblem error={query.error} onRetry={() => void query.refetch()} />);
   }
 
   // A link filed out of this list on this device goes at once (after its leave
@@ -35,14 +42,9 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const belongs = (link: SavedLink) => belongsIn(scope, link, filters);
   const stays = (link: SavedLink) => belongs(link) || link.id === heldId;
   const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
-  const status = narrowed ? <ResultCount count={links.length} more={query.hasNextPage} searching={query.isPlaceholderData} /> : null;
+  const count = narrowed ? countLabel(links.length, query.hasNextPage, query.isPlaceholderData) : null;
   if (links.length === 0) {
-    return (
-      <>
-        {status}
-        {narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : <LinksEmpty scope={scope} />}
-      </>
-    );
+    return withStatus(narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : <LinksEmpty scope={scope} />, count);
   }
 
   const renderRow = (link: SavedLink) => (
@@ -58,9 +60,8 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
       />
     </li>
   );
-  return (
+  return withStatus(
     <div className="flex flex-col gap-2 md:gap-[22px]">
-      {status}
       {listGroups(links, now, scope, filters).map((group) =>
         group.label === null ? (
           <ul key="results">{group.links.map(renderRow)}</ul>
@@ -87,7 +88,8 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
           {query.isFetchingNextPage ? "Loading…" : query.isFetchNextPageError ? "Couldn't load more. Try again" : "Load more"}
         </Button>
       ) : null}
-    </div>
+    </div>,
+    count,
   );
 }
 
@@ -100,11 +102,19 @@ function listGroups(links: SavedLink[], now: number, scope: ListScope, filters: 
 }
 
 // A loaded count: past the first page the total is unknown, so it reads "50+".
-function ResultCount({ count, more, searching }: { count: number; more: boolean; searching: boolean }) {
-  const total = `${String(count)}${more ? "+" : ""}`;
+function countLabel(count: number, more: boolean, searching: boolean): string {
+  if (searching) return "Searching…";
+  return `${String(count)}${more ? "+" : ""} ${count === 1 && !more ? "match" : "matches"}`;
+}
+
+// "0 matches" is read out but not shown: the no-matches message says it on screen.
+function ResultCount({ text }: { text: string | null }) {
   return (
-    <p role="status" className={cn("px-3 text-[13.5px] text-muted-foreground md:px-3.5", count === 0 && !searching && "sr-only")}>
-      {searching ? "Searching…" : `${total} ${count === 1 && !more ? "match" : "matches"}`}
+    <p
+      role="status"
+      className={cn("px-3 text-[13.5px] text-muted-foreground md:mb-[22px] md:px-3.5 max-md:mb-2", (text === null || text.startsWith("0 ")) && "sr-only")}
+    >
+      {text}
     </p>
   );
 }
