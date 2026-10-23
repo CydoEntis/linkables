@@ -32,6 +32,52 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("link", { name: /^Tokyo night walk/ })).toBeFocused();
   });
 
+  test("a row found by a search opens its details with the search kept, and Back keeps it too", async ({ page, seedLinks }) => {
+    await seedLinks([RUST, TOKYO]);
+    await page.goto("/?q=rust");
+    await expect(page.getByRole("link", { name: /^Tokyo night walk/ })).toHaveCount(0);
+    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    await expect(panel(page)).toBeVisible();
+    await expect(page).toHaveURL(/[?&]q=rust/);
+    await expect(page).toHaveURL(/[?&]link=/);
+    await expect(page.getByRole("textbox", { name: "Search or paste a link" })).toHaveValue("rust");
+    await panel(page).getByRole("button", { name: "Back" }).click();
+    await expect(panel(page)).toHaveCount(0);
+    await expect(page).toHaveURL(/[?&]q=rust/);
+  });
+
+  test("typing in the details never triggers the list's shortcuts", async ({ page, seedLinks }) => {
+    await seedLinks([RUST]);
+    await page.goto("/");
+    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    const note = panel(page).getByRole("textbox", { name: "Note" });
+    await note.click();
+    await page.keyboard.type("a/b?");
+    await page.keyboard.press("Control+k");
+    await expect(note).toHaveValue("a/b?");
+    await expect(note).toBeFocused();
+    await expect(page.getByRole("dialog", { name: "Command palette" })).toHaveCount(0);
+
+    await panel(page).getByRole("button", { name: /Rust by Example/ }).click();
+    const title = panel(page).getByRole("textbox", { name: "Title" });
+    await title.fill("");
+    await page.keyboard.press("Control+k");
+    await page.keyboard.type("/?");
+    await expect(title).toHaveValue("/?");
+    await expect(page.getByRole("dialog", { name: "Command palette" })).toHaveCount(0);
+  });
+
+  test("Esc in the search bar clears the search without closing the details", async ({ page, seedLinks }) => {
+    await seedLinks([RUST]);
+    await page.goto("/?q=rust");
+    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    const bar = page.getByRole("textbox", { name: "Search or paste a link" });
+    await bar.click();
+    await page.keyboard.press("Escape");
+    await expect(bar).toHaveValue("");
+    await expect(panel(page)).toBeVisible();
+  });
+
   test("pinning from the details pins the link", async ({ page, seedLinks }) => {
     await seedLinks([RUST]);
     await page.goto("/");
