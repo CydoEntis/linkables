@@ -1,10 +1,11 @@
 import { useEffect, useEffectEvent } from "react";
+import { isVisible } from "@/components/ui/is-visible";
 import { isEditable } from "../links/use-paste-to-save";
 
 // The bar on wide screens, the phone field on narrow ones: whichever is showing.
 export function focusSearchField(): HTMLInputElement | undefined {
   const fields = document.querySelectorAll<HTMLInputElement>("[data-search-field]");
-  const field = [...fields].find((candidate) => candidate.checkVisibility());
+  const field = [...fields].find(isVisible);
   field?.focus();
   return field;
 }
