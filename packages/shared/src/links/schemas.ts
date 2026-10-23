@@ -101,7 +101,9 @@ export const listLinksQuerySchema = z
     path: ["collectionId"],
   });
 
-// cursor: pass back to get the next page; null on the last page.
+// cursor: pass back to get the next page; null on the last page. A title-sort
+// cursor is rejected (VALIDATION) once its link is renamed or deleted, so after an
+// edit, or when a cursor is rejected, the client restarts from the first page.
 export const listLinksResponseSchema = z.strictObject({
   items: z.array(savedLinkSchema),
   cursor: z.string().nullable(),

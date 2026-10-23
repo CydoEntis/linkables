@@ -1,7 +1,7 @@
 import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkaroo/shared/http";
 import { listLinksResponseSchema, type ResourceKind } from "@linkaroo/shared/links";
 import { randomUUID } from "node:crypto";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
@@ -73,6 +73,15 @@ async function walk(user: TestUser, query: string) {
     cursor = page.cursor;
   } while (cursor !== null);
   return ids;
+}
+
+async function rename(user: TestUser, linkId: string | undefined, titleOverride: string) {
+  const res = await app.request(`/api/v1/links/${String(linkId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...user.headers },
+    body: JSON.stringify({ titleOverride }),
+  });
+  expect(res.status).toBe(200);
 }
 
 function titlePage(user: TestUser, cursor: string) {
@@ -284,8 +293,36 @@ describe("GET /links sort", () => {
 
     const decoded = Buffer.from(String(cursor), "base64url").toString("utf8");
 
-    expect(JSON.parse(decoded)).toEqual({ sort: "title", id: items[0]?.id });
+    expect(JSON.parse(decoded)).toMatchObject({ sort: "title", id: items[0]?.id });
+    expect(Object.keys(JSON.parse(decoded) as object).toSorted()).toEqual(["id", "k", "sort"]);
     expect(decoded).not.toMatch(/aardvark|secret/i);
+  });
+
+  it.each(["zz", "0"])("rejects a title cursor once its link is renamed to %s", async (title) => {
+    const ids = await seed(a, ["a", "b", "c", "d", "e"].map((t) => ({ title: t })));
+    const { cursor } = await list(a, "sort=title&limit=3");
+    await rename(a, ids[2], title);
+
+    await expectInvalidCursor(await titlePage(a, `${String(cursor)}&limit=3`));
+  });
+
+  it("rejects a title cursor once its URL-sorted link gets a fetched title", async () => {
+    await seed(a, [{ title: "a" }, { url: "https://b.example/" }, { title: "z" }]);
+    const { cursor } = await list(a, "sort=title&limit=2");
+    await db.update(resource).set({ title: "zz" }).where(eq(resource.canonicalUrl, "https://b.example/"));
+
+    await expectInvalidCursor(await titlePage(a, `${String(cursor)}&limit=2`));
+  });
+
+  it("keeps a title cursor valid when another link is renamed", async () => {
+    const ids = await seed(a, ["a", "b", "c", "d", "e"].map((t) => ({ title: t })));
+    const { cursor } = await list(a, "sort=title&limit=3");
+    await rename(a, ids[4], "0");
+
+    const res = await titlePage(a, `${String(cursor)}&limit=3`);
+
+    expect(res.status).toBe(200);
+    expect(responseSchema.parse(await res.json()).data.items.map((item) => item.id)).toEqual([ids[3]]);
   });
 
   it("rejects a title cursor whose link was deleted mid-walk", async () => {
