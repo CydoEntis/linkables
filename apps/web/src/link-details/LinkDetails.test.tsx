@@ -48,6 +48,18 @@ function patches() {
 
 const details = () => screen.getByRole("dialog", { name: "Link details" });
 
+function hidePage() {
+  const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+  act(() => { document.dispatchEvent(new Event("visibilitychange")); });
+  visibility.mockRestore();
+}
+
+function failPatches() {
+  request.mockImplementation((path, _schema, init) =>
+    init?.method === "PATCH" ? Promise.reject(new Error("offline")) : Promise.resolve(path === "/collections" ? { items: [] } : null),
+  );
+}
+
 describe("link details", () => {
   it("shows the link, where it is filed, and the summary still to come", async () => {
     await renderDetails(savedLink({ originalUrl: "https://www.youtube.com/watch?v=1", savedFrom: "iphone", resource: { title: "Tokyo night walk" } }));
@@ -158,14 +170,35 @@ describe("link details", () => {
     expect(patches()).toEqual([{ note: "read on the train" }]);
   });
 
-  it("saves the note with keepalive when the page is hidden, so closing the tab keeps it", async () => {
+  it("saves the note through the usual queue when the page is hidden, since the page stays alive", async () => {
     await renderDetails(savedLink());
-    await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "before closing");
-    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
-    act(() => { document.dispatchEvent(new Event("visibilitychange")); });
-    visibility.mockRestore();
-    await waitFor(() => { expect(patches()).toEqual([{ note: "before closing" }]); });
-    expect(request).toHaveBeenCalledWith(expect.any(String), expect.anything(), expect.objectContaining({ method: "PATCH", keepalive: true }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "before switching");
+    hidePage();
+    await waitFor(() => { expect(patches()).toEqual([{ note: "before switching" }]); });
+    expect(request).not.toHaveBeenCalledWith(expect.any(String), expect.anything(), expect.objectContaining({ keepalive: true }));
+  });
+
+  it("says so inline, with Try again, when the save on hiding the page fails", async () => {
+    failPatches();
+    await renderDetails(savedLink());
+    await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "offline note");
+    hidePage();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't save your note.");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
+  });
+
+  it("shows the failure, and keeps the note to resend, when a save on pagehide fails but the page stays", async () => {
+    failPatches();
+    await renderDetails(savedLink());
+    const note = screen.getByRole("textbox", { name: "Note" });
+    await userEvent.type(note, "bfcache note");
+    act(() => { window.dispatchEvent(new Event("pagehide")); });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't save your note.");
+    request.mockClear();
+    request.mockImplementation(() => Promise.resolve(null));
+    act(() => { note.blur(); });
+    await waitFor(() => { expect(patches()).toEqual([{ note: "bfcache note" }]); });
   });
 
   it("saves the note when the page is being unloaded", async () => {

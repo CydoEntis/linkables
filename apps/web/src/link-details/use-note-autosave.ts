@@ -11,7 +11,9 @@ export type NoteStatus = "idle" | "saving" | "saved" | "invalid" | "failed";
 const noteSchema = updateLinkRequestSchema.shape.note.unwrap().unwrap();
 
 // The note saves itself shortly after typing stops, and at once when the field
-// loses focus, the details close, or the page is hidden or unloaded.
+// loses focus, the details close, or the page is hidden or unloaded. Only an
+// unload sends a keepalive save; a hidden page (a tab or app switch) lives on
+// and saves through the usual queue, with its inline status.
 // shortcut: a save as the page leaves can still be lost when no unexpired token
 // is in memory (it must wait for one), or when the browser holds no CORS
 // preflight for the link yet: Chrome drops a keepalive request that needs one.
@@ -25,6 +27,8 @@ export function useNoteAutosave(link: SavedLink) {
   const lastSent = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const invalidRef = useRef(false);
+  // A save sent on pagehide fails outside the mutation, so its state lives here.
+  const [leaveFailed, setLeaveFailed] = useState(false);
 
   // The inline status covers the open field; a save flushed on close can only speak up in a toast.
   function send(text: string, keepalive = false) {
@@ -33,11 +37,20 @@ export function useNoteAutosave(link: SavedLink) {
     setInvalid(!parsed.success);
     if (!parsed.success) return;
     lastSent.current = text;
+    setLeaveFailed(false);
     const edits = { note: parsed.data };
     const saved = keepalive ? saveAsPageLeaves(queryClient, link.id, edits) : update.mutateAsync({ edits });
     void saved.catch((error: unknown) => {
       if (!(error instanceof Error)) throw error;
-      if (!mounted.current) toast.error("Couldn't save your note. Try again.");
+      if (!mounted.current) {
+        toast.error("Couldn't save your note. Try again.");
+        return;
+      }
+      // The page survived its pagehide (the back-forward cache): keep the text to resend.
+      if (keepalive) {
+        unsaved.current ??= text;
+        setLeaveFailed(true);
+      }
     });
   }
 
@@ -53,7 +66,7 @@ export function useNoteAutosave(link: SavedLink) {
   useEffect(() => { flushRef.current = flush; });
   useEffect(() => {
     mounted.current = true;
-    const onHidden = () => { if (document.visibilityState === "hidden") flushRef.current(true); };
+    const onHidden = () => { if (document.visibilityState === "hidden") flushRef.current(); };
     const onPageHide = () => { flushRef.current(true); };
     document.addEventListener("visibilitychange", onHidden);
     window.addEventListener("pagehide", onPageHide);
@@ -77,6 +90,16 @@ export function useNoteAutosave(link: SavedLink) {
     if (lastSent.current !== null) send(lastSent.current);
   }
 
-  const status: NoteStatus = invalid ? "invalid" : update.isPending ? "saving" : update.isError ? "failed" : update.isSuccess ? "saved" : "idle";
+  const status = noteStatus({ invalid, leaveFailed, saving: update.isPending, failed: update.isError, saved: update.isSuccess });
   return { value, change, flush, retry, status };
+}
+
+type StatusFlags = { invalid: boolean; leaveFailed: boolean; saving: boolean; failed: boolean; saved: boolean };
+
+function noteStatus({ invalid, leaveFailed, saving, failed, saved }: StatusFlags): NoteStatus {
+  if (invalid) return "invalid";
+  if (leaveFailed) return "failed";
+  if (saving) return "saving";
+  if (failed) return "failed";
+  return saved ? "saved" : "idle";
 }
