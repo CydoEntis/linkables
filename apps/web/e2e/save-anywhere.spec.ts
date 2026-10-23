@@ -86,3 +86,28 @@ test.describe("the first time this device sees the signed-in app", () => {
     expect(new URL(page.url()).pathname).toBe("/");
   });
 });
+
+test("the empty list and the account menu lead to Save from anywhere", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "See how to save from anywhere" }).click();
+  await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
+  await page.getByRole("link", { name: "Back to links" }).click();
+
+  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("menuitem", { name: "Save from anywhere" }).click();
+  await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
+});
+
+test.describe("on a phone", () => {
+  test.use({ userAgent: USER_AGENTS.iphone, viewport: { width: 375, height: 780 }, hasTouch: true });
+
+  test("the save sheet points iPhone users to the shortcut and its setup page", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Save a link" }).click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet.getByText("Faster: add the Save to linkables shortcut, then in any app tap Share → Save to linkables.")).toBeVisible();
+    await sheet.getByRole("link", { name: "See how to save from anywhere" }).click();
+    await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});

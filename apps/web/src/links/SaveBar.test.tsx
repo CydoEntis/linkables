@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
 import { ApiError } from "../api/client";
+import { TestRouter } from "../test/router";
 import { LinkList } from "./LinkList";
 import { SaveBar } from "./SaveBar";
 import { SaveStatus } from "./SaveStatus";
@@ -33,7 +34,9 @@ function renderBar() {
     <QueryClientProvider client={queryClient}>
       <SaveBar />
       <SaveStatus />
-      <LinkList scope={{ view: "all" }} />
+      <TestRouter>
+        <LinkList scope={{ view: "all" }} />
+      </TestRouter>
       <Toaster />
     </QueryClientProvider>,
   );
