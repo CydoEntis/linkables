@@ -1,18 +1,30 @@
 import { successEnvelopeSchema } from "@linkables/shared/http";
 import { listLinksResponseSchema } from "@linkables/shared/links";
 import { expect, test } from "./fixtures";
+import { outlineContrast } from "./contrast";
 import { API_URL } from "./env";
 
-test("a signed-in user sees GET /me answer with their id", async ({ page, user }) => {
+test("a signed-in user lands on All links", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await expect(page.getByText(`"id": "${user.id}"`)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "All links", level: 1 })).toBeVisible();
 });
 
 test("signing out returns to the sign-in screen", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in to linkables" })).toBeVisible();
+});
+
+test("the keyboard-highlighted account menu item has a visible focus ring", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Account" }).focus();
+  await page.keyboard.press("ArrowDown");
+  const item = page.getByRole("menuitem", { name: "Sign out" });
+  await expect(item).toHaveAttribute("data-highlighted", "");
+  const ring = await outlineContrast(item, page.getByRole("menu"));
+  expect(ring.width).toBe("2px");
+  expect(ring.ratio).toBeGreaterThanOrEqual(3);
 });
 
 test("seeded links come back from GET /links for their owner", async ({ request, user, seedLinks }) => {

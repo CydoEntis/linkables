@@ -25,6 +25,7 @@
     --color-row-hover: var(--row-hover);
     --color-line-strong: var(--line-strong);
     --color-subtle-foreground: var(--subtle-foreground);
+    --color-soft-foreground: var(--soft-foreground);
     --color-primary-soft: var(--primary-soft);
     --color-scrim: var(--scrim);
 
@@ -72,6 +73,7 @@
     --secondary-foreground: #ecebe8;
     --muted: #1f1f1f;
     --muted-foreground: #8d8d88;
+    --soft-foreground: #c9c9c4;
     /* The handoff has #6f6f69 (3.3:1); this reaches 4.5:1 on rows and inputs. See docs/design/DEVIATIONS.md. */
     --subtle-foreground: #88887f;
     --accent: #2a2a2a;
