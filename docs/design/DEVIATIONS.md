@@ -19,13 +19,16 @@ Contrast was measured in headless Chrome with the WCAG formula.
 ## Not built yet (each is a later ticket)
 
 - **Sidebar counts** on All links, Pinned and To sort: there is no count endpoint.
-- **Collections** in the sidebar, the Add to… popover, drag to file, and drop on the window to save.
+- **Drop on the window to save** (the "Drop to save" overlay).
 - **Get the extension** button: the extension is Phase 2.
-- **Hover actions** (Add to… · Share · Pin), **swipe actions** on phones, and the first-run swipe hint.
+- **Deleting a link**: the swipe Delete tile and the Add to… popover's Delete item come with link details and editing.
+- **First-run swipe hint** ("Swipe a link left for actions") and the first row's nudge.
+- **Pin confetti**: pinning pops the pin icon and holds the list still for 1.5 s, but plays no confetti.
 - **Link details panel**: clicking a row opens the saved URL in a new tab instead.
 - **Search**: the web bar only saves (Enter on text that is not a link explains why), and phones have no search field yet.
 - **⌘K hint** in the bar: hidden until the command palette exists, so it promises nothing that does not work.
-- **"Saved · Add to…" toast** after a new save, and **"Already saved in X"**: both need collections. A duplicate says "Already saved" and flashes the existing row.
+- **"Saved · Add to…" toast** after a new save, and **"Already saved in X"**. A duplicate says "Already saved" and flashes the existing row.
+- **Saving into the open collection**: a link saved on a collection's page lands in To sort, as in the prototype.
 - **iPhone saving from Share**: the shortcut and its setup guide are a later ticket. Until then the sheet tip and empty state on iPhone say "Saving from Share on iPhone is coming soon" instead of the handoff's "tap Share, then linkables".
 - **"Save from anywhere" welcome, drag and drop, and "See other ways"** (save-anywhere prompt screens 1, 5 and 7): later tickets. The bookmark button is reached from the account menu until the welcome screen exists.
 - **New collection on the share card**: the card ticks existing collections only; creating one comes with the collections UI.
@@ -46,8 +49,23 @@ Contrast was measured in headless Chrome with the WCAG formula.
 - **"Get the bookmark button" in the account menu** opens a dialog with the draggable **Save to linkables** pill, "Drag this to your bookmarks bar", and **Copy the link** for browsers that refuse to drag a `javascript:` link (after copying: "Now add a bookmark and paste this as its address"). Clicking the pill in the dialog does not follow it, since that would save the linkables page itself; it says "Drag it to your bookmarks bar, or use Copy the link" instead.
 - **The bookmark sends only the page's address.** It reads `location.href`, opens `/save?url=…` in a 420 × 640 window, and falls back to the same tab when the popup is blocked. It adds nothing to the page it runs on.
 
+## Collections
+
+| What | Handoff | Build | Why |
+|---|---|---|---|
+| Collection header Share button | White (secondary) in the prototype | Lime (primary) | The README makes Share the one lime action on a collection page. |
+| Share dialog | Read-only `linkables.app/alex/…` URL and a lime Copy link button | Mini-cover, title, link count, "Sharing arrives in a later version." and the dialog close button | Sharing is Phase 3; a copyable address that does not work would mislead. |
+| Phone collection page | Only the chip names the collection | A compact header with the name, Share and Delete | Phones need a way to rename, share and delete. |
+| Swipe Pin tile | Amber | Grey, white when pinned (like the web Pin button) | Amber is not in the token set. |
+| Swipe tiles | Four (Add to · Share · Pin · Delete) | Three; Delete waits for link deletion (above) | |
+
 ## Added where the handoff is silent
 
+- **Rename a collection** by clicking its title: Enter or leaving the field saves, Esc cancels, a taken name says "You already have X".
+- **Collection pages have a path**, `/c/<id>`, so they can be bookmarked and, later, shared.
+- **Pickers keep their order while open** (the extension pop-up's rule, used for the web Add to… popover and the phone Add to sheet), so a ticked collection does not jump under the pointer.
+- **Keyboard access to swipe actions**: tabbing to a row's tiles opens them as a swipe would. Add to… is the keyboard way to file instead of dragging.
+- **Deleting a collection** waits out the 5 s Undo window before it reaches the server; closing the tab inside that window keeps the collection.
 - **Account menu** (avatar, email, Get the bookmark button, Sign out) at the foot of the sidebar and in the phone header. The handoff draws the avatar with no menu; the brief (5.2) asks for an account menu.
 - **Load more** button at the end of the list (brief 5.4 left infinite scroll vs. Load more open).
 - **Pending rows stop polling** two minutes after this device first sees the newest pending row (2 s, then 5 s, then 15 s); a row still pending after that keeps "Getting details…" until the list next loads.
