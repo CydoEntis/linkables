@@ -63,8 +63,9 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
    `http`, `https` and `http2` (test files may import `http` for local test
    servers); `pnpm lint`.
 3. Every route except `/health` needs a valid Supabase JWT, and every query is
-   scoped to `sub`. Check: `apps/api/test/authz.db.test.ts` (fails if a route is
-   missing from it). not yet: P1-19 (per-route two-user checks)
+   scoped to `sub`. Check: `apps/api/test/authz.db.test.ts` (every route: no
+   token → 401, another user's ids → 404, no leaks in any listing; fails if a route
+   is missing from it).
 4. The database is reachable only through the API.
    Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
    project (turned off 2026-10-22).
