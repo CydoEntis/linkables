@@ -116,4 +116,26 @@ test.describe("at 375 px", () => {
     await details.getByRole("button", { name: "Back" }).click();
     await expect(details).toHaveCount(0);
   });
+
+  test("Tab keeps focus inside the details, also after the picker opens and closes", async ({ page, seedLinks }) => {
+    await seedLinks([RUST]);
+    await page.goto("/");
+    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    const details = page.getByRole("dialog", { name: "Link details" });
+    await expect(details).toBeVisible();
+
+    const focusStaysInside = async () => {
+      for (let i = 0; i < 14; i++) {
+        await page.keyboard.press("Tab");
+        expect(await page.evaluate(() => document.activeElement?.closest("[role=dialog]") !== null)).toBe(true);
+      }
+    };
+    await focusStaysInside();
+    await details.getByRole("button", { name: "+ Add to" }).click();
+    await expect(page.getByRole("textbox", { name: "Find or create a collection" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("textbox", { name: "Find or create a collection" })).toHaveCount(0);
+    await expect(details.getByRole("button", { name: "+ Add to" })).toBeFocused();
+    await focusStaysInside();
+  });
 });
