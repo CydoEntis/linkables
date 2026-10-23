@@ -67,11 +67,11 @@ describe("collections", () => {
   });
 
   it("lets two users use the same name", async () => {
-    await create(a, "Reading");
+    await create(a, "Rust");
 
-    await create(b, "Reading");
+    await create(b, "Rust");
 
-    expect(await names(b)).toEqual(["Reading"]);
+    expect(await names(b)).toEqual(["Rust"]);
   });
 
   it("renames a collection", async () => {
@@ -92,6 +92,34 @@ describe("collections", () => {
 
     expect(res.status).toBe(409);
     expect(await errorCode(res)).toBe("CONFLICT");
+  });
+
+  it("rejects a name that differs only in case with CONFLICT", async () => {
+    await create(a, "Rust");
+
+    const res = await send(a, "POST", "/collections", { name: "rust" });
+
+    expect(res.status).toBe(409);
+    expect(await errorCode(res)).toBe("CONFLICT");
+  });
+
+  it("rejects a rename to another collection's name in a different case with CONFLICT", async () => {
+    await create(a, "Rust");
+    const col = await create(a, "Go");
+
+    const res = await send(a, "PATCH", `/collections/${col.id}`, { name: "RUST" });
+
+    expect(res.status).toBe(409);
+    expect(await errorCode(res)).toBe("CONFLICT");
+  });
+
+  it("renames a collection to its own name in a different case", async () => {
+    const col = await create(a, "Rust");
+
+    const res = await send(a, "PATCH", `/collections/${col.id}`, { name: "rust" });
+
+    expect(res.status).toBe(200);
+    expect(await names(a)).toEqual(["rust"]);
   });
 
   it("deletes a collection", async () => {
