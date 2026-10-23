@@ -59,6 +59,9 @@
     --animate-burst: burst 0.75s cubic-bezier(0.12, 0.7, 0.3, 1) forwards;
     --animate-rise: rise 0.35s 0.1s var(--ease-out-soft) both;
     --animate-tick: tick 0.3s ease-out;
+    --animate-leave: leave 0.22s ease-in forwards;
+    --animate-spring: spring 0.45s var(--ease-out-soft);
+    --animate-pin-pop: pin-pop 0.55s var(--ease-out-soft);
 }
 
 /* Dark is the only drawn theme (ADR-0006); light comes back with its own token set. */
@@ -133,6 +136,10 @@
     to { transform: none; }
 }
 
+@keyframes leave {
+    to { opacity: 0; transform: translateX(24px); }
+}
+
 @keyframes spring {
     0% { transform: scale(1); }
     30% { transform: scale(0.86); }
@@ -166,6 +173,12 @@
     0% { transform: scale(0.4); }
     70% { transform: scale(1.15); }
     100% { transform: scale(1); }
+}
+
+@keyframes pin-pop {
+    0% { transform: none; }
+    40% { transform: rotate(-22deg) scale(1.25); }
+    100% { transform: none; }
 }
 
 @layer base {

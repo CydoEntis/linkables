@@ -1,17 +1,22 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
+import { LINK_DRAG_TYPE } from "../links/LinkRow";
+import { useLinksUi } from "../links/links-ui-store";
+import { useCollectionsUi } from "./collections-ui-store";
 import { displayName } from "./display-name";
 import { MiniCover } from "./MiniCover";
 import { NewCollectionForm } from "./NewCollectionForm";
 import { RECENT_COUNT, sidebarList } from "./sidebar-list";
 import { useCollections } from "./use-collections";
+import { useMembership } from "./use-membership";
 
 export function SidebarCollections({ activeId }: { activeId: string | undefined }) {
   const collections = useCollections();
+  const dragging = useLinksUi((state) => state.dragging !== null);
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -24,9 +29,9 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
       <div className="flex items-center justify-between pr-1 pb-2 pl-3">
         <h2
           id="sidebar-collections"
-          className="text-xs font-semibold tracking-[0.02em] text-subtle-foreground uppercase"
+          className={cn("text-xs font-semibold tracking-[0.02em] uppercase", dragging ? "text-primary" : "text-subtle-foreground")}
         >
-          Collections
+          {dragging ? "Drop on a collection" : "Collections"}
         </h2>
         <button
           type="button"
@@ -96,15 +101,46 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
   );
 }
 
+// Each row is a drop target for a dragged link; Add to… is the keyboard way to file.
 function SidebarCollection({ collection, active }: { collection: ListedCollection; active: boolean }) {
+  const [over, setOver] = useState(false);
+  const bumping = useCollectionsUi((state) => state.bumpId === collection.id);
+  const setFiled = useMembership();
+
+  function onDragOver(event: DragEvent<HTMLAnchorElement>) {
+    if (!event.dataTransfer.types.includes(LINK_DRAG_TYPE)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setOver(true);
+  }
+
+  function onDrop(event: DragEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    setOver(false);
+    const ui = useLinksUi.getState();
+    const link = ui.dragging;
+    ui.setDragging(null);
+    if (link === null) return;
+    useCollectionsUi.getState().bump(collection.id);
+    if (link.collections.some((item) => item.id === collection.id)) return;
+    setFiled({ link, collection: { id: collection.id, name: collection.name }, filed: true });
+  }
+
   return (
     <Link
       to="/c/$collectionId"
       params={{ collectionId: collection.id }}
       aria-current={active ? "page" : undefined}
+      onDragOver={onDragOver}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOver(false);
+      }}
+      onDrop={onDrop}
       className={cn(
-        "flex min-h-10 items-center gap-[11px] rounded-md px-2.5 text-[14.5px] font-medium text-[#dcdcd7] hover:bg-muted",
+        "flex min-h-10 items-center gap-[11px] rounded-md px-2.5 text-[14.5px] font-medium text-[#dcdcd7] transition-[transform,background-color,box-shadow] duration-200 ease-out-soft hover:bg-muted",
         active && "bg-muted text-foreground",
+        over && "translate-x-1 scale-[1.02] bg-primary-soft shadow-[inset_0_0_0_1.5px_var(--primary)]",
+        bumping && "animate-spring",
       )}
     >
       <MiniCover name={collection.name} cover={collection.cover} className="size-6 rounded-[7px]" />
