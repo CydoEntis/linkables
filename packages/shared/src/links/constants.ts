@@ -6,6 +6,8 @@ export const FETCH_STATUSES = ["pending", "fetched", "fetch_failed"] as const;
 
 export const LINK_VIEWS = ["all", "inbox"] as const;
 
+export const LINK_SORTS = ["newest", "oldest", "title"] as const;
+
 export const LIST_LIMIT_DEFAULT = 50;
 
 export const LIST_LIMIT_MAX = 100;

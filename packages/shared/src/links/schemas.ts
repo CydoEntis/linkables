@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   FETCH_STATUSES,
+  LINK_SORTS,
   LINK_VIEWS,
   LIST_LIMIT_DEFAULT,
   LIST_LIMIT_MAX,
@@ -48,7 +49,27 @@ function hasControlCharacter(text: string): boolean {
   return /\p{Cc}/u.test(text.replaceAll("\t", ""));
 }
 
+// Postgres has no year 0, so a 0000 bound would fail the timestamptz cast with a 500.
+function savedAtBound(field: string) {
+  return z
+    .union([z.iso.date(), z.iso.datetime({ offset: true })], {
+      error: `${field} must be a date (YYYY-MM-DD) or an ISO datetime with an offset`,
+    })
+    .refine((bound) => !bound.startsWith("0000-"), { error: `${field} must be after year 0` });
+}
+
+const isDateOnly = (bound: string) => bound.length === "YYYY-MM-DD".length;
+
+// A date bound covers its whole UTC day: from=to=2026-03-01 is that day, not empty.
+function rangeIsOrdered(from: string | undefined, to: string | undefined): boolean {
+  if (from === undefined || to === undefined) return true;
+  const start = Date.parse(isDateOnly(from) ? `${from}T00:00:00Z` : from);
+  const end = Date.parse(isDateOnly(to) ? `${to}T23:59:59.999Z` : to);
+  return start <= end;
+}
+
 // The Inbox is links in no collection, so it cannot be narrowed to one.
+// from and to filter on saved_at and are both inclusive; a date means a UTC day.
 export const listLinksQuerySchema = z
   .object({
     view: z.enum(LINK_VIEWS).default("all"),
@@ -63,7 +84,16 @@ export const listLinksQuerySchema = z
       .refine((q) => !hasControlCharacter(q), { error: "q must not contain control characters" })
       .transform((q) => q || undefined)
       .optional(),
+    sort: z.enum(LINK_SORTS).default("newest"),
+    kind: z.enum(RESOURCE_KINDS).optional(),
+    pinned: z
+      .enum(["true", "false"])
+      .transform((pinned) => pinned === "true")
+      .optional(),
+    from: savedAtBound("from").optional(),
+    to: savedAtBound("to").optional(),
   })
+  .refine((query) => rangeIsOrdered(query.from, query.to), { error: "from must not be after to", path: ["to"] })
   .refine((query) => !(query.view === "inbox" && query.collectionId !== undefined), {
     error: "view=inbox cannot be combined with collectionId",
     path: ["collectionId"],

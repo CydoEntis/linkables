@@ -50,14 +50,11 @@ export type LinkRoutesDeps = { db: Db; now: () => number };
 export function linkRoutes({ db, now }: LinkRoutesDeps) {
   return new Hono<AuthEnv>()
     .get("/links", validator("query", parseWith(listLinksQuerySchema, "Invalid query")), async (c) => {
-      const { view, limit, cursor, collectionId, q } = c.req.valid("query");
+      const { cursor, ...query } = c.req.valid("query");
       const page = await listLinks(db, {
+        ...query,
         userId: c.get("userId"),
-        view,
-        limit,
-        cursor: cursor === undefined ? undefined : decodeCursor(cursor),
-        collectionId,
-        q,
+        cursor: cursor === undefined ? undefined : decodeCursor(cursor, query.sort),
       });
       return ok(c, page);
     })
