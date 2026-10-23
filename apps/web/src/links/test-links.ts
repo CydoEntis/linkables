@@ -10,6 +10,8 @@ export function savedLink({ resource, ...link }: SavedLinkOverrides = {}): Saved
     note: null,
     pinned: false,
     savedAt: new Date().toISOString(),
+    savedFrom: null,
+    collections: [],
     ...link,
     resource: {
       id: crypto.randomUUID(),
