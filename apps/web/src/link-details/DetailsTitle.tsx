@@ -21,7 +21,11 @@ export function DetailsTitle({ link }: { link: SavedLink }) {
         type="button"
         title="Rename"
         onClick={() => { setEditing(true); }}
-        className={cn("-mx-1.5 cursor-text rounded-md px-1.5 text-left hover:bg-muted", title.isUrl && "text-muted-foreground")}
+        className={cn(
+          // On phones the hit area reaches 44 px above and below the text without moving it.
+          "relative -mx-1.5 cursor-text rounded-md px-1.5 text-left hover:bg-muted max-md:after:absolute max-md:after:inset-x-0 max-md:after:-inset-y-[9px]",
+          title.isUrl && "text-muted-foreground",
+        )}
       >
         {title.text}
         <span className="sr-only">, rename</span>
