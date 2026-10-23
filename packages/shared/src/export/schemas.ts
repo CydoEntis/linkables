@@ -19,5 +19,5 @@ export const exportResponseSchema = z.strictObject({
   version: z.literal(EXPORT_FORMAT_VERSION),
   exportedAt: z.iso.datetime(),
   links: z.array(exportedLinkSchema),
-  collections: z.array(collectionSchema),
+  collections: z.array(collectionSchema.pick({ id: true, name: true, createdAt: true })),
 });

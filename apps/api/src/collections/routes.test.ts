@@ -37,6 +37,10 @@ describe("collection request validation", () => {
     await expectValidationError(await send("PATCH", `/collections/${SOME_ID}`, { name: " " }));
   });
 
+  it.each([{}, { pinned: "yes" }, { pinned: true, colour: "red" }])("rejects the update %j", async (body) => {
+    await expectValidationError(await send("PATCH", `/collections/${SOME_ID}`, body));
+  });
+
   it.each([
     ["PATCH", "/collections/not-a-uuid"],
     ["DELETE", "/collections/not-a-uuid"],
