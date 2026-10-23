@@ -7,6 +7,7 @@ import { displayName } from "../collections/display-name";
 import { useCollections } from "../collections/use-collections";
 import { LINKS_VIEWS, VIEW_LABELS } from "../links/links-search";
 import { useLinksUi } from "../links/links-ui-store";
+import { SAVE_ANYWHERE_PATH } from "../save-anywhere/SaveAnywherePage";
 import { focusSearchField } from "./use-list-shortcuts";
 
 // What gets focus once the palette has closed: an element, the palette's
@@ -50,6 +51,7 @@ function useCommands({ onSearch, onBookmarklet, onShortcuts }: Pick<CommandPalet
       ? { value: "search-for", label: `Search links for “${query}”`, run: () => { onSearch(query); return toTrigger; } }
       : { value: "search", label: "Search links", run: () => () => focusSearchField() ?? true },
     { value: "save", label: "Save a link", run: focusSaveField },
+    { value: "save-anywhere", label: "Save from anywhere", run: () => { void navigate({ to: SAVE_ANYWHERE_PATH }); return toTrigger; } },
     { value: "bookmarklet", label: "Get the bookmark button", run: () => { onBookmarklet(); return toNothing; } },
     { value: "shortcuts", label: "Keyboard shortcuts", run: () => { onShortcuts(); return toNothing; } },
   ];

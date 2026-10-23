@@ -96,6 +96,13 @@ describe("CommandPalette", () => {
     expect(navigate).toHaveBeenCalledWith({ to: "/c/$collectionId", params: { collectionId: japan.id } });
   });
 
+  it("goes to Save from anywhere", async () => {
+    const { user } = renderPalette();
+    await openPalette(user);
+    await user.click(screen.getByRole("option", { name: "Save from anywhere" }));
+    expect(navigate).toHaveBeenCalledWith({ to: "/save-from-anywhere" });
+  });
+
   it("runs the highlighted command with Enter, searching by default", async () => {
     const { user, onBookmarklet, onSearch } = renderPalette();
     await openPalette(user);
