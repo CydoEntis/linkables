@@ -86,6 +86,14 @@ test("clicking the bookmark button on a page saves it in a compact popup that on
   expect(new URL(popup.url()).pathname).toBe("/save");
 });
 
+test("Get the bookmark button explains dragging when the button is clicked", async ({ page }) => {
+  const dialog = await openBookmarkletDialog(page);
+  await dialog.getByRole("link", { name: "Save to linkables" }).click();
+  await expect(dialog.getByRole("status")).toHaveText("Drag it to your bookmarks bar, or use Copy the link.");
+  expect(new URL(page.url()).pathname).toBe("/");
+  expect(page.context().pages()).toHaveLength(1);
+});
+
 test.describe("in a small tab the bookmark button did not open", () => {
   test.use({ viewport: { width: 500, height: 700 } });
 
