@@ -95,6 +95,7 @@ export function CommandPalette({ open, onOpenChange, ...handlers }: CommandPalet
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <DialogPrimitive.Viewport className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[12vh]">
           <DialogPrimitive.Popup
+            data-command-palette
             finalFocus={() => afterClose.current()}
             className="flex max-h-[min(32rem,76vh)] w-full max-w-[560px] flex-col overflow-hidden rounded-[20px] bg-popover text-popover-foreground shadow-float outline-none transition-[opacity,scale] duration-150 data-ending-style:scale-97 data-ending-style:opacity-0 data-starting-style:scale-97 data-starting-style:opacity-0"
           >

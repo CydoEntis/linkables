@@ -11,11 +11,18 @@ export function focusSearchField(): HTMLInputElement | undefined {
 
 type ListShortcuts = { onPalette: () => void; onHelp: () => void };
 
+// Another dialog (a sheet, the shortcut list, a share dialog) keeps the keyboard to itself.
+function otherDialogOpen(): boolean {
+  const dialog = document.querySelector("[role=dialog], [role=alertdialog]");
+  return dialog !== null && dialog.closest("[data-command-palette]") === null;
+}
+
 // "/" focuses search and "?" lists the shortcuts, except while typing in a field;
-// Cmd/Ctrl+K opens the command palette from anywhere (brief 5.9).
+// Cmd/Ctrl+K opens the command palette from anywhere but another dialog (brief 5.9).
 export function useListShortcuts({ onPalette, onHelp }: ListShortcuts): void {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "k") {
+      if (otherDialogOpen()) return;
       event.preventDefault();
       onPalette();
       return;

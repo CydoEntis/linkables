@@ -12,28 +12,31 @@ const request = vi.hoisted(() => vi.fn<(path: string) => Promise<unknown>>());
 vi.mock("../api/api", () => ({ api: { request } }));
 
 const navigate = vi.hoisted(() => vi.fn());
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
+vi.mock(import("@tanstack/react-router"), async (importOriginal) => ({ ...(await importOriginal()), useNavigate: () => navigate }));
 
 const japan = listedCollection({ name: "trip to Japan" });
 
-function Harness(handlers: { onSearch: (q: string) => void; onBookmarklet: () => void; onShortcuts: () => void }) {
+type HarnessProps = { onSearch: (q: string) => void; onBookmarklet: () => void; onShortcuts: () => void; otherDialog?: boolean };
+
+function Harness({ otherDialog = false, ...handlers }: HarnessProps) {
   const [open, setOpen] = useState(false);
   useListShortcuts({ onPalette: () => { setOpen((value) => !value); }, onHelp: handlers.onShortcuts });
   return (
     <>
       <input aria-label="Search your links" data-search-field />
       <input aria-label="Note" />
+      {otherDialog ? <div role="dialog" aria-label="Link details" /> : null}
       <CommandPalette open={open} onOpenChange={setOpen} {...handlers} />
     </>
   );
 }
 
-function renderPalette() {
+function renderPalette({ otherDialog = false } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const handlers = { onSearch: vi.fn(), onBookmarklet: vi.fn(), onShortcuts: vi.fn() };
   render(
     <QueryClientProvider client={queryClient}>
-      <Harness {...handlers} />
+      <Harness {...handlers} otherDialog={otherDialog} />
     </QueryClientProvider>,
   );
   return { ...handlers, user: userEvent.setup() };
@@ -56,6 +59,13 @@ describe("CommandPalette", () => {
     const { user } = renderPalette();
     await openPalette(user);
     expect(screen.getByRole("combobox", { name: "Search commands" })).toHaveFocus();
+  });
+
+  it("stays shut while another dialog is open", async () => {
+    const { user } = renderPalette({ otherDialog: true });
+    await user.keyboard("{Control>}k{/Control}");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole("dialog", { name: "Command palette" })).not.toBeInTheDocument();
   });
 
   it("searches links for the typed text", async () => {
