@@ -25,7 +25,6 @@ Contrast was measured in headless Chrome with the WCAG formula.
 - **Link details panel**: clicking a row opens the saved URL in a new tab instead.
 - **Search**: the web bar only saves (Enter on text that is not a link explains why), and phones have no search field yet.
 - **⌘K hint** in the bar: hidden until the command palette exists, so it promises nothing that does not work.
-- **"In X" / "To sort" in row meta, and the lime To sort dot outside the To sort view**: the API reports no per-link collections yet, so only the To sort view knows its links are unsorted.
 - **"Saved · Add to…" toast** after a new save, and **"Already saved in X"**: both need collections. A duplicate says "Already saved" and flashes the existing row.
 - **iPhone saving from Share**: the shortcut and its setup guide are a later ticket. Until then the sheet tip and empty state on iPhone say "Saving from Share on iPhone is coming soon" instead of the handoff's "tap Share, then linkables".
 - **"Save from anywhere" welcome, drag and drop, and "See other ways"** (save-anywhere prompt screens 1, 5 and 7): later tickets. The bookmark button is reached from the account menu until the welcome screen exists.

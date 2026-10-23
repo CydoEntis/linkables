@@ -1,4 +1,5 @@
 import type { SavedLink } from "@linkables/shared/links";
+import { displayName } from "../collections/display-name";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -45,4 +46,22 @@ export function tileFor(domain: string): { hue: number; letter: string } {
   let hash = 0;
   for (let i = 0; i < domain.length; i++) hash = (hash * 31 + domain.charCodeAt(i)) >>> 0;
   return { hue: (hash * 47) % 360, letter: (domain[0] ?? "?").toUpperCase() };
+}
+
+// "in Rust", "in Rust +1", or "To sort" when the link is in no collection.
+export function filedLabel(collections: SavedLink["collections"]): string {
+  const [first, ...rest] = collections;
+  if (first === undefined) return "To sort";
+  return `in ${displayName(first.name)}${rest.length > 0 ? ` +${String(rest.length)}` : ""}`;
+}
+
+const SAVED_FROM_LABELS: Partial<Record<NonNullable<SavedLink["savedFrom"]>, string>> = {
+  iphone: "from iPhone",
+  ipad: "from iPad",
+  android: "from Android",
+};
+
+// Only a save from a phone or tablet is worth a mention; the desktop is the default place.
+export function savedFromLabel(source: SavedLink["savedFrom"]): string | null {
+  return source === null ? null : (SAVED_FROM_LABELS[source] ?? null);
 }

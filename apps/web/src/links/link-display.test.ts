@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { domainOf, relativeTime, tileFor } from "./link-display";
+import { domainOf, filedLabel, relativeTime, savedFromLabel, tileFor } from "./link-display";
 
 const now = new Date(2026, 9, 22, 12, 0).getTime();
 const ago = (ms: number) => new Date(now - ms).toISOString();
@@ -35,5 +35,28 @@ describe("tileFor", () => {
     expect(tileFor("seriouseats.com").letter).toBe("S");
     expect(tileFor("seriouseats.com").hue).toBeGreaterThanOrEqual(0);
     expect(tileFor("seriouseats.com").hue).toBeLessThan(360);
+  });
+});
+
+describe("filedLabel", () => {
+  const rust = { id: crypto.randomUUID(), name: "rust" };
+  const recipes = { id: crypto.randomUUID(), name: "Recipes" };
+
+  it("says To sort for a link in no collection", () => {
+    expect(filedLabel([])).toBe("To sort");
+  });
+
+  it("names the first collection, capitalised, and counts the rest", () => {
+    expect(filedLabel([rust])).toBe("in Rust");
+    expect(filedLabel([rust, recipes])).toBe("in Rust +1");
+  });
+});
+
+describe("savedFromLabel", () => {
+  it("mentions phones and tablets only", () => {
+    expect(savedFromLabel("iphone")).toBe("from iPhone");
+    expect(savedFromLabel("android")).toBe("from Android");
+    expect(savedFromLabel("windows")).toBeNull();
+    expect(savedFromLabel(null)).toBeNull();
   });
 });
