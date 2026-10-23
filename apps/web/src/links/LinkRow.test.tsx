@@ -5,8 +5,8 @@ import { savedLink } from "./test-links";
 
 const now = new Date(2026, 9, 22, 12, 0).getTime();
 
-function renderRow(link = savedLink(), inToSort = false) {
-  return render(<LinkRow link={link} now={now} inToSort={inToSort} />);
+function renderRow(link = savedLink(), inCollection = false) {
+  return render(<LinkRow link={link} now={now} inCollection={inCollection} />);
 }
 
 describe("LinkRow", () => {
@@ -69,5 +69,20 @@ describe("LinkRow", () => {
   it("names the row after its title", () => {
     renderRow(savedLink({ resource: { title: "Rust by Example" } }));
     expect(screen.getByRole("link", { name: /^Rust by Example/ })).toBeInTheDocument();
+  });
+
+  it("says where the link is filed and which phone saved it", () => {
+    renderRow(savedLink({ originalUrl: "https://youtube.com/w", savedFrom: "iphone", collections: [{ id: crypto.randomUUID(), name: "rust" }] }));
+    expect(screen.getByText(/^youtube.com/)).toHaveTextContent("youtube.com · in Rust · from iPhone");
+  });
+
+  it("marks a link in no collection as To sort", () => {
+    renderRow(savedLink({ originalUrl: "https://youtube.com/w" }));
+    expect(screen.getByText(/^youtube.com/)).toHaveTextContent(/^youtube.com · To sort/);
+  });
+
+  it("leaves out where the link is filed on a collection page", () => {
+    renderRow(savedLink({ collections: [{ id: crypto.randomUUID(), name: "Rust" }] }), true);
+    expect(screen.queryByText(/in Rust/)).not.toBeInTheDocument();
   });
 });

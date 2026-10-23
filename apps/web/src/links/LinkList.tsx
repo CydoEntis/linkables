@@ -35,7 +35,7 @@ export function LinkList({ view }: { view: LinksView }) {
           <ul>
             {group.links.map((link) => (
               <li key={link.id}>
-                <LinkRow link={link} now={now} inToSort={view === "inbox"} highlight={highlightFor(link.id)} />
+                <LinkRow link={link} now={now} highlight={highlightFor(link.id)} />
               </li>
             ))}
           </ul>

@@ -1,7 +1,7 @@
 import type { SavedLink } from "@linkables/shared/links";
 import { Pin } from "lucide-react";
 import { cn } from "cn";
-import { displayTitle, domainOf, relativeTime, safeHref } from "./link-display";
+import { displayTitle, domainOf, filedLabel, relativeTime, safeHref, savedFromLabel } from "./link-display";
 import { LinkThumb } from "./LinkThumb";
 import { isPending } from "./use-links";
 
@@ -10,18 +10,20 @@ export type RowHighlight = "hop" | "flash";
 type LinkRowProps = {
   link: SavedLink;
   now: number;
-  // shortcut: per-link To sort membership arrives with collections; until then
-  // only the To sort view knows its links are unsorted.
-  inToSort: boolean;
+  // On a collection's page every row is in that collection, so the meta skips where it is filed.
+  inCollection?: boolean;
   highlight?: RowHighlight | undefined;
 };
 
 // The row opens the saved URL itself; link details come in a later version.
-export function LinkRow({ link, now, inToSort, highlight }: LinkRowProps) {
+export function LinkRow({ link, now, inCollection = false, highlight }: LinkRowProps) {
   const title = displayTitle(link);
   const pending = isPending(link);
   const time = relativeTime(link.savedAt, now);
   const href = safeHref(link.originalUrl);
+  const filed = inCollection ? null : filedLabel(link.collections);
+  const from = savedFromLabel(link.savedFrom);
+  const unsorted = link.collections.length === 0 && !pending;
 
   return (
     <a
@@ -46,10 +48,18 @@ export function LinkRow({ link, now, inToSort, highlight }: LinkRowProps) {
         </span>
         <span className="truncate text-xs text-muted-foreground md:text-[13px]">
           {domainOf(link.originalUrl)}
-          {pending ? " · Getting details…" : <span className="md:hidden"> · {time}</span>}
+          {pending ? (
+            " · Getting details…"
+          ) : (
+            <>
+              {filed ? ` · ${filed}` : null}
+              {from ? <span className="hidden md:inline"> · {from}</span> : null}
+              <span className="md:hidden"> · {time}</span>
+            </>
+          )}
         </span>
       </span>
-      {inToSort && !pending ? (
+      {unsorted ? (
         <span aria-hidden className="size-[7px] shrink-0 rounded-full bg-primary md:size-2 md:shadow-[0_0_0_4px_var(--primary-soft)]" />
       ) : null}
       {link.pinned ? <Pin role="img" aria-label="Pinned" className="size-[13px] shrink-0 fill-muted-foreground text-muted-foreground" /> : null}
