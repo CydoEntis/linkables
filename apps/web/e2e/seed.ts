@@ -46,3 +46,12 @@ export async function seedLinks(db: Db, userId: string, links: SeedLink[]): Prom
   for (const link of links) seeded.push(await seedLink(db, userId, link));
   return seeded;
 }
+
+// Stands in for the metadata worker, which the e2e API runs without.
+export async function markFetched(db: Db, url: string, title: string): Promise<void> {
+  const rows = await db.$client`
+    update resource set title = ${title}, fetch_status = 'fetched'
+    where canonical_url = ${canonicalUrlFor(url)}
+    returning id`;
+  if (rows.length !== 1) throw new Error(`no resource to mark fetched for ${url}`);
+}
