@@ -1,0 +1,2 @@
+ALTER TABLE "collection" DROP CONSTRAINT "collection_user_id_name_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "collection_user_id_lower_name_unique" ON "collection" USING btree ("user_id",lower("name"));

@@ -9,8 +9,10 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { FETCH_STATUSES, RESOURCE_KINDS } from "@linkables/shared/links";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
@@ -62,7 +64,7 @@ export const collection = pgTable(
     name: text("name").notNull(),
     createdAt: createdAt(),
   },
-  (table) => [unique().on(table.userId, table.name)],
+  (table) => [uniqueIndex("collection_user_id_lower_name_unique").on(table.userId, sql`lower(${table.name})`)],
 ).enableRLS();
 
 export const collectionItem = pgTable(

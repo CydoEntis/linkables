@@ -20,7 +20,7 @@ function found(row: CollectionRow | undefined): CollectionRow {
   return row;
 }
 
-// The only unique constraint on collection is (user_id, name).
+// The only unique index on collection besides its random id is (user_id, lower(name)).
 async function uniqueName<T>(query: Promise<T>): Promise<T> {
   try {
     return await query;
