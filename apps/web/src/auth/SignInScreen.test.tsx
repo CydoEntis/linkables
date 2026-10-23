@@ -83,6 +83,20 @@ describe("SignInScreen", () => {
     expect(signInWithOtp).not.toHaveBeenCalled();
   });
 
+  it("moves focus back to the email field when the address is invalid", async () => {
+    renderScreen();
+    await submitEmail("not-an-email");
+    expect(screen.getByLabelText("Email")).toHaveFocus();
+  });
+
+  it("sends the address without surrounding spaces", async () => {
+    signInWithOtp.mockResolvedValue({ data: {}, error: null });
+    renderScreen();
+    await submitEmail("  owner@example.com ");
+    await screen.findByRole("heading", { name: "Check your email" });
+    expect(signInWithOtp).toHaveBeenCalledWith(expect.objectContaining({ email: "owner@example.com" }));
+  });
+
   it("asks the user to wait when Supabase rate-limits the email", async () => {
     signInWithOtp.mockResolvedValue({
       data: {},
