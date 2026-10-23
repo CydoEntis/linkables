@@ -11,11 +11,13 @@ const savedAtCursorSchema = z.strictObject({
   id: z.uuid(),
 });
 
-// Only the id: the sort key can be a saved URL with its query string, and cursors
-// end up in request logs and browser history. The key is looked up per page.
+// No sort key: it can be a saved URL with its query string, and cursors end up in
+// request logs and browser history. The key is looked up per page; k is a
+// fingerprint of it that shows whether the link was renamed since.
 const titleCursorSchema = z.strictObject({
   sort: z.literal("title"),
   id: z.uuid(),
+  k: z.string().regex(/^[\w-]{16}$/),
 });
 
 const cursorSchema = z.discriminatedUnion("sort", [savedAtCursorSchema, titleCursorSchema]);

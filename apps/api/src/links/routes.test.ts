@@ -129,7 +129,7 @@ describe("GET /links validation", () => {
     ["title", "newest"],
     ["newest", "title"],
   ])("rejects a %s cursor used with sort=%s", async (cursorSort, sort) => {
-    const key = cursorSort === "title" ? {} : { savedAt: "2026-01-01T00:00:00.000000Z" };
+    const key = cursorSort === "title" ? { k: "AAAAAAAAAAAAAAAA" } : { savedAt: "2026-01-01T00:00:00.000000Z" };
     const cursor = token({ sort: cursorSort, ...key, id: LINK_ID });
 
     await expectValidationError(await list(`sort=${sort}&cursor=${cursor}`));
@@ -143,6 +143,12 @@ describe("GET /links validation", () => {
 
   it("rejects a title cursor carrying a sort key", async () => {
     const cursor = token({ sort: "title", title: "https://example.com/?token=secret", id: LINK_ID });
+
+    await expectValidationError(await list(`sort=title&cursor=${cursor}`));
+  });
+
+  it.each([undefined, "", "short", "AAAAAAAAAAAAAAA!"])("rejects a title cursor with key fingerprint %s", async (k) => {
+    const cursor = token({ sort: "title", id: LINK_ID, ...(k === undefined ? {} : { k }) });
 
     await expectValidationError(await list(`sort=title&cursor=${cursor}`));
   });
