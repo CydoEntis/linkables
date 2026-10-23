@@ -123,6 +123,30 @@ test.describe("at 1280 px", () => {
     await expect(row(page, CURRY)).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Search or paste a link" })).toHaveValue("curry");
   });
+  test("Ctrl+K opens the command palette, which searches and goes to a view", async ({ page, seedLinks }) => {
+    await seedLinks(LINKS);
+    await page.goto("/");
+    await expect(row(page, RUST)).toBeVisible();
+    await expect(page.getByRole("search").filter({ visible: true }).locator("kbd")).toHaveText(/K$/);
+
+    await page.keyboard.press("Control+k");
+    const palette = page.getByRole("dialog", { name: "Command palette" });
+    await page.keyboard.type("curry");
+    await page.keyboard.press("Enter");
+    await expect(palette).toBeHidden();
+    await expect(row(page, CURRY)).toBeVisible();
+    await expect(row(page, RUST)).toHaveCount(0);
+
+    await page.keyboard.press("Control+k");
+    await palette.getByRole("option", { name: "Go to To sort" }).click();
+    await expect(page).toHaveURL(/view=inbox/);
+    await expect(page).not.toHaveURL(/q=/);
+    await expect(page.getByRole("heading", { level: 1, name: "To sort" })).toBeVisible();
+
+    await page.locator("body").click();
+    await page.keyboard.press("?");
+    await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
+  });
 });
 
 test.describe("at 375 px", () => {

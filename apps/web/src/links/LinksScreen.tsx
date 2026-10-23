@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { AddToSheet } from "../collections/AddToSheet";
+import { BookmarkletDialog } from "../save/BookmarkletDialog";
+import { CommandPalette } from "../search/CommandPalette";
 import { FilterBar } from "../search/FilterBar";
 import type { FiltersChange, ListFilters } from "../search/list-filters";
 import { PhoneSearchField } from "../search/PhoneSearchField";
-import { useSlashToFocus } from "../search/use-slash-to-focus";
+import { ShortcutSheet } from "../search/ShortcutSheet";
+import { useListShortcuts } from "../search/use-list-shortcuts";
 import { AppShell } from "../shell/AppShell";
 import { LinkList } from "./LinkList";
 import { SaveBar } from "./SaveBar";
@@ -23,7 +26,10 @@ type LinksScreenProps = {
 // One list screen for the views and for a collection; only the heading differs.
 export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksScreenProps) {
   usePasteToSave();
-  useSlashToFocus();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [bookmarkletOpen, setBookmarkletOpen] = useState(false);
+  useListShortcuts({ onPalette: () => { setPaletteOpen((open) => !open); }, onHelp: () => { setShortcutsOpen(true); } });
   // Refining a search replaces its history entry; starting or ending one adds an entry, so Back returns to it.
   const onQueryChange = (q: string | undefined) => { onFiltersChange({ q }, { replace: q !== undefined && filters.q !== undefined }); };
 
@@ -37,6 +43,15 @@ export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksS
       <SaveFab />
       <SaveSheet />
       <AddToSheet />
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        onSearch={onQueryChange}
+        onBookmarklet={() => { setBookmarkletOpen(true); }}
+        onShortcuts={() => { setShortcutsOpen(true); }}
+      />
+      <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <BookmarkletDialog open={bookmarkletOpen} onOpenChange={setBookmarkletOpen} />
     </AppShell>
   );
 }

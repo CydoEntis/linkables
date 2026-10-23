@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-react";
 import { useId, type KeyboardEvent } from "react";
 import { cn } from "cn";
+import { modKeyLabel } from "../search/shortcut-keys";
 import { useSearchText } from "../search/use-search-text";
 import { saveLinkFormSchema } from "./save-link-form";
 import { useSaveLinkForm } from "./use-save-link-form";
@@ -59,6 +60,7 @@ export function SaveBar({ className, query, onQueryChange }: SaveBarProps) {
           autoComplete="off"
           autoFocus
           data-search-field
+          data-save-field
           onKeyDown={onKeyDown}
           placeholder="Search or paste a link"
           aria-label="Search or paste a link"
@@ -86,6 +88,11 @@ export function SaveBar({ className, query, onQueryChange }: SaveBarProps) {
           >
             <X aria-hidden strokeWidth={2.2} className="size-4" />
           </button>
+        ) : null}
+        {value === "" ? (
+          <kbd aria-hidden className="mr-1.5 shrink-0 rounded-md px-2 py-[3px] font-mono text-[11px] font-medium text-subtle-foreground shadow-[inset_0_0_0_1px_var(--line-strong)]">
+            {modKeyLabel()}K
+          </kbd>
         ) : null}
       </label>
       {error ? (
