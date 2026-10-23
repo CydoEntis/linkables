@@ -1,3 +1,4 @@
+import { SEARCH_QUERY_MAX_LENGTH } from "@linkables/shared/links";
 import { Search, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useSearchText } from "./use-search-text";
@@ -27,6 +28,7 @@ export function PhoneSearchField({ query, onQueryChange }: PhoneSearchFieldProps
           onChange={(event) => { setText(event.target.value); }}
           onKeyDown={(event) => { if (event.key === "Escape") search.clear(); }}
           type="search"
+          maxLength={SEARCH_QUERY_MAX_LENGTH}
           enterKeyHint="search"
           autoComplete="off"
           data-search-field

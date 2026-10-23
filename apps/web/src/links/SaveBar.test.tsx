@@ -115,6 +115,15 @@ describe("SaveBar", () => {
     expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
   });
 
+  it("searches the first 200 characters of a longer search and says so", async () => {
+    answerSave(() => new Promise(() => undefined));
+    const { field, user, onQueryChange } = renderBar();
+    await user.click(field);
+    await user.paste(`${"word ".repeat(40)}extra`);
+    expect(screen.getByText("Searches use the first 200 characters.")).toBeInTheDocument();
+    await waitFor(() => { expect(onQueryChange).toHaveBeenCalledWith("word ".repeat(40).trim()); });
+  });
+
   it("shows the search from the URL and clears it with the Clear button", async () => {
     answerSave(() => Promise.resolve(null));
     const { field, user, onQueryChange } = renderBar("rust");
