@@ -69,8 +69,12 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
   with `NODE_ENV=test`. Never add another way around token verification.
 - Logs never contain a URL's query string or fragment; use the redacting logger.
 - Migrations are Drizzle migrations, committed, never edited after merge.
-- React: function components; server state in TanStack Query; all API calls go
-  through the one API client module. Screens follow `docs/design/handoff/`
+- Web stack (ADR-0006), one library per job: TanStack Query for server state;
+  TanStack Router for routes and URL state (typed, Zod-validated search params);
+  Zustand for client-only UI state, never a copy of server data; shadcn/ui on
+  Base UI with Lucide icons; Tailwind CSS v4 with the design tokens; Zod schemas
+  from `packages/shared`; react-hook-form for forms.
+- React: function components; all API calls go through the one API client module. Screens follow `docs/design/handoff/`
   (README for tokens, copy and behaviour; open `prototype.dc.html` to see it).
 - Forms: react-hook-form with `@hookform/resolvers/zod` and shadcn's form field
   components. Validate with the same Zod schemas from `packages/shared` that the

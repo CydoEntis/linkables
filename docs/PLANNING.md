@@ -44,8 +44,8 @@ from the work computer, with no Discord message and no open tab.
   and prompt in `docs/design/`. → [ADR-0006](adr/0006-ui-kit.md)
 - Screens follow the designer's handoff (`docs/design/handoff/`, dark theme only
   until a light theme is drawn). The UI calls the Inbox **To sort**; pinned items
-  sort first everywhere; Undo replaces confirm dialogs. Forms use react-hook-form
-  with the shared Zod schemas. → [ADR-0006](adr/0006-ui-kit.md)
+  sort first everywhere; Undo replaces confirm dialogs. Web stack: TanStack Query,
+  TanStack Router, Zustand, shadcn/ui, Tailwind CSS v4, Zod, react-hook-form. → [ADR-0006](adr/0006-ui-kit.md)
 - The API follows the Dev Deck API contract (envelope, 8 error codes, `/api/v1`
   prefix); P1-01 builds it. → `AGENTS.md`, API contract
 

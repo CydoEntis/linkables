@@ -28,6 +28,20 @@ Use **Tailwind CSS v4** and **shadcn/ui** on its default Base UI primitives, wit
 2026-10-22) is dark only, so Phase 1 ships the dark theme; Light and System come
 back when a light theme is drawn.
 
+**Web stack (owner decision, 2026-10-22).** These are the libraries for the web app
+and, later, the extension. Use them for their job; don't add a second library for
+the same job.
+
+| Job | Library |
+|---|---|
+| Server state (anything from the API) | TanStack Query |
+| Routing and URL state (search, filters, open link) | TanStack Router (code-based routes, typed search params validated with Zod) |
+| Client-only UI state (open panels, selection, swipe, drafts) | Zustand, small stores per feature, never a copy of server data |
+| Components | shadcn/ui on Base UI, Lucide icons |
+| Styling | Tailwind CSS v4 with the design tokens |
+| Validation and contracts | Zod, schemas shared from `packages/shared` |
+| Forms | react-hook-form with `@hookform/resolvers/zod` |
+
 **Forms** use react-hook-form with `@hookform/resolvers/zod` and shadcn's form field
 components. Fields validate with the shared Zod schemas from `packages/shared`, the
 same ones the API uses, so the client and server never disagree on a rule.
