@@ -46,7 +46,7 @@ describe("SaveAnywhereSteps", () => {
     expect(within(android).queryByRole("button", { name: "Install linkables" })).toBeNull();
   });
 
-  it("leads iPhone with the shortcut link, the three-step guide and the Safari sign-in note", () => {
+  it("leads iPhone with the shortcut link, the three-step guide and the browser sign-in note", () => {
     render(<SaveAnywhereSteps device="iphone" shortcutUrl={SHORTCUT} />);
     expect(leadCard()).toHaveAccessibleName("On iPhone or iPad");
     expect(screen.getByRole("link", { name: "Add the shortcut" })).toHaveAttribute("href", SHORTCUT);
@@ -55,7 +55,7 @@ describe("SaveAnywhereSteps", () => {
       expect.stringContaining("2. Add shortcut"),
       expect.stringContaining("3. Use it from Share"),
     ]);
-    expect(screen.getByText(/sign in to linkables in Safari/)).toBeVisible();
+    expect(screen.getByText(/default browser \(usually Safari\), so sign in to linkables there once/)).toBeVisible();
   });
 
   it("says the iPhone shortcut is coming soon, with no button, when it has no link yet", () => {

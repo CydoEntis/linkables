@@ -92,7 +92,7 @@ function IphoneSteps({ shortcutUrl }: { shortcutUrl: string | undefined }) {
     return (
       <>
         <Step>The iPhone shortcut is coming soon.</Step>
-        <Note>Until then, open linkables in Safari and paste a link to save it.</Note>
+        <Note>Until then, open linkables and paste a link to save it.</Note>
       </>
     );
   }
@@ -109,7 +109,7 @@ function IphoneSteps({ shortcutUrl }: { shortcutUrl: string | undefined }) {
         <ExternalLink aria-hidden className="size-[18px]" />
       </a>
       <ShortcutGuide />
-      <Note>The shortcut opens linkables in Safari, so sign in to linkables in Safari once. The home-screen app keeps its own sign-in.</Note>
+      <Note>The shortcut opens linkables in your default browser (usually Safari), so sign in to linkables there once. The home-screen app keeps its own sign-in.</Note>
     </>
   );
 }
