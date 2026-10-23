@@ -1,17 +1,17 @@
 import { ERROR_CODES } from "@linkables/shared/http";
 import { QueryClient } from "@tanstack/react-query";
-import { ApiError } from "./api/client";
+import { isApiError } from "./api/client";
 import { supabase } from "./auth/supabase";
 
 const MAX_RETRIES = 3;
 
-function isUnauthenticated(error: Error): boolean {
-  return error instanceof ApiError && error.code === ERROR_CODES.UNAUTHENTICATED;
+export function shouldRetry(failures: number, error: Error): boolean {
+  return failures < MAX_RETRIES && !isApiError(error, ERROR_CODES.UNAUTHENTICATED);
 }
 
 export const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: (failures, error) => failures < MAX_RETRIES && !isUnauthenticated(error) },
+    queries: { retry: shouldRetry },
   },
 });
 
