@@ -57,7 +57,12 @@ test.describe("at 1280 px", () => {
     await expect(page.getByText("1 link", { exact: true })).toBeVisible();
 
     const again = await openAddTo(page, row);
+    const refetched = page.waitForResponse(
+      (response) => response.url().startsWith(`${API_URL}/api/v1/links?collectionId=`) && response.request().method() === "GET",
+    );
     await again.getByRole("button", { name: "Rust" }).click();
+    await refetched;
+    await expect(again.getByRole("button", { name: "Rust" })).toHaveAttribute("aria-pressed", "false");
     await page.keyboard.press("Escape");
     await expect(page.getByRole("link", { name: row })).toHaveCount(0);
 
@@ -67,6 +72,7 @@ test.describe("at 1280 px", () => {
 
   test("closing Add to… returns focus to it, or to the next row when the link leaves", async ({ page, seedLinks, request, user }) => {
     await createCollection(request, user, "Rust");
+    await createCollection(request, user, "Books");
     await seedLinks([
       { url: "https://example.com/second", resource: { title: "Second link", fetchStatus: "fetched" } },
       { url: "https://example.com/first", resource: { title: "First link", fetchStatus: "fetched" } },
@@ -81,8 +87,20 @@ test.describe("at 1280 px", () => {
     await page.keyboard.press("Escape");
     await expect(addTo).toBeFocused();
 
+    // The refetch after filing no longer lists the link; the popover must stay open anyway.
     await page.keyboard.press("Enter");
-    await page.getByRole("dialog").getByRole("button", { name: "Rust" }).click();
+    const picker = page.getByRole("dialog");
+    const refetched = page.waitForResponse(
+      (response) => response.url() === `${API_URL}/api/v1/links?view=inbox` && response.request().method() === "GET",
+    );
+    await picker.getByRole("button", { name: "Rust" }).click();
+    const listed = (await (await refetched).json()) as { data: { items: { id: string }[] } };
+    expect(listed.data.items).toHaveLength(1);
+    await page.waitForTimeout(300);
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Books" }).click();
+    await expect(picker.getByRole("button", { name: "Books" })).toHaveAttribute("aria-pressed", "true");
+    await expect(picker.getByRole("button", { name: "Rust" })).toHaveAttribute("aria-pressed", "true");
     await page.keyboard.press("Escape");
     await expect(page.getByRole("link", { name: /^First link/ })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /^Second link/ })).toBeFocused();

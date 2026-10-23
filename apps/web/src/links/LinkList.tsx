@@ -7,6 +7,7 @@ import { LinkRow, type RowHighlight } from "./LinkRow";
 import { useLinksUi } from "./links-ui-store";
 import { LinksEmpty } from "./LinksEmpty";
 import { belongsIn, useLinks, type ListScope } from "./use-links";
+import { useHeldRow } from "./use-held-row";
 
 export function LinkList({ scope }: { scope: ListScope }) {
   const { query, loadMore } = useLinks(scope);
@@ -14,6 +15,7 @@ export function LinkList({ scope }: { scope: ListScope }) {
   const highlightFor = useRowHighlight();
   const leavingIds = useLinksUi((state) => state.leavingIds);
   const heldId = useLinksUi((state) => state.heldId);
+  const loaded = useHeldRow(query.data?.pages.flatMap((page) => page.items) ?? []);
 
   if (query.isPending) return <LinkListSkeleton />;
   if (query.isError && query.data === undefined) {
@@ -23,7 +25,7 @@ export function LinkList({ scope }: { scope: ListScope }) {
   // A link filed out of this list on this device goes at once (after its leave
   // animation), without waiting for the refetch; a held row waits for its popover.
   const stays = (link: SavedLink) => belongsIn(scope, link) || link.id === heldId;
-  const links = query.data.pages.flatMap((page) => page.items).filter((link) => stays(link) || leavingIds.includes(link.id));
+  const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
   if (links.length === 0) return <LinksEmpty scope={scope} />;
 
   const pinnedView = "view" in scope && scope.view === "pinned";
