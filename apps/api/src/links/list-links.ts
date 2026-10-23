@@ -6,7 +6,7 @@ import { collection, collectionItem, resource, savedLink } from "../db/schema";
 import { encodeCursor, type Cursor } from "./cursor";
 import { matchesSearch } from "./search";
 import { after, cursorAt, orderBy, sortKeys } from "./sort";
-import { toSavedLink } from "./to-saved-link";
+import { collectionsOf, toSavedLink } from "./to-saved-link";
 
 export type ListLinksInput = {
   userId: string;
@@ -72,7 +72,7 @@ export async function listLinks(db: Db, input: ListLinksInput): Promise<ListLink
   const { userId, sort, limit, cursor, collectionId } = input;
   if (collectionId !== undefined) await requireCollection(db, { userId, id: collectionId });
   const rows = await db
-    .select({ link: savedLink, resource, ...sortKeys })
+    .select({ link: savedLink, resource, collections: collectionsOf(userId), ...sortKeys })
     .from(savedLink)
     .innerJoin(resource, eq(resource.id, savedLink.resourceId))
     .where(and(matchesFilters(db, input), cursor ? await after(db, userId, cursor) : undefined))
@@ -82,7 +82,7 @@ export async function listLinks(db: Db, input: ListLinksInput): Promise<ListLink
   const page = rows.slice(0, limit);
   const last = page.at(-1);
   return {
-    items: page.map((row) => toSavedLink(row.link, row.resource)),
+    items: page.map((row) => toSavedLink(row.link, row.resource, row.collections)),
     cursor:
       rows.length > limit && last
         ? encodeCursor(cursorAt(sort, { ...last, id: last.link.id, pinned: last.link.pinned }))

@@ -5,7 +5,7 @@ import { fileLink } from "../collections/membership";
 import type { Db, Tx } from "../db/client";
 import { job, resource, savedLink } from "../db/schema";
 import { InternalError } from "../http/errors";
-import { toSavedLink } from "./to-saved-link";
+import { loadSavedLink } from "./to-saved-link";
 
 type ResourceRow = typeof resource.$inferSelect;
 
@@ -58,6 +58,6 @@ export function saveLink(db: Db, input: SaveLinkInput): Promise<SaveLinkResponse
     if (collectionId !== undefined) {
       await fileLink(tx, { userId: input.userId, collectionId, linkId: link.id });
     }
-    return { ...toSavedLink(link, res), duplicate };
+    return { ...(await loadSavedLink(tx, input.userId, link.id)), duplicate };
   });
 }
