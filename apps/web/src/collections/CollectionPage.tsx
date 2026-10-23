@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { LinksScreen } from "../links/LinksScreen";
 import { AppShell } from "../shell/AppShell";
 import { CollectionTitle } from "./CollectionTitle";
+import { useCollectionsUi, type PendingDelete } from "./collections-ui-store";
+import { displayName } from "./display-name";
 import { MiniCover } from "./MiniCover";
 import { linkCountLabel, ShareDialog } from "./ShareDialog";
 import { useCollections } from "./use-collections";
@@ -17,7 +19,9 @@ export function CollectionPage() {
   const { collectionId } = route.useParams();
   const collections = useCollections();
   const collection = collections.data?.find((item) => item.id === collectionId);
+  const pendingDelete = useCollectionsUi((state) => state.deleting[collectionId]);
 
+  if (pendingDelete) return <CollectionDeleted collectionId={collectionId} pending={pendingDelete} />;
   if (collections.isSuccess && collection === undefined) return <CollectionGone collectionId={collectionId} />;
   return (
     <LinksScreen
@@ -56,6 +60,22 @@ function CollectionHeader({ collection }: { collection: ListedCollection }) {
       </div>
       <ShareDialog collection={collection} open={sharing} onOpenChange={setSharing} />
     </div>
+  );
+}
+
+function CollectionDeleted({ collectionId, pending }: { collectionId: string; pending: PendingDelete }) {
+  return (
+    <AppShell scope={{ collectionId }}>
+      <div className="flex flex-col items-start gap-3 px-3 py-14 md:px-3.5">
+        <h1 className="text-[17px] font-bold md:text-xl">Deleted</h1>
+        <p className="text-sm text-muted-foreground md:text-[14.5px]">
+          {displayName(pending.name)} is deleted. Its links are still saved.
+        </p>
+        <Button variant="ghost" size="touch" onClick={pending.undo}>
+          Undo
+        </Button>
+      </div>
+    </AppShell>
   );
 }
 

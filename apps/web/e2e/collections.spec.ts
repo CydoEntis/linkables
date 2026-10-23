@@ -118,6 +118,16 @@ test.describe("at 1280 px", () => {
   });
 
 
+  test("going back to a collection inside its Undo window offers Undo", async ({ page, request, user }) => {
+    const japan = await createCollection(request, user, "trip to japan");
+    await page.goto(`/c/${japan.id}`);
+    await page.getByRole("button", { name: "Delete collection" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "All links" })).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole("heading", { level: 1, name: "Deleted" })).toBeVisible();
+    await page.getByRole("main").getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /^Trip to japan/ })).toBeVisible();
+  });
   test("renaming a collection to a name the user has says so", async ({ page, request, user }) => {
     await createCollection(request, user, "Rust");
     const recipes = await createCollection(request, user, "recipes");
