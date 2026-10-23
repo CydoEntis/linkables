@@ -23,7 +23,7 @@ from the work computer, with no Discord message and no open tab.
   worker loop, Postgres via Drizzle on Supabase (Postgres + Auth). No Supabase
   Storage in the MVP. Marketing site deferred.
 - Sign-in in Phase 1: email magic link / OTP.
-- Hosting: one long-running container; the owner intends a DigitalOcean server.
+- Hosting: one long-running container on the owner's Raspberry Pi, over Tailscale.
 
 ## Decisions
 

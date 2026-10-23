@@ -68,7 +68,9 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - The test auth path (`AUTH_TEST_JWKS`, the committed test key pair) works only
   with `NODE_ENV=test`. Never add another way around token verification.
 - Logs never contain a URL's query string or fragment; use the redacting logger.
-- Migrations are Drizzle migrations, committed, never edited after merge.
+- Migrations are Drizzle migrations, committed, never edited after merge. They
+  run before the new image goes live, so each one must still work with the
+  previous image (add before you use; drop only after nothing reads it).
 - Web stack (ADR-0006), one library per job: TanStack Query for server state;
   TanStack Router for routes and URL state (typed, Zod-validated search params);
   Zustand for client-only UI state, never a copy of server data; shadcn/ui on

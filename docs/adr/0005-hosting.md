@@ -1,6 +1,6 @@
 # ADR-0005: One long-running container for the API and worker; static SPA
 
-**Status:** accepted (2026-10-21); vendor intended, not yet purchased
+**Status:** accepted (2026-10-21); host settled 2026-10-23 (see Update)
 
 ## Problem
 
@@ -43,3 +43,19 @@ for secrets; deploys from CI on `main`.
 
 - Uptime matters to other users (Phase 3 and later).
 - Server upkeep costs more time than a managed host would cost money.
+
+## Update (2026-10-23): the owner's Raspberry Pi over Tailscale
+
+The host is the owner's own Raspberry Pi (arm64, Ubuntu 24.04) at home, not a
+DigitalOcean droplet. It is reachable only over the owner's Tailscale network,
+which also supplies TLS (`tailscale serve`), so there is no public reverse proxy.
+
+Because CI cannot reach a machine that is only on Tailscale, the deploy is
+pull-based: CI migrates Supabase and pushes arm64 images to GHCR, and a systemd
+timer on the Pi pulls and restarts them every 5 minutes. A Caddy container
+serves the SPA and proxies the API on the same origin. Setup and operation are
+in `deploy/README.md`.
+
+The constraints above still hold. Revisit when someone outside the owner's
+tailnet needs access: that needs a public address (Tailscale Funnel or a
+cloud host).
