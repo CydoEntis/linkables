@@ -3,15 +3,15 @@ import { Button } from "@/components/ui/button";
 import { ApiError, NETWORK_ERROR } from "../api/client";
 import { groupLinks } from "./link-groups";
 import { LinkRow, type RowHighlight } from "./LinkRow";
+import { useLinksUi } from "./links-ui-store";
 import { LinksEmpty } from "./LinksEmpty";
 import type { LinksView } from "./links-search";
 import { useLinks } from "./use-links";
 
-type LinkListProps = { view: LinksView; highlightFor?: (linkId: string) => RowHighlight | undefined };
-
-export function LinkList({ view, highlightFor }: LinkListProps) {
+export function LinkList({ view }: { view: LinksView }) {
   const { query, loadMore } = useLinks(view);
   const now = useNow();
+  const highlightFor = useRowHighlight();
 
   if (query.isPending) return <LinkListSkeleton />;
   if (query.isError && query.data === undefined) {
@@ -35,7 +35,7 @@ export function LinkList({ view, highlightFor }: LinkListProps) {
           <ul>
             {group.links.map((link) => (
               <li key={link.id}>
-                <LinkRow link={link} now={now} inToSort={view === "inbox"} highlight={highlightFor?.(link.id)} />
+                <LinkRow link={link} now={now} inToSort={view === "inbox"} highlight={highlightFor(link.id)} />
               </li>
             ))}
           </ul>
@@ -54,6 +54,12 @@ export function LinkList({ view, highlightFor }: LinkListProps) {
       ) : null}
     </div>
   );
+}
+
+function useRowHighlight(): (linkId: string) => RowHighlight | undefined {
+  const hopId = useLinksUi((state) => state.hopId);
+  const flashId = useLinksUi((state) => state.flashId);
+  return (linkId) => (linkId === hopId ? "hop" : linkId === flashId ? "flash" : undefined);
 }
 
 const MINUTE = 60_000;
