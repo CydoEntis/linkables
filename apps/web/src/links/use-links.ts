@@ -15,17 +15,34 @@ const PENDING_BACKOFF = [
   { untilAgeMs: 120_000, intervalMs: 15_000 },
 ] as const;
 
+// A list is one of the views, or one collection's links.
+export type ListScope = { view: LinksView } | { collectionId: string };
+
 export const linksKeys = {
   all: ["links"] as const,
   list: (view: LinksView) => ["links", "list", view] as const,
+  collection: (collectionId: string) => ["links", "list", "collection", collectionId] as const,
 };
+
+export function scopeKey(scope: ListScope) {
+  return "view" in scope ? linksKeys.list(scope.view) : linksKeys.collection(scope.collectionId);
+}
+
+// Whether a link still belongs in a list after a change made on this device.
+export function belongsIn(scope: ListScope, link: SavedLink): boolean {
+  if ("collectionId" in scope) return link.collections.some((collection) => collection.id === scope.collectionId);
+  if (scope.view === "inbox") return link.collections.length === 0;
+  if (scope.view === "pinned") return link.pinned;
+  return true;
+}
 
 export type LinksPages = InfiniteData<ListLinksResponse, string | undefined>;
 
-function listPath(view: LinksView, cursor: string | undefined): string {
+function listPath(scope: ListScope, cursor: string | undefined): string {
   const params = new URLSearchParams();
-  if (view === "inbox") params.set("view", "inbox");
-  if (view === "pinned") params.set("pinned", "true");
+  if ("collectionId" in scope) params.set("collectionId", scope.collectionId);
+  else if (scope.view === "inbox") params.set("view", "inbox");
+  else if (scope.view === "pinned") params.set("pinned", "true");
   if (cursor !== undefined) params.set("cursor", cursor);
   const query = params.toString();
   return query ? `/links?${query}` : "/links";
@@ -49,13 +66,13 @@ export function pendingPoller() {
   };
 }
 
-export function useLinks(view: LinksView) {
+export function useLinks(scope: ListScope) {
   const queryClient = useQueryClient();
-  const queryKey = linksKeys.list(view);
+  const queryKey = scopeKey(scope);
   const [pendingInterval] = useState(pendingPoller);
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam, signal }) => api.request(listPath(view, pageParam), listLinksResponseSchema, { signal }),
+    queryFn: ({ pageParam, signal }) => api.request(listPath(scope, pageParam), listLinksResponseSchema, { signal }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor ?? undefined,
     refetchInterval: (current) => pendingInterval(current.state.data, Date.now()),

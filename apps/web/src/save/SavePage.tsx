@@ -26,7 +26,7 @@ export function SharedSave({ sharedUrl }: { sharedUrl: string | null }) {
 
 // The list query already polls pending rows, so the title appears once the metadata lands.
 function SavedScreen({ link, ...screen }: Parameters<typeof SaveScreen>[0] & { link: SaveLinkResponse }) {
-  const { query } = useLinks("all");
+  const { query } = useLinks({ view: "all" });
   const listed = query.data?.pages.flatMap((page) => page.items).find((item) => item.id === link.id);
   return <SaveScreen {...screen} title={displayTitle(listed ?? link).text} />;
 }

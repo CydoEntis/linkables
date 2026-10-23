@@ -1,5 +1,6 @@
 import { createRootRoute, createRoute, createRouter, stripSearchParams } from "@tanstack/react-router";
 import { AuthGate } from "./auth/AuthGate";
+import { CollectionPage } from "./collections/CollectionPage";
 import { SignInPage } from "./auth/SignInScreen";
 import { LinksPage } from "./links/LinksPage";
 import { DEFAULT_LINKS_SEARCH, linksSearchSchema } from "./links/links-search";
@@ -18,6 +19,13 @@ const linksRoute = createRoute({
   component: LinksPage,
 });
 
+// A collection is a place of its own (shareable later), so it gets a path, not a ?view= value.
+const collectionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/c/$collectionId",
+  component: CollectionPage,
+});
+
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sign-in",
@@ -31,7 +39,9 @@ const saveRoute = createRoute({
   component: SavePage,
 });
 
-export const router = createRouter({ routeTree: rootRoute.addChildren([linksRoute, signInRoute, saveRoute]) });
+export const router = createRouter({
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute]),
+});
 
 declare module "@tanstack/react-router" {
   interface Register {

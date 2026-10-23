@@ -19,7 +19,7 @@ function renderList(view: LinksView = "all") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <LinkList view={view} />
+      <LinkList scope={{ view }} />
     </QueryClientProvider>,
   );
 }

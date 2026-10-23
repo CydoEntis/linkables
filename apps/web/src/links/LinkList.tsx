@@ -5,11 +5,10 @@ import { groupLinks } from "./link-groups";
 import { LinkRow, type RowHighlight } from "./LinkRow";
 import { useLinksUi } from "./links-ui-store";
 import { LinksEmpty } from "./LinksEmpty";
-import type { LinksView } from "./links-search";
-import { useLinks } from "./use-links";
+import { useLinks, type ListScope } from "./use-links";
 
-export function LinkList({ view }: { view: LinksView }) {
-  const { query, loadMore } = useLinks(view);
+export function LinkList({ scope }: { scope: ListScope }) {
+  const { query, loadMore } = useLinks(scope);
   const now = useNow();
   const highlightFor = useRowHighlight();
 
@@ -19,9 +18,10 @@ export function LinkList({ view }: { view: LinksView }) {
   }
 
   const links = query.data.pages.flatMap((page) => page.items);
-  if (links.length === 0) return <LinksEmpty view={view} />;
+  if (links.length === 0) return <LinksEmpty scope={scope} />;
 
-  const groups = groupLinks(links, now, { pinnedGroup: view !== "pinned" });
+  const pinnedView = "view" in scope && scope.view === "pinned";
+  const groups = groupLinks(links, now, { pinnedGroup: !pinnedView });
   return (
     <div className="flex flex-col gap-2 md:gap-[22px]">
       {groups.map((group) => (
@@ -35,7 +35,12 @@ export function LinkList({ view }: { view: LinksView }) {
           <ul>
             {group.links.map((link) => (
               <li key={link.id}>
-                <LinkRow link={link} now={now} highlight={highlightFor(link.id)} />
+                <LinkRow
+                  link={link}
+                  now={now}
+                  inCollection={"collectionId" in scope}
+                  highlight={highlightFor(link.id)}
+                />
               </li>
             ))}
           </ul>

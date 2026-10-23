@@ -1,9 +1,10 @@
 import type { LinksView } from "./links-search";
 import { deviceShareTip } from "./share-tip";
+import type { ListScope } from "./use-links";
 
 type EmptyCopy = { title: string; web: string; phone: string };
 
-const EMPTY_COPY: Record<LinksView, EmptyCopy> = {
+const EMPTY_COPY: Record<LinksView | "collection", EmptyCopy> = {
   all: {
     title: "No links yet",
     web: "Paste a link above to save it. You can sort it later.",
@@ -19,11 +20,16 @@ const EMPTY_COPY: Record<LinksView, EmptyCopy> = {
     web: "Every link is in a collection. New saves will show up here.",
     phone: "New saves will show up here.",
   },
+  collection: {
+    title: "Nothing here yet",
+    web: "Drag a link onto this collection in the sidebar, or use Add to….",
+    phone: "Swipe a link left and tap Add to.",
+  },
 };
 
-export function LinksEmpty({ view }: { view: LinksView }) {
-  const copy = EMPTY_COPY[view];
-  const tip = view === "all" ? deviceShareTip() : null;
+export function LinksEmpty({ scope }: { scope: ListScope }) {
+  const copy = EMPTY_COPY["view" in scope ? scope.view : "collection"];
+  const tip = "view" in scope && scope.view === "all" ? deviceShareTip() : null;
   return (
     <div className="flex animate-fade-in flex-col gap-1.5 px-3 py-10 md:gap-2 md:px-3.5 md:py-14">
       <p className="text-[17px] font-bold md:text-xl">{copy.title}</p>

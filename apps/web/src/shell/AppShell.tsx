@@ -1,15 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "cn";
-import { LINKS_VIEWS, VIEW_LABELS, type LinksView } from "../links/links-search";
+import { LINKS_VIEWS, VIEW_LABELS } from "../links/links-search";
+import type { ListScope } from "../links/use-links";
 import { AccountMenu } from "./AccountMenu";
 import { Wordmark } from "./Wordmark";
 
-type AppShellProps = { view: LinksView; children: ReactNode };
+type AppShellProps = { scope: ListScope; children: ReactNode };
 
 // shortcut: the sidebar shows no counts yet; the API has no count endpoint, and
 // counting loaded pages would be wrong past the first page.
-export function AppShell({ view, children }: AppShellProps) {
+export function AppShell({ scope, children }: AppShellProps) {
+  const view = "view" in scope ? scope.view : undefined;
+
   return (
     <div className="min-h-svh md:grid md:grid-cols-[272px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-svh flex-col gap-6 border-r border-border bg-sidebar px-4 pt-6 pb-4 md:flex">
