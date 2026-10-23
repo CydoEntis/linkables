@@ -22,6 +22,10 @@ type LinksUi = {
   setSwipeOpenId: (linkId: string | null) => void;
   draggingId: string | null;
   setDraggingId: (linkId: string | null) => void;
+  // Deleted on this device but still inside the Undo window: hidden everywhere.
+  deletingIds: readonly string[];
+  startDeleting: (linkId: string) => void;
+  stopDeleting: (linkId: string) => void;
 };
 
 const HIGHLIGHT_MS = 1500;
@@ -64,4 +68,7 @@ export const useLinksUi = create<LinksUi>()((set, get) => ({
   setSwipeOpenId: (linkId) => { set({ swipeOpenId: linkId }); },
   draggingId: null,
   setDraggingId: (linkId) => { set({ draggingId: linkId }); },
+  deletingIds: [],
+  startDeleting: (linkId) => { set({ deletingIds: [...get().deletingIds.filter((id) => id !== linkId), linkId] }); },
+  stopDeleting: (linkId) => { set({ deletingIds: get().deletingIds.filter((id) => id !== linkId) }); },
 }));

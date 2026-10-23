@@ -1,5 +1,5 @@
 import type { SavedLink } from "@linkables/shared/links";
-import { Pin, Plus, Share } from "lucide-react";
+import { Pin, Plus, Share, Trash2 } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import { cn } from "cn";
 import { AddToPopover } from "../collections/AddToPopover";
@@ -8,6 +8,7 @@ import { displayTitle, domainOf, filedLabel, relativeTime, safeHref, savedFromLa
 import { LinkThumb } from "./LinkThumb";
 import { useLinksUi } from "./links-ui-store";
 import { copyLink } from "./share-link";
+import { useDeleteLink } from "./use-delete-link";
 import { isPending } from "./use-links";
 import { usePinLink } from "./use-pin-link";
 import { useSwipe } from "./use-swipe";
@@ -16,8 +17,8 @@ export type RowHighlight = "hop" | "flash";
 
 export const LINK_DRAG_TYPE = "application/x-linkables-link";
 
-// Three 60 px tiles, 6 px apart, inside 6 px of padding.
-const TILES_WIDTH = 3 * 60 + 2 * 6 + 2 * 6;
+// Four 60 px tiles, 6 px apart, inside 6 px of padding.
+const TILES_WIDTH = 4 * 60 + 3 * 6 + 2 * 6;
 const TEXT_FADE_PX = 120;
 
 type LinkRowProps = {
@@ -36,6 +37,7 @@ type LinkRowProps = {
 // The row opens the saved URL itself; link details come in a later version.
 export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
+  const deleteLink = useDeleteLink();
   const swipeOpen = useLinksUi((state) => state.swipeOpenId === link.id);
   const setSwipeOpenId = useLinksUi((state) => state.setSwipeOpenId);
   const swipe = useSwipe({
@@ -45,9 +47,10 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
   });
   const href = safeHref(link.originalUrl);
   const textOpacity = Math.max(0, 1 + swipe.offset / TEXT_FADE_PX);
+  const rowRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
+    <div ref={rowRef} data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
       <a
         href={href}
         target={href ? "_blank" : undefined}
@@ -85,6 +88,13 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
         onPin={() => {
           setSwipeOpenId(null);
           pin.toggle();
+        }}
+        onDelete={() => {
+          setSwipeOpenId(null);
+          // The row is about to go, so a keyboard user's focus moves to the next one.
+          const row = rowRef.current;
+          if (row?.contains(document.activeElement)) neighbourRowLink(row)?.focus();
+          deleteLink(link.id);
         }}
       />
     </div>
@@ -227,12 +237,13 @@ type SwipeTilesProps = {
   onAddTo: () => void;
   onShare: () => void;
   onPin: () => void;
+  onDelete: () => void;
 };
 
 const TILE = "flex w-[60px] flex-col items-center justify-center gap-[3px] rounded-[11px] text-[11px] font-semibold";
 
 // The phone's swipe-left actions. Keyboard focus opens them as a swipe would.
-function SwipeTiles({ label, offset, animate, pinned, onFocus, onAddTo, onShare, onPin }: SwipeTilesProps) {
+function SwipeTiles({ label, offset, animate, pinned, onFocus, onAddTo, onShare, onPin, onDelete }: SwipeTilesProps) {
   return (
     <div
       role="group"
@@ -252,6 +263,10 @@ function SwipeTiles({ label, offset, animate, pinned, onFocus, onAddTo, onShare,
       <button type="button" aria-pressed={pinned} onClick={onPin} className={cn(TILE, pinned ? "bg-foreground text-background" : "bg-accent")}>
         <Pin aria-hidden strokeWidth={2.2} className={cn("size-4", pinned && "fill-current")} />
         {pinned ? "Pinned" : "Pin"}
+      </button>
+      <button type="button" onClick={onDelete} className={cn(TILE, "bg-destructive-solid text-white")}>
+        <Trash2 aria-hidden strokeWidth={2} className="size-4" />
+        Delete
       </button>
     </div>
   );
