@@ -2,6 +2,7 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { z } from "zod";
 import { env } from "../config/env";
+import { DEFAULT_LINKS_SEARCH, linksSearchSchema } from "../links/links-search";
 import { Wordmark } from "../shell/Wordmark";
 import { currentSaveDevice } from "./save-device";
 import { SaveAnywhereSteps } from "./SaveAnywhereSteps";
@@ -10,12 +11,16 @@ import { markWelcomeSeen } from "./welcome";
 export const SAVE_ANYWHERE_PATH = "/save-from-anywhere";
 
 // welcome: shown as the first-sign-in prompt, which the user may skip.
-export const saveAnywhereSearchSchema = z.object({ welcome: z.boolean().optional().catch(undefined) });
+// back: the list's search the prompt interrupted, so leaving returns to it.
+export const saveAnywhereSearchSchema = z.object({
+  welcome: z.boolean().optional().catch(undefined),
+  back: linksSearchSchema.optional().catch(undefined),
+});
 
 const route = getRouteApi(SAVE_ANYWHERE_PATH);
 
 export function SaveAnywherePage() {
-  const { welcome = false } = route.useSearch();
+  const { welcome = false, back = DEFAULT_LINKS_SEARCH } = route.useSearch();
   useEffect(markWelcomeSeen, []);
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-[600px] flex-col gap-6 px-4 pt-[max(16px,env(safe-area-inset-top))] pb-16 md:pt-10">
@@ -23,7 +28,7 @@ export function SaveAnywherePage() {
         <Link to="/" className="flex min-h-11 items-center rounded-md" aria-label="linkables, All links">
           <Wordmark />
         </Link>
-        <Link to="/" className="flex min-h-11 items-center rounded-md px-2 text-[14.5px] font-semibold text-muted-foreground hover:text-foreground">
+        <Link to="/" search={back} className="flex min-h-11 items-center rounded-md px-2 text-[14.5px] font-semibold text-muted-foreground hover:text-foreground">
           {welcome ? "Skip" : "Back to links"}
         </Link>
       </header>

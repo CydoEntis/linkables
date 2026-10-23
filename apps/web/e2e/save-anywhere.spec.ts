@@ -75,7 +75,7 @@ test.describe("the first time this device sees the signed-in app", () => {
 
   test("Save from anywhere shows once, can be skipped, and stays skipped after a reload", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveURL(/\/save-from-anywhere\?welcome=true$/);
+    await expect(page).toHaveURL(/\/save-from-anywhere\?welcome=true/);
     await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
 
     await page.getByRole("link", { name: "Skip" }).click();
@@ -84,6 +84,14 @@ test.describe("the first time this device sees the signed-in app", () => {
     await page.reload();
     await expect(page.getByRole("heading", { name: "All links", level: 1 })).toBeVisible();
     expect(new URL(page.url()).pathname).toBe("/");
+  });
+
+  test("Skip returns to the view the app was opened on", async ({ page }) => {
+    await page.goto("/?view=inbox");
+    await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
+    await page.getByRole("link", { name: "Skip" }).click();
+    await expect(page.getByRole("heading", { name: "To sort", level: 1 })).toBeVisible();
+    expect(new URL(page.url()).search).toBe("?view=inbox");
   });
 });
 

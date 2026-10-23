@@ -8,10 +8,11 @@ import { LinksScreen } from "./LinksScreen";
 const route = getRouteApi("/");
 
 export function LinksPage() {
-  const { view } = route.useSearch();
+  const search = route.useSearch();
+  const { view } = search;
   // The first time this device sees the signed-in app, it shows how to save from
   // anywhere. Only here: a shared /c/… or /save link opens what it points to.
-  if (!welcomeSeen()) return <Navigate to={SAVE_ANYWHERE_PATH} search={{ welcome: true }} replace />;
+  if (!welcomeSeen()) return <Navigate to={SAVE_ANYWHERE_PATH} search={{ welcome: true, back: search }} replace />;
 
   return (
     <>
