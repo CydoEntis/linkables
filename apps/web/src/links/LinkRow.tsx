@@ -1,10 +1,12 @@
 import type { SavedLink } from "@linkables/shared/links";
+import { Link } from "@tanstack/react-router";
 import { Pin, Plus, Share, Trash2 } from "lucide-react";
-import { useRef, useState, type DragEvent } from "react";
+import { useRef, useState, type DragEvent, type MouseEvent } from "react";
 import { cn } from "cn";
 import { AddToPopover } from "../collections/AddToPopover";
+import { useLinkDetails } from "../link-details/details-search";
+import { displayTitle, domainOf, filedLabel, relativeTime, savedFromLabel } from "./link-display";
 import { MatchedText } from "../search/MatchedText";
-import { displayTitle, domainOf, filedLabel, relativeTime, safeHref, savedFromLabel } from "./link-display";
 import { LinkThumb } from "./LinkThumb";
 import { useLinksUi } from "./links-ui-store";
 import { copyLink } from "./share-link";
@@ -34,9 +36,10 @@ type LinkRowProps = {
   query?: string | undefined;
 };
 
-// The row opens the saved URL itself; link details come in a later version.
+// The row opens the link's details; Open ↗ in the details goes to the saved URL.
 export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
+  const details = useLinkDetails();
   const deleteLink = useDeleteLink();
   const swipeOpen = useLinksUi((state) => state.swipeOpenId === link.id);
   const setSwipeOpenId = useLinksUi((state) => state.setSwipeOpenId);
@@ -45,31 +48,31 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
     open: swipeOpen,
     onOpenChange: (open) => { setSwipeOpenId(open ? link.id : null); },
   });
-  const href = safeHref(link.originalUrl);
   const textOpacity = Math.max(0, 1 + swipe.offset / TEXT_FADE_PX);
   const rowRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <div ref={rowRef} data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
-      <a
-        href={href}
-        target={href ? "_blank" : undefined}
-        rel="noopener noreferrer"
-        draggable={href !== undefined}
+      <Link
+        to="."
+        search={(prev) => ({ ...prev, link: link.id })}
+        aria-current={details.linkId === link.id ? "true" : undefined}
+        onClick={(event) => { openDetails(event, () => { details.open(link.id); }); }}
+        draggable
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
         {...swipe.handlers}
         data-row-link
+        data-link-id={link.id}
         className={cn(
-          "flex touch-pan-y items-center gap-3 rounded-xl py-2.5 pr-3.5 pl-3 transition-colors group-hover/row:bg-row-hover focus-visible:outline-offset-0 max-md:select-none md:gap-4 md:px-3.5",
+          "flex touch-pan-y items-center gap-3 rounded-xl py-2.5 pr-3.5 pl-3 transition-colors group-hover/row:bg-row-hover focus-visible:outline-offset-0 aria-[current]:bg-row-hover max-md:select-none md:gap-4 md:px-3.5",
           highlight === "hop" && "animate-hop",
           highlight === "flash" && "animate-glow",
         )}
       >
         <LinkThumb link={link} />
         <RowText link={link} now={now} inCollection={inCollection} pinned={pin.pinned} opacity={textOpacity} query={query} />
-        {href ? <span className="sr-only">(opens in a new tab)</span> : null}
-      </a>
+      </Link>
       <RowActions link={link} belongs={belongs} pinned={pin.pinned} onPin={pin.toggle} />
       <SwipeTiles
         label={displayTitle(link).text}
@@ -101,7 +104,18 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
   );
 }
 
+// A plain click opens the details in place; a modified click is left to the
+// browser (a new tab with the same details), and a swipe has already cancelled it.
+function openDetails(event: MouseEvent<HTMLAnchorElement>, open: () => void) {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  open();
+}
+
+// Dragged out of the app, the row carries the saved URL, not the details address.
 function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
+  event.dataTransfer.setData("text/uri-list", link.originalUrl);
+  event.dataTransfer.setData("text/plain", link.originalUrl);
   event.dataTransfer.setData(LINK_DRAG_TYPE, link.id);
   event.dataTransfer.effectAllowed = "copyLink";
   useLinksUi.getState().setDraggingId(link.id);
@@ -221,7 +235,7 @@ function ownsFocus(trigger: HTMLElement): boolean {
   return Boolean(active.closest("[data-slot=popover-content]")) || Boolean(trigger.closest("[data-row]")?.contains(active));
 }
 
-function neighbourRowLink(from: HTMLElement): HTMLElement | null {
+export function neighbourRowLink(from: HTMLElement): HTMLElement | null {
   const links = [...document.querySelectorAll<HTMLElement>("[data-row-link]")];
   const own = from.closest("[data-row]")?.querySelector<HTMLElement>("[data-row-link]");
   const index = own ? links.indexOf(own) : -1;

@@ -33,12 +33,13 @@ export function relativeTime(savedAt: string, now: number): string {
   if (elapsed < MINUTE) return "now";
   if (elapsed < HOUR) return `${String(Math.floor(elapsed / MINUTE))}m`;
   if (elapsed < DAY) return `${String(Math.floor(elapsed / HOUR))}h`;
+  return shortDate(at, now);
+}
+
+// "Oct 20", with the year only when it is not this year.
+function shortDate(at: number, now: number): string {
   const sameYear = new Date(at).getFullYear() === new Date(now).getFullYear();
-  return new Date(at).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: sameYear ? undefined : "numeric",
-  });
+  return new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
 }
 
 // The handoff's letter tile: hue = hash(domain) × 47 mod 360.
@@ -55,13 +56,26 @@ export function filedLabel(collections: SavedLink["collections"]): string {
   return `in ${displayName(first.name)}${rest.length > 0 ? ` +${String(rest.length)}` : ""}`;
 }
 
-const SAVED_FROM_LABELS: Partial<Record<NonNullable<SavedLink["savedFrom"]>, string>> = {
-  iphone: "from iPhone",
-  ipad: "from iPad",
-  android: "from Android",
+const MOBILE_DEVICES: Partial<Record<NonNullable<SavedLink["savedFrom"]>, string>> = {
+  iphone: "iPhone",
+  ipad: "iPad",
+  android: "Android",
 };
+
+function mobileDevice(source: SavedLink["savedFrom"]): string | null {
+  return source === null ? null : (MOBILE_DEVICES[source] ?? null);
+}
 
 // Only a save from a phone or tablet is worth a mention; the desktop is the default place.
 export function savedFromLabel(source: SavedLink["savedFrom"]): string | null {
-  return source === null ? null : (SAVED_FROM_LABELS[source] ?? null);
+  const device = mobileDevice(source);
+  return device ? `from ${device}` : null;
+}
+
+// Link details: "Saved Oct 20 · on iPhone", or "Saved just now" (handoff 2).
+export function savedOnLabel(link: SavedLink, now: number): string {
+  const at = Date.parse(link.savedAt);
+  const when = now - at < MINUTE ? "just now" : shortDate(at, now);
+  const device = mobileDevice(link.savedFrom);
+  return `Saved ${when}${device ? ` · on ${device}` : ""}`;
 }
