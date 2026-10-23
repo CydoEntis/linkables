@@ -1,5 +1,5 @@
 import { EXPORT_FORMAT_VERSION, type ExportResponse } from "@linkaroo/shared/export";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { Db, Tx } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
 
@@ -18,11 +18,14 @@ async function collectionIdsByLink(tx: Tx, userId: string): Promise<Map<string, 
     .select({ linkId: collectionItem.savedLinkId, collectionId: collectionItem.collectionId })
     .from(collectionItem)
     .innerJoin(collection, eq(collection.id, collectionItem.collectionId))
-    .where(eq(collection.userId, userId))
+    .innerJoin(savedLink, eq(savedLink.id, collectionItem.savedLinkId))
+    .where(and(eq(collection.userId, userId), eq(savedLink.userId, userId)))
     .orderBy(asc(collection.createdAt), asc(collection.id));
   const byLink = new Map<string, string[]>();
   for (const { linkId, collectionId } of rows) {
-    byLink.set(linkId, [...(byLink.get(linkId) ?? []), collectionId]);
+    const ids = byLink.get(linkId);
+    if (ids === undefined) byLink.set(linkId, [collectionId]);
+    else ids.push(collectionId);
   }
   return byLink;
 }
