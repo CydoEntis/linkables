@@ -27,7 +27,17 @@ Contrast was measured in headless Chrome with the WCAG formula.
 - **⌘K hint** in the bar: hidden until the command palette exists, so it promises nothing that does not work.
 - **"In X" / "To sort" in row meta, and the lime To sort dot outside the To sort view**: the API reports no per-link collections yet, so only the To sort view knows its links are unsorted.
 - **"Saved · Add to…" toast** after a new save, and **"Already saved in X"**: both need collections. A duplicate says "Already saved" and flashes the existing row.
-- **Share target**: the sheet tip and the phone empty state mention Share → linkables, as designed, but the PWA share target is not built yet.
+- **iPhone saving from Share**: the shortcut and its setup guide are a later ticket. Until then the sheet tip and empty state on iPhone say "Saving from Share on iPhone is coming soon" instead of the handoff's "tap Share, then linkables".
+- **"Save from anywhere" welcome, desktop bookmark button, drag and drop, and "See other ways"** (save-anywhere prompt screens 1, 4, 5 and 7): later tickets.
+- **New collection on the share card**: the card ticks existing collections only; creating one comes with the collections UI.
+- **App icons are placeholders**: rendered from `assets/linkables-logo.png` (the 3D render) on the `--bg` colour. The designer's flat SVG logo is still pending; the icons are redrawn from it when it lands.
+
+## Share flow (`/save`)
+
+- **A full page, not a sheet over the other app.** Android opens a share target as the installed app, so the "Saved to linkables" card fills the screen instead of rising over YouTube. The card's content follows the handoff: lime ✓ with confetti, title, up to four collections to tick, "All collections ›", Undo.
+- **"Open linkables" instead of "Done"**, and the page does not close itself on Android: a web page cannot close an app window it did not open. Only the desktop bookmark popup (`?popup=1`) closes itself, 4 s after a save unless it is touched.
+- **Share copy follows the device.** Android shows "add linkables to your home screen, then … Share → linkables" until installed, then "in any app, tap Share, then linkables". Desktop shows no tip, since it has no share target.
+- **One theme colour** (`#121212`) for light and dark in the manifest and `theme-color`: only the dark theme is drawn.
 
 ## Added where the handoff is silent
 
@@ -36,4 +46,5 @@ Contrast was measured in headless Chrome with the WCAG formula.
 - **Pending rows stop polling** two minutes after this device first sees the newest pending row (2 s, then 5 s, then 15 s); a row still pending after that keeps "Getting details…" until the list next loads.
 - **Phone save button** stays enabled while grey; pressing it with an invalid link shows the reason instead of doing nothing.
 - **Fonts are self-hosted** (Fontsource packages) instead of loaded from Google Fonts, so a page view does not tell a font CDN who uses linkables.
-- **Sign-in screens** keep their earlier look; the handoff does not cover them.
+- **Sign-in screens** keep their earlier look; the handoff does not cover them. Arriving from a share while signed out, the heading reads "Sign in to save this link", and the save finishes after sign-in.
+- **Removed state** on `/save` after Undo ("Removed"), and an error state with Retry: the prompt lists neither.
