@@ -16,10 +16,10 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 
 // Pinned first, then most recently used: the API's order.
 export function useCollections() {
-  const deletingIds = useCollectionsUi((state) => state.deletingIds);
+  const deleting = useCollectionsUi((state) => state.deleting);
   const select = useCallback(
-    (data: ListCollectionsResponse): ListedCollection[] => data.items.filter((item) => !deletingIds.includes(item.id)),
-    [deletingIds],
+    (data: ListCollectionsResponse): ListedCollection[] => data.items.filter((item) => !(item.id in deleting)),
+    [deleting],
   );
   return useQuery({
     queryKey: collectionsKeys.all,

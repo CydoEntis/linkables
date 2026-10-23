@@ -40,17 +40,17 @@ function refresh(queryClient: QueryClient) {
 
 // A delete that is already gone on the server counts as done.
 async function sendDelete(queryClient: QueryClient, collection: Deletable) {
-  const { unhide } = useCollectionsUi.getState();
+  const { stopDeleting } = useCollectionsUi.getState();
   try {
     await api.request(`/collections/${collection.id}`, z.null(), { method: "DELETE" });
   } catch (error) {
     if (!isApiError(error, ERROR_CODES.NOT_FOUND)) {
-      unhide(collection.id);
+      stopDeleting(collection.id);
       toast.error(`Couldn't delete ${displayName(collection.name)}. Try again.`);
     }
   }
   await refresh(queryClient);
-  unhide(collection.id);
+  stopDeleting(collection.id);
 }
 
 // Undo instead of a confirm: the collection disappears at once, and the DELETE
@@ -62,6 +62,7 @@ export function useDeleteCollection() {
   const navigate = useNavigate();
 
   return (collection: Deletable) => {
+    const toastId = crypto.randomUUID();
     let settled = false;
     const send = () => {
       if (settled) return;
@@ -71,14 +72,21 @@ export function useDeleteCollection() {
     const undo = () => {
       if (settled) return;
       settled = true;
-      useCollectionsUi.getState().unhide(collection.id);
+      useCollectionsUi.getState().stopDeleting(collection.id);
       void queryClient.invalidateQueries({ queryKey: linksKeys.all });
     };
 
-    useCollectionsUi.getState().hide(collection.id);
+    useCollectionsUi.getState().startDeleting(collection.id, {
+      name: collection.name,
+      undo: () => {
+        undo();
+        toast.dismiss(toastId);
+      },
+    });
     forgetInLinks(queryClient, collection.id);
     void navigate({ to: "/" });
     toast(`Deleted ${displayName(collection.name)}. Its links are still saved.`, {
+      id: toastId,
       duration: DELETE_UNDO_MS,
       onAutoClose: send,
       onDismiss: send,
