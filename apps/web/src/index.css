@@ -21,65 +21,143 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --color-sidebar: var(--sidebar);
+    --color-row-hover: var(--row-hover);
+    --color-line-strong: var(--line-strong);
+    --color-subtle-foreground: var(--subtle-foreground);
+    --color-primary-soft: var(--primary-soft);
+    --color-scrim: var(--scrim);
+
+    --font-sans: "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 12px;
+    --radius-xl: 14px;
+    --radius-2xl: 18px;
+    --radius-3xl: 26px;
+
+    --shadow-float: 0 0 0 1px var(--line-strong), 0 20px 50px -12px rgb(0 0 0 / 0.8);
+    --shadow-fab: 0 14px 30px -8px rgb(0 0 0 / 0.8);
+
+    --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-spring: cubic-bezier(0.3, 1.4, 0.5, 1);
+
+    --animate-shimmer: shimmer 1.2s linear infinite;
+    --animate-pulse-soft: pulse-soft 1.2s ease-in-out infinite;
+    --animate-hop: hop 0.5s var(--ease-spring), glow 1.4s ease-out;
+    --animate-glow: glow 1.4s ease-out;
+    --animate-row-in: row-in 0.4s var(--ease-out-soft) both;
+    --animate-fade-in: fade-in 0.3s ease-out both;
+    --animate-pop: pop 0.18s ease-out both;
+    --animate-sheet-up: sheet-up 0.32s var(--ease-out-soft) both;
 }
 
+/* Dark is the only drawn theme (ADR-0006); light comes back with its own token set. */
 :root {
-    color-scheme: light;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.6 0 0);
-    --ring: oklch(0.5 0 0);
-    --radius: 0.625rem;
+    color-scheme: dark;
+    --background: #121212;
+    --foreground: #ecebe8;
+    --sidebar: #0d0d0d;
+    --card: #1a1a1a;
+    --card-foreground: #ecebe8;
+    --popover: #1a1a1a;
+    --popover-foreground: #ecebe8;
+    --primary: oklch(0.89 0.19 125);
+    --primary-foreground: #16200a;
+    --primary-soft: oklch(0.89 0.19 125 / 0.15);
+    --secondary: #1f1f1f;
+    --secondary-foreground: #ecebe8;
+    --muted: #1f1f1f;
+    --muted-foreground: #8d8d88;
+    /* The handoff has #6f6f69 (3.3:1); this reaches 4.5:1 on rows and inputs. See docs/design/DEVIATIONS.md. */
+    --subtle-foreground: #88887f;
+    --accent: #2a2a2a;
+    --accent-foreground: #ecebe8;
+    --row-hover: #1b1b1b;
+    --destructive: oklch(0.72 0.16 25);
+    --border: #222;
+    --line-strong: #2c2c2c;
+    --input: #1f1f1f;
+    --ring: oklch(0.89 0.19 125);
+    --scrim: rgb(0 0 0 / 0.62);
 }
 
-.dark {
-    color-scheme: dark;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 40%);
-    --ring: oklch(0.75 0 0);
+@keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+@keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+@keyframes hop {
+    0% { opacity: 0; transform: translateY(-12px); }
+    60% { opacity: 1; transform: translateY(2px); }
+    100% { transform: none; }
+}
+
+@keyframes glow {
+    0% { background-color: oklch(0.89 0.19 125 / 0.16); }
+    100% { background-color: transparent; }
+}
+
+@keyframes row-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pop {
+    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes sheet-up {
+    from { transform: translateY(100%); }
+    to { transform: none; }
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+    * {
+        @apply border-border outline-ring;
+    }
+    html {
+        @apply bg-background;
+    }
+    body {
+        @apply bg-background font-sans text-foreground antialiased;
+    }
+    input::placeholder {
+        color: var(--subtle-foreground);
+    }
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+    button:not(:disabled) {
+        cursor: pointer;
+    }
+    button:active:not(:disabled) {
+        transform: scale(0.96);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0s !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0s !important;
+    }
 }
