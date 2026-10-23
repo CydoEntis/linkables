@@ -1,5 +1,5 @@
 import type { Page, TestInfo } from "@playwright/test";
-import { IOS_SHORTCUT_URL } from "./env";
+import { API_URL, IOS_SHORTCUT_URL } from "./env";
 import { expect, test } from "./fixtures";
 
 const USER_AGENTS = {
@@ -55,7 +55,7 @@ for (const width of WIDTHS) {
         const lead = await openPage(page);
         await expect(lead).toHaveAccessibleName("On a computer");
         await expect(lead.getByRole("link", { name: "Save to linkables" })).toHaveAttribute("href", /^javascript:/);
-        await expect(lead.getByText("Or drag any link onto this window.")).toBeVisible();
+        await expect(lead.getByText("Or drag any link onto your links list.")).toBeVisible();
         await shot(page, testInfo, `save-anywhere-desktop-${String(width)}`);
 
         await expect(page.getByRole("region", { name: "On Android" })).toBeHidden();
@@ -109,5 +109,48 @@ test.describe("on a phone", () => {
     await sheet.getByRole("link", { name: "See how to save from anywhere" }).click();
     await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test.describe("drag and drop at 1280 px", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("dropping a text/uri-list link on To sort saves it", async ({ page, db, user }, testInfo) => {
+    await page.goto("/?view=inbox");
+    await expect(page.getByRole("heading", { name: "To sort", level: 1 })).toBeVisible();
+    const dataTransfer = await page.evaluateHandle(() => {
+      const data = new DataTransfer();
+      data.setData("text/uri-list", "https://example.test/dropped");
+      return data;
+    });
+
+    await page.dispatchEvent("main", "dragenter", { dataTransfer });
+    await expect(page.getByText("Drop to save")).toBeVisible();
+    await shot(page, testInfo, "drop-to-save-1280");
+    await page.dispatchEvent("main", "dragover", { dataTransfer });
+    const saved = page.waitForResponse((response) => response.url() === `${API_URL}/api/v1/links` && response.request().method() === "POST");
+    await page.dispatchEvent("main", "drop", { dataTransfer });
+    expect((await saved).status()).toBe(201);
+
+    await expect(page.getByText("Drop to save")).toBeHidden();
+    await expect(page.getByRole("link", { name: /example\.test\/dropped/ })).toBeVisible();
+    const rows = await db.$client<{ original_url: string }[]>`select original_url from saved_link where user_id = ${user.id}`;
+    expect(rows.map((row) => row.original_url)).toEqual(["https://example.test/dropped"]);
+  });
+
+  test("dragging a row within the app does not offer to save it", async ({ page, seedLinks }) => {
+    await seedLinks([{ url: "https://example.com/row", resource: { title: "A saved row", fetchStatus: "fetched" } }]);
+    await page.goto("/");
+    await page.evaluate(() => {
+      window.addEventListener("dragenter", () => { document.body.dataset.dragEntered = "yes"; });
+    });
+    const row = page.getByRole("link", { name: /^A saved row/ });
+    await row.hover();
+    await page.mouse.down();
+    const target = await page.getByRole("heading", { name: "All links", level: 1 }).boundingBox();
+    await page.mouse.move((target?.x ?? 0) + 10, (target?.y ?? 0) + 10, { steps: 8 });
+    await expect(page.locator("body"), "the row really is being dragged").toHaveAttribute("data-drag-entered", "yes");
+    await expect(page.getByText("Drop to save")).toHaveCount(0);
+    await page.mouse.up();
   });
 });

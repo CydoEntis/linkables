@@ -1,4 +1,5 @@
 import { getRouteApi, Navigate } from "@tanstack/react-router";
+import { DropToSave } from "../save-anywhere/DropToSave";
 import { SAVE_ANYWHERE_PATH } from "../save-anywhere/SaveAnywherePage";
 import { welcomeSeen } from "../save-anywhere/welcome";
 import { VIEW_LABELS } from "./links-search";
@@ -13,13 +14,17 @@ export function LinksPage() {
   if (!welcomeSeen()) return <Navigate to={SAVE_ANYWHERE_PATH} search={{ welcome: true }} replace />;
 
   return (
-    <LinksScreen
-      scope={{ view }}
-      heading={
-        <h1 className="sr-only text-[34px] leading-[1.1] font-bold tracking-[-0.03em] md:not-sr-only md:mt-[30px] md:mb-3.5 md:block">
-          {VIEW_LABELS[view]}
-        </h1>
-      }
-    />
+    <>
+      <LinksScreen
+        scope={{ view }}
+        heading={
+          <h1 className="sr-only text-[34px] leading-[1.1] font-bold tracking-[-0.03em] md:not-sr-only md:mt-[30px] md:mb-3.5 md:block">
+            {VIEW_LABELS[view]}
+          </h1>
+        }
+      />
+      {/* Not on collection pages: a drop there would land outside the collection on screen. */}
+      <DropToSave className="md:left-[286px]" />
+    </>
   );
 }
