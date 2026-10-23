@@ -25,11 +25,13 @@ type LinkRowProps = {
   // On a collection's page every row is in that collection, so the meta skips where it is filed.
   inCollection?: boolean;
   highlight?: RowHighlight | undefined;
+  // Whether the link still belongs in this list; one that does not leaves once its popover closes.
+  belongs?: boolean;
   leaving?: boolean;
 };
 
 // The row opens the saved URL itself; link details come in a later version.
-export function LinkRow({ link, now, inCollection = false, highlight, leaving = false }: LinkRowProps) {
+export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false }: LinkRowProps) {
   const pin = usePinLink(link);
   const swipeOpen = useLinksUi((state) => state.swipeOpenId === link.id);
   const setSwipeOpenId = useLinksUi((state) => state.setSwipeOpenId);
@@ -42,7 +44,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, leaving = 
   const textOpacity = Math.max(0, 1 + swipe.offset / TEXT_FADE_PX);
 
   return (
-    <div className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
+    <div data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
       <a
         href={href}
         target={href ? "_blank" : undefined}
@@ -51,6 +53,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, leaving = 
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDragging(null); }}
         {...swipe.handlers}
+        data-row-link
         className={cn(
           "flex touch-pan-y items-center gap-3 rounded-xl py-2.5 pr-3.5 pl-3 transition-colors group-hover/row:bg-row-hover focus-visible:outline-offset-0 max-md:select-none md:gap-4 md:px-3.5",
           highlight === "hop" && "animate-hop",
@@ -61,7 +64,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, leaving = 
         <RowText link={link} now={now} inCollection={inCollection} pinned={pin.pinned} opacity={textOpacity} />
         {href ? <span className="sr-only">(opens in a new tab)</span> : null}
       </a>
-      <RowActions link={link} pinned={pin.pinned} onPin={pin.toggle} />
+      <RowActions link={link} belongs={belongs} pinned={pin.pinned} onPin={pin.toggle} />
       <SwipeTiles
         offset={swipe.offset}
         animate={!swipe.dragging}
@@ -139,10 +142,10 @@ function RowText({ link, now, inCollection, pinned, opacity }: RowTextProps) {
 
 const ACTION = "flex h-[34px] items-center justify-center rounded-md bg-accent text-[13px] font-semibold hover:bg-[#333]";
 
-type RowActionsProps = { link: SavedLink; pinned: boolean; onPin: () => void };
+type RowActionsProps = { link: SavedLink; belongs: boolean; pinned: boolean; onPin: () => void };
 
 // Float over the row's end on hover or keyboard focus, so nothing shifts (handoff global rules).
-function RowActions({ link, pinned, onPin }: RowActionsProps) {
+function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const dragging = useLinksUi((state) => state.dragging !== null);
 
@@ -157,11 +160,19 @@ function RowActions({ link, pinned, onPin }: RowActionsProps) {
     <div
       data-open={pickerOpen || undefined}
       className={cn(
-        "invisible absolute top-1/2 right-3 hidden -translate-y-1/2 gap-1.5 bg-[linear-gradient(90deg,transparent,var(--row-hover)_44px)] pl-11 md:flex",
-        !dragging && "group-focus-within/row:visible group-hover/row:visible data-open:visible",
+        // Hidden by opacity, not visibility, so the buttons stay focusable and the popover can return focus to its trigger.
+        "pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 gap-1.5 bg-[linear-gradient(90deg,transparent,var(--row-hover)_44px)] pl-11 opacity-0 md:flex",
+        !dragging &&
+          "group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 data-open:pointer-events-auto data-open:opacity-100",
       )}
     >
-      <AddToPopover link={link} open={pickerOpen} onOpenChange={onPickerOpenChange} className={cn(ACTION, "px-3.5")} />
+      <AddToPopover
+        link={link}
+        open={pickerOpen}
+        onOpenChange={onPickerOpenChange}
+        finalFocus={(trigger) => (belongs ? trigger : neighbourRowLink(trigger))}
+        className={cn(ACTION, "px-3.5")}
+      />
       <button type="button" onClick={() => void copyLink(link.originalUrl)} className={cn(ACTION, "px-3.5")}>
         Share
       </button>
@@ -177,6 +188,14 @@ function RowActions({ link, pinned, onPin }: RowActionsProps) {
       </button>
     </div>
   );
+}
+
+// A row about to leave hands focus to the next row (or the one before), not to the page.
+function neighbourRowLink(from: HTMLElement): HTMLElement | null {
+  const links = [...document.querySelectorAll<HTMLElement>("[data-row-link]")];
+  const own = from.closest("[data-row]")?.querySelector<HTMLElement>("[data-row-link]");
+  const index = own ? links.indexOf(own) : -1;
+  return links[index + 1] ?? links[index - 1] ?? null;
 }
 
 type SwipeTilesProps = {
