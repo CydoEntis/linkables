@@ -15,15 +15,18 @@ Contrast was measured in headless Chrome with the WCAG formula.
 | Save bar focus | 1.5 px `#3a3a3a` ring (1.53:1 on `#1a1a1a`) | 2 px lime ring (13.07:1); a valid link adds the soft lime halo on top | Focus rings need 2 px and 3:1; the brief and ADR-0006 make the ring lime. |
 | Menu items (account menu) | Highlight is `--raise` on `--card` (1.06:1) | Highlight keeps `--raise` and adds a 2 px lime ring (12.38:1 on the highlight) | A keyboard user must see which item is active. |
 | Phone view chips | 38 px pills | 38 px pill inside a 44 px tap target | Touch targets are 44 × 44 on phones. |
+| Solid delete red (swipe Delete tile, details Delete on hover) | `oklch(0.62 0.18 25)`: 3.97:1 under white text | `--destructive-solid` `oklch(0.58 0.18 25)`: 4.69:1 | Body text needs 4.5:1. |
+| Details panel resize grip | `--line2` `#2c2c2c` bar (1.3:1 on the panel's `#1a1a1a`) | `subtle-foreground` bar (about 5:1), white on hover, lime while dragging; a focusable separator that the arrow keys move | The grip is the only sign of a control: 3:1 for control edges. |
+| Phone link details: Back, Open ↗ and collection tags | 36 px buttons, 28 px pills | Same look inside 44 px tap targets | Touch targets are 44 × 44 on phones. |
 
 ## Not built yet (each is a later ticket)
 
 - **Sidebar counts** on All links, Pinned and To sort: there is no count endpoint.
 - **Get the extension** button: the extension is Phase 2.
-- **Deleting a link**: the swipe Delete tile and the Add to… popover's Delete item come with link details and editing.
+- **Delete in a row's Add to… popover**: a link is deleted from its details or, on phones, the swipe Delete tile.
 - **First-run swipe hint** ("Swipe a link left for actions") and the first row's nudge.
-- **Pin confetti**: pinning pops the pin icon and holds the list still for 1.5 s, but plays no confetti.
-- **Link details panel**: clicking a row opens the saved URL in a new tab instead.
+- **Pin confetti on rows**: a row's Pin pops the pin icon and holds the list still for 1.5 s, but plays no confetti. The Pin in link details plays it.
+- **Export design**: the handoff lists export as not designed. "Export my links" in the account menu downloads the file with a "Preparing your export…" toast, then "Export downloaded" or "Couldn't export your links. Try again."
 - **"Saved · Add to…" toast** after a new save, and **"Already saved in X"**. A duplicate says "Already saved" and flashes the existing row.
 - **Saving into the open collection**: a link saved on a collection's page lands in To sort, as in the prototype.
 - **Demoted paste box and the "Save from anywhere" header hint** (save-anywhere screen 8): the bar keeps its size, and there is no hint in the header.
@@ -71,7 +74,6 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 | Share dialog | Read-only `linkables.app/alex/…` URL and a lime Copy link button | Mini-cover, title, link count, "Sharing arrives in a later version." and the dialog close button | Sharing is Phase 3; a copyable address that does not work would mislead. |
 | Phone collection page | Only the chip names the collection | A compact header with the name, Share and Delete | Phones need a way to rename, share and delete. |
 | Swipe Pin tile | Amber | Grey, white when pinned (like the web Pin button) | Amber is not in the token set. |
-| Swipe tiles | Four (Add to · Share · Pin · Delete) | Three; Delete waits for link deletion (above) | |
 
 ## Save from anywhere (save-anywhere screens 1, 3, 5 and 7)
 
@@ -91,6 +93,12 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **Keyboard access to swipe actions**: tabbing to a row's tiles opens them as a swipe would. Add to… is the keyboard way to file instead of dragging.
 - **Deleting a collection** reaches the server only when its Undo toast closes (5 s, longer while the toast is hovered); closing the tab before then keeps the collection. Going back to its page meanwhile shows "Deleted" with Undo.
 - **Account menu** (avatar, email, Get the bookmark button, Sign out) at the foot of the sidebar and in the phone header. The handoff draws the avatar with no menu; the brief (5.2) asks for an account menu.
+- **Link details have an address**: `?link=<id>` on any list opens them, so they can be linked to; the browser's Back closes them, and swapping rows replaces the entry instead of adding one. Rows are links to that address, so a modified click opens the details in a new tab. Dragged out of the app, a row still carries the saved URL.
+- **Details show the link as the loaded lists have it** (the API has no single-link read). A link filed out of the open list keeps showing its last copy; one that is not loaded at all, or deleted, shows "Couldn't find this link".
+- **Opening details moves focus to the panel**, and Back returns it to the row. Open ↗ leaves the panel open.
+- **Phone link details: + Add to** opens the same floating picker as the web panel inside the full-screen details, not the phone's Add to sheet.
+- **The note's autosave** waits for a 500 ms pause in typing (and saves at once when the field loses focus or the details close), shows "Saving…" then "Saved" quietly, and says so inline, with Try again, when a save fails.
+- **Deleting a link** reaches the server only when its Undo toast closes, as for collections; the row and the details go at once.
 - **Load more** button at the end of the list (brief 5.4 left infinite scroll vs. Load more open).
 - **Pending rows stop polling** two minutes after this device first sees the newest pending row (2 s, then 5 s, then 15 s); a row still pending after that keeps "Getting details…" until the list next loads.
 - **Phone save button** stays enabled while grey; pressing it with an invalid link shows the reason instead of doing nothing.
