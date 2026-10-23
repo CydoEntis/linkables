@@ -12,6 +12,7 @@ import {
   UNSAFE_TEXT_CHARS,
   URL_MAX_LENGTH,
 } from "./constants";
+import { isDateOnly } from "./dates";
 
 export const saveLinkRequestSchema = z.object({
   url: z.string().trim().max(URL_MAX_LENGTH, { error: `url must be at most ${String(URL_MAX_LENGTH)} characters` }),
@@ -60,8 +61,6 @@ function savedAtBound(field: string) {
     .refine((bound) => !/\.\d{7,}/.test(bound), { error: `${field} must have at most 6 fractional digits` });
 }
 
-const isDateOnly = (bound: string) => bound.length === "YYYY-MM-DD".length;
-
 // A date bound covers its whole UTC day: from=to=2026-03-01 is that day, not empty.
 function rangeIsOrdered(from: string | undefined, to: string | undefined): boolean {
   if (from === undefined || to === undefined) return true;
@@ -71,7 +70,8 @@ function rangeIsOrdered(from: string | undefined, to: string | undefined): boole
 }
 
 // The Inbox is links in no collection, so it cannot be narrowed to one.
-// from and to filter on saved_at and are both inclusive; a date means a UTC day.
+// from and to filter on saved_at and are both inclusive. A bare date is a UTC day,
+// so the web UI sends a local day as offset datetimes, not as bare dates.
 export const listLinksQuerySchema = z
   .object({
     view: z.enum(LINK_VIEWS).default("all"),
