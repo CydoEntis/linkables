@@ -66,6 +66,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
       </a>
       <RowActions link={link} belongs={belongs} pinned={pin.pinned} onPin={pin.toggle} />
       <SwipeTiles
+        label={displayTitle(link).text}
         offset={swipe.offset}
         animate={!swipe.dragging}
         pinned={pin.pinned}
@@ -158,6 +159,9 @@ function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
 
   return (
     <div
+      role="group"
+      // Names the group after the link, so "Share" or "Pin" says which link it acts on.
+      aria-label={displayTitle(link).text}
       data-open={pickerOpen || undefined}
       className={cn(
         // Hidden by opacity, not visibility, so the buttons stay focusable and the popover can return focus to its trigger.
@@ -199,6 +203,7 @@ function neighbourRowLink(from: HTMLElement): HTMLElement | null {
 }
 
 type SwipeTilesProps = {
+  label: string;
   offset: number;
   animate: boolean;
   pinned: boolean;
@@ -211,9 +216,11 @@ type SwipeTilesProps = {
 const TILE = "flex w-[60px] flex-col items-center justify-center gap-[3px] rounded-[11px] text-[11px] font-semibold";
 
 // The phone's swipe-left actions. Keyboard focus opens them as a swipe would.
-function SwipeTiles({ offset, animate, pinned, onFocus, onAddTo, onShare, onPin }: SwipeTilesProps) {
+function SwipeTiles({ label, offset, animate, pinned, onFocus, onAddTo, onShare, onPin }: SwipeTilesProps) {
   return (
     <div
+      role="group"
+      aria-label={label}
       onFocus={onFocus}
       style={{ transform: `translateX(${String(TILES_WIDTH + offset)}px)`, opacity: offset === 0 ? 0 : 1 }}
       className={cn("absolute inset-y-0 right-0 z-10 flex gap-1.5 p-1.5 md:hidden", animate && "transition-transform duration-300 ease-out-soft")}

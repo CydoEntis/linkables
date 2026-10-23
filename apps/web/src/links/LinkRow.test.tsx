@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { LinkRow } from "./LinkRow";
@@ -112,6 +112,17 @@ describe("LinkRow", () => {
     await userEvent.click(screen.getByTitle("Pin"));
     await new Promise((resolve) => setTimeout(resolve, PIN_HOLD_MS + 300));
     expect(screen.getByTitle("Unpin")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("groups the row actions under the link title for screen readers", () => {
+    renderRow(savedLink({ resource: { title: "Rust by Example" } }));
+    const groups = screen.getAllByRole("group", { name: "Rust by Example" });
+    expect(groups.length).toBeGreaterThan(0);
+    for (const group of groups) {
+      expect(within(group).getByRole("button", { name: /^Add to/ })).toBeInTheDocument();
+      expect(within(group).getByRole("button", { name: "Share" })).toBeInTheDocument();
+      expect(within(group).getByRole("button", { name: "Pin" })).toBeInTheDocument();
+    }
   });
 
   it("leaves out where the link is filed on a collection page", () => {
