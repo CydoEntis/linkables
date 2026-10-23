@@ -1,17 +1,23 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "cn";
-import { LINKS_VIEWS, VIEW_LABELS } from "../links/links-search";
+import { CollectionChip } from "../collections/CollectionSheet";
+import { SidebarCollections } from "../collections/SidebarCollections";
+import { LINKS_VIEWS, VIEW_LABELS, type LinksView } from "../links/links-search";
 import type { ListScope } from "../links/use-links";
 import { AccountMenu } from "./AccountMenu";
 import { Wordmark } from "./Wordmark";
 
 type AppShellProps = { scope: ListScope; children: ReactNode };
 
+// The phone's first chip picks All links or a collection, so only these two are plain links there.
+const PHONE_VIEW_CHIPS: LinksView[] = ["pinned", "inbox"];
+
 // shortcut: the sidebar shows no counts yet; the API has no count endpoint, and
 // counting loaded pages would be wrong past the first page.
 export function AppShell({ scope, children }: AppShellProps) {
   const view = "view" in scope ? scope.view : undefined;
+  const collectionId = "collectionId" in scope ? scope.collectionId : undefined;
 
   return (
     <div className="min-h-svh md:grid md:grid-cols-[272px_minmax(0,1fr)]">
@@ -35,7 +41,8 @@ export function AppShell({ scope, children }: AppShellProps) {
             </Link>
           ))}
         </nav>
-        <div className="mt-auto">
+        <SidebarCollections activeId={collectionId} />
+        <div>
           <AccountMenu showEmail />
         </div>
       </aside>
@@ -47,7 +54,8 @@ export function AppShell({ scope, children }: AppShellProps) {
           <AccountMenu />
         </header>
         <nav aria-label="Links" className="flex gap-2 overflow-x-auto px-4 md:hidden">
-          {LINKS_VIEWS.map((item) => (
+          <CollectionChip activeId={collectionId} allActive={view === "all"} />
+          {PHONE_VIEW_CHIPS.map((item) => (
             <Link
               key={item}
               to="/"
