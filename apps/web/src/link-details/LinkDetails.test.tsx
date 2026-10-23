@@ -236,4 +236,16 @@ describe("link details on the web", () => {
     expect(grip).toHaveAttribute("aria-valuenow", "512");
     expect(localStorage.getItem("linkables.detailsWidth")).toBe("512");
   });
+
+  it("never grows past what the window has room for, and says so", async () => {
+    vi.stubGlobal("innerWidth", 1000);
+    await renderDetails(savedLink());
+    const grip = screen.getByRole("separator", { name: "Resize link details" });
+    expect(grip).toHaveAttribute("aria-valuemax", "700");
+    grip.focus();
+    await userEvent.keyboard("{End}");
+    expect(screen.getByRole("region", { name: "Link details" })).toHaveStyle({ width: "700px" });
+    expect(grip).toHaveAttribute("aria-valuenow", "700");
+    expect(localStorage.getItem("linkables.detailsWidth")).toBe("700");
+  });
 });

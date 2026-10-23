@@ -9,6 +9,15 @@ function subscribe(onChange: () => void) {
   return () => { query.removeEventListener("change", onChange); };
 }
 
+function subscribeToResize(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  return () => { window.removeEventListener("resize", onChange); };
+}
+
+export function useViewportWidth(): number {
+  return useSyncExternalStore(subscribeToResize, () => window.innerWidth);
+}
+
 export function useWideScreen(): boolean {
   return useSyncExternalStore(subscribe, () => window.matchMedia(WIDE_QUERY).matches);
 }
