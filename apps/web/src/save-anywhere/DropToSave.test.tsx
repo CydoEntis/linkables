@@ -80,6 +80,58 @@ describe("DropToSave", () => {
     expect(screen.getByText("Drop to save")).toBeInTheDocument();
   });
 
+  it("hides once drags stop passing over the window, even when the element entered was removed", () => {
+    vi.useFakeTimers();
+    try {
+      renderDropZone();
+      const link = { "text/uri-list": "https://example.com/x" };
+      const child = document.body.appendChild(document.createElement("div"));
+      fire("dragenter", link, document.body);
+      fire("dragenter", link, child);
+      child.remove();
+      fire("dragleave", link, document.body);
+      fire("dragover", link, document.body);
+      expect(screen.getByText("Drop to save")).toBeInTheDocument();
+
+      act(() => { vi.advanceTimersByTime(1000); });
+
+      expect(screen.queryByText("Drop to save")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("takes outside links again after an in-app drag whose source was removed before dragend", () => {
+    renderDropZone();
+    const row = document.body.appendChild(document.createElement("a"));
+    fire("dragstart", { "text/uri-list": "https://example.com/row" }, row);
+    row.remove();
+    act(() => { window.dispatchEvent(new Event("pointermove")); });
+
+    fire("dragenter", { "text/uri-list": "https://example.com/outside" });
+    expect(screen.getByText("Drop to save")).toBeInTheDocument();
+  });
+
+  it("takes outside links again after an in-app drag is dropped inside the app", () => {
+    renderDropZone();
+    const target = document.body.appendChild(document.createElement("div"));
+    target.addEventListener("drop", (event) => { event.stopPropagation(); });
+    fire("dragstart", { "text/uri-list": "https://example.com/row" }, document.body);
+    fire("drop", { "text/uri-list": "https://example.com/row" }, target);
+    target.remove();
+
+    fire("dragenter", { "text/uri-list": "https://example.com/outside" });
+    expect(screen.getByText("Drop to save")).toBeInTheDocument();
+    expect(savedUrls()).toEqual([]);
+  });
+
+  it("hides on Escape", () => {
+    renderDropZone();
+    fire("dragenter", { "text/uri-list": "https://example.com/x" });
+    act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); });
+    expect(screen.queryByText("Drop to save")).toBeNull();
+  });
+
   it("ignores dragged files", () => {
     renderDropZone();
     fire("dragenter", { Files: "" });
