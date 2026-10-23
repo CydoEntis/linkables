@@ -186,8 +186,10 @@ test.describe("at 375 px", () => {
     expect(box).toMatchObject({ x: 0, width: 375 });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBe(0);
+    // Rounded: the sheet's slide-up transform can leave sub-pixel heights such as 43.99999.
     for (const name of ["Back", "Pin", "Share", "Delete"]) {
-      expect((await details.getByRole("button", { name, exact: true }).boundingBox())?.height).toBeGreaterThanOrEqual(44);
+      const height = (await details.getByRole("button", { name, exact: true }).boundingBox())?.height ?? 0;
+      expect(Math.round(height)).toBeGreaterThanOrEqual(44);
     }
     await details.getByRole("button", { name: "Back" }).click();
     await expect(details).toHaveCount(0);
