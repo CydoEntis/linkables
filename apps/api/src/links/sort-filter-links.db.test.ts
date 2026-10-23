@@ -64,9 +64,9 @@ async function list(user: TestUser, query: string) {
   return responseSchema.parse(await res.json()).data;
 }
 
-async function walk(user: TestUser, query: string) {
+async function walk(user: TestUser, query: string, from: string | null = null) {
   const ids: string[] = [];
-  let cursor: string | null = null;
+  let cursor = from;
   do {
     const page = await list(user, cursor === null ? query : `${query}&cursor=${cursor}`);
     ids.push(...page.items.map((item) => item.id));
@@ -80,6 +80,15 @@ async function rename(user: TestUser, linkId: string | undefined, titleOverride:
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...user.headers },
     body: JSON.stringify({ titleOverride }),
+  });
+  expect(res.status).toBe(200);
+}
+
+async function setPinned(user: TestUser, linkId: string | undefined, pinned: boolean) {
+  const res = await app.request(`/api/v1/links/${String(linkId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...user.headers },
+    body: JSON.stringify({ pinned }),
   });
   expect(res.status).toBe(200);
 }
@@ -294,7 +303,7 @@ describe("GET /links sort", () => {
     const decoded = Buffer.from(String(cursor), "base64url").toString("utf8");
 
     expect(JSON.parse(decoded)).toMatchObject({ sort: "title", id: items[0]?.id });
-    expect(Object.keys(JSON.parse(decoded) as object).toSorted()).toEqual(["id", "k", "sort"]);
+    expect(Object.keys(JSON.parse(decoded) as object).toSorted()).toEqual(["id", "k", "pinned", "sort"]);
     expect(decoded).not.toMatch(/aardvark|secret/i);
   });
 
@@ -339,5 +348,126 @@ describe("GET /links sort", () => {
     const { cursor } = await list(b, "sort=title&limit=1");
 
     await expectInvalidCursor(await titlePage(a, String(cursor)));
+  });
+});
+
+type Sort = "newest" | "oldest" | "title";
+
+// Seeded a second apart in this order, so newest and oldest differ from title.
+const mixedSeeds: Seed[] = [
+  { title: "d", pinned: true },
+  { title: "a", pinned: false },
+  { title: "f", pinned: true },
+  { title: "c", pinned: false },
+  { title: "b", pinned: true },
+  { title: "e", pinned: false },
+];
+
+const mixedOrder: Record<Sort, number[]> = {
+  newest: [4, 2, 0, 5, 3, 1],
+  oldest: [0, 2, 4, 1, 3, 5],
+  title: [4, 0, 2, 1, 3, 5],
+};
+
+const sorts: Sort[] = ["newest", "oldest", "title"];
+const sortsByLimit = sorts.flatMap((sort) => [1, 2, 3, 100].map((limit) => ({ sort, limit })));
+
+function pick(ids: string[], order: number[]): string[] {
+  return order.map((i) => ids[i] ?? "");
+}
+
+function withoutPinned(cursor: string | null): string {
+  const decoded = JSON.parse(Buffer.from(String(cursor), "base64url").toString("utf8")) as Record<string, unknown>;
+  expect(decoded).toHaveProperty("pinned");
+  delete decoded.pinned;
+  return Buffer.from(JSON.stringify(decoded)).toString("base64url");
+}
+
+describe("GET /links pinned first", () => {
+  it.each(sortsByLimit)("puts pinned links first under sort=$sort at limit $limit", async ({ sort, limit }) => {
+    const ids = await seed(a, mixedSeeds);
+
+    expect(await walk(a, `sort=${sort}&limit=${String(limit)}`)).toEqual(pick(ids, mixedOrder[sort]));
+  });
+
+  it.each(sorts)("walks a large mixed list under sort=%s with no duplicates or gaps", async (sort) => {
+    const titles = ["Same", "same", "other", "Ünder", "under"];
+    await seed(
+      a,
+      Array.from({ length: 40 }, (_, i) => ({
+        title: titles[i % titles.length] ?? "",
+        pinned: i % 3 === 0,
+        savedAt: `2026-01-01T00:00:0${String(i % 4)}Z`,
+      })),
+    );
+
+    const all = await walk(a, `sort=${sort}&limit=100`);
+    const pinned = new Set(await walk(a, `sort=${sort}&pinned=true&limit=100`));
+
+    expect(all).toHaveLength(40);
+    expect(all.slice(0, pinned.size).every((id) => pinned.has(id))).toBe(true);
+    for (const limit of [1, 2, 3]) expect(await walk(a, `sort=${sort}&limit=${String(limit)}`)).toEqual(all);
+  });
+
+  it.each(sorts)("keeps pinned first under sort=%s with q, collectionId, kind, from and to", async (sort) => {
+    const ids = await seed(a, [
+      ...mixedSeeds.map((s) => ({ ...s, title: `zeppelin ${String(s.title)}`, kind: "video" as const })),
+      { title: "zeppelin a", pinned: true, kind: "page" },
+      { title: "bread", pinned: true, kind: "video" },
+      { title: "zeppelin a", pinned: true, kind: "video", savedAt: "2025-12-31T23:59:59Z" },
+      { title: "zeppelin a", pinned: true, kind: "video", savedAt: "2026-01-02T00:00:00Z" },
+    ]);
+    const col = await fileInCollection(a, ids);
+
+    const query = `sort=${sort}&q=zeppelin&collectionId=${col}&kind=video&from=2026-01-01&to=2026-01-01&limit=1`;
+    expect(await walk(a, query)).toEqual(
+      pick(ids, mixedOrder[sort]),
+    );
+  });
+
+  it.each(sorts)("filters pinned=true and pinned=false under sort=%s", async (sort) => {
+    const ids = await seed(a, mixedSeeds);
+    const order = pick(ids, mixedOrder[sort]);
+
+    expect(await walk(a, `sort=${sort}&pinned=true&limit=1`)).toEqual(order.slice(0, 3));
+    expect(await walk(a, `sort=${sort}&pinned=false&limit=2`)).toEqual(order.slice(3));
+  });
+
+  it.each(sorts)("rejects a sort=%s cursor that has no pinned field", async (sort) => {
+    await seed(a, mixedSeeds);
+    const { cursor } = await list(a, `sort=${sort}&limit=2`);
+
+    const res = await app.request(`/api/v1/links?sort=${sort}&cursor=${withoutPinned(cursor)}`, {
+      headers: a.headers,
+    });
+
+    expect(res.status).toBe(400);
+    expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("VALIDATION");
+  });
+
+  const pinChanges = sorts.flatMap((sort) => [true, false].map((pinned) => ({ sort, pinned })));
+
+  it.each(pinChanges)(
+    "resumes a sort=$sort walk from the cursor's place after its link's pinned becomes $pinned",
+    async ({ sort, pinned }) => {
+      const ids = await seed(a, mixedSeeds);
+      const order = pick(ids, mixedOrder[sort]);
+      const limit = pinned ? 4 : 2;
+      const moved = order[limit - 1];
+      const { cursor } = await list(a, `sort=${sort}&limit=${String(limit)}`);
+      await setPinned(a, moved, pinned);
+
+      const rest = await walk(a, `sort=${sort}&limit=2`, cursor);
+
+      expect(rest.filter((id) => id !== moved)).toEqual(order.slice(limit));
+      expect(rest.filter((id) => id === moved).length).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it("shows a user only their own links, pinned first, under every sort", async () => {
+    await seed(a, mixedSeeds);
+    const own = await seed(b, mixedSeeds);
+
+    for (const sort of sorts) expect(await walk(b, `sort=${sort}&limit=2`)).toEqual(pick(own, mixedOrder[sort]));
   });
 });

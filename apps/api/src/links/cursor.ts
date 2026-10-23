@@ -6,6 +6,7 @@ import { ValidationError } from "../http/errors";
 // within the same millisecond as the last row of a page.
 const savedAtCursorSchema = z.strictObject({
   sort: z.enum(["newest", "oldest"]),
+  pinned: z.boolean(),
   // Postgres has no year 0, so the ::timestamptz cast would throw a 500.
   savedAt: z.iso.datetime({ precision: 6 }).refine((value) => !value.startsWith("0000-")),
   id: z.uuid(),
@@ -16,6 +17,7 @@ const savedAtCursorSchema = z.strictObject({
 // fingerprint of it that shows whether the link was renamed since.
 const titleCursorSchema = z.strictObject({
   sort: z.literal("title"),
+  pinned: z.boolean(),
   id: z.uuid(),
   k: z.string().regex(/^[\w-]{16}$/),
 });

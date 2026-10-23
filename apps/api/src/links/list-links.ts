@@ -83,6 +83,9 @@ export async function listLinks(db: Db, input: ListLinksInput): Promise<ListLink
   const last = page.at(-1);
   return {
     items: page.map((row) => toSavedLink(row.link, row.resource)),
-    cursor: rows.length > limit && last ? encodeCursor(cursorAt(sort, { ...last, id: last.link.id })) : null,
+    cursor:
+      rows.length > limit && last
+        ? encodeCursor(cursorAt(sort, { ...last, id: last.link.id, pinned: last.link.pinned }))
+        : null,
   };
 }
