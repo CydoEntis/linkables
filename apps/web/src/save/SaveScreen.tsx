@@ -30,6 +30,32 @@ export function SaveScreen({ state, title, onUndo, undoing = false, onRetry, onS
   );
 }
 
+// Render once, beside the screen, so the same live region outlives every state:
+// a region mounted together with its text is often not read out.
+export function SaveAnnouncement({ state }: { state: SharedSave }) {
+  return (
+    <p role="status" className="sr-only">
+      {announcement(state)}
+    </p>
+  );
+}
+
+// The error is left to its role="alert" note, so it is not announced twice.
+function announcement(state: SharedSave): string {
+  switch (state.status) {
+    case "saving":
+      return "Saving…";
+    case "saved":
+      return state.link.duplicate ? "Already saved" : "Saved to linkables";
+    case "no-link":
+      return "No link found";
+    case "removed":
+      return "Removed";
+    case "error":
+      return "";
+  }
+}
+
 function ScreenBody({ state, title, onUndo, undoing = false, onRetry, onSaveUrl }: SaveScreenProps) {
   switch (state.status) {
     case "saving":
@@ -52,7 +78,7 @@ function ScreenBody({ state, title, onUndo, undoing = false, onRetry, onSaveUrl 
     case "error":
       return (
         <>
-          <Status icon={<AlertCircle className="size-5 text-destructive" />} heading="Couldn't save" note={state.message} />
+          <Status icon={<AlertCircle className="size-5 text-destructive" />} heading="Couldn't save" note={state.message} alert />
           <Footer quiet>
             <button type="button" onClick={onRetry} className="h-[54px] rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground">
               Retry
@@ -122,12 +148,12 @@ type StatusProps = {
   note?: string | undefined;
   tone?: "saved" | "neutral";
   celebrate?: boolean;
+  alert?: boolean;
 };
 
-// aria-live so a screen reader hears "Saving…" turn into the result.
-function Status({ icon, heading, detail, note, tone = "neutral", celebrate = false }: StatusProps) {
+function Status({ icon, heading, detail, note, tone = "neutral", celebrate = false, alert = false }: StatusProps) {
   return (
-    <header aria-live="polite" className="flex items-center gap-3">
+    <header className="flex items-center gap-3">
       <span
         className={cn(
           "relative flex size-[46px] shrink-0 items-center justify-center rounded-full",
@@ -140,7 +166,11 @@ function Status({ icon, heading, detail, note, tone = "neutral", celebrate = fal
       <div className="flex min-w-0 flex-1 flex-col">
         <h1 className="text-[19px] font-bold">{heading}</h1>
         {detail ? <p className="truncate text-[13px] text-muted-foreground">{detail}</p> : null}
-        {note ? <p className="text-[13px] text-muted-foreground">{note}</p> : null}
+        {note ? (
+          <p role={alert ? "alert" : undefined} className="text-[13px] text-muted-foreground">
+            {note}
+          </p>
+        ) : null}
       </div>
     </header>
   );

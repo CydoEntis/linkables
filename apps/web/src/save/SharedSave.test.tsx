@@ -79,6 +79,18 @@ describe("SharedSave", () => {
     expect(await screen.findByText("Baby kangaroo")).toBeInTheDocument();
   });
 
+  it("announces the result in the same status region that said Saving…", async () => {
+    let resolveSave: (link: unknown) => void = () => undefined;
+    answer({ save: () => new Promise((resolve) => { resolveSave = resolve; }) });
+    renderShared("https://example.com/article");
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Saving…");
+    resolveSave(saved());
+    await screen.findByRole("heading", { name: "Saved to linkables" });
+    expect(screen.getByRole("status")).toBe(status);
+    expect(status).toHaveTextContent("Saved to linkables");
+  });
+
   it("says when and where a duplicate was saved, and offers no Undo", async () => {
     const link = {
       ...saved({ savedAt: new Date(new Date().getFullYear(), 2, 3).toISOString(), collections: [{ id: crypto.randomUUID(), name: "Rust" }] }),
@@ -118,7 +130,7 @@ describe("SharedSave", () => {
     answer({ save });
     const user = renderShared("https://example.com/article");
     expect(await screen.findByRole("heading", { name: "Couldn't save" })).toBeInTheDocument();
-    expect(screen.getByText("You're offline. The link wasn't saved.")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("You're offline. The link wasn't saved.");
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByRole("heading", { name: "Saved to linkables" })).toBeInTheDocument();
     expect(save).toHaveBeenCalledTimes(2);
