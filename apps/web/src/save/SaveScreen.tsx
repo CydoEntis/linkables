@@ -1,6 +1,6 @@
 import type { SaveLinkResponse } from "@linkables/shared/links";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { AlertCircle, Check, Loader2, Undo2, Unlink } from "lucide-react";
 import { useId, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
@@ -193,6 +193,7 @@ function Status({ icon, heading, detail, note, tone = "neutral", celebrate = fal
 // quiet: the view already has its one lime action, so the secondary action steps back to a ghost button.
 function Footer({ children, quiet = false }: { children?: ReactNode; quiet?: boolean }) {
   const popup = usePopupWindow();
+  const navigate = useNavigate();
   const secondary = cn(
     "flex h-[54px] flex-1 items-center justify-center rounded-2xl text-base font-bold",
     quiet ? "bg-muted text-foreground hover:bg-accent" : "bg-foreground text-background",
@@ -213,7 +214,15 @@ function Footer({ children, quiet = false }: { children?: ReactNode; quiet?: boo
     <footer className="flex flex-col items-center gap-3">
       <div className="flex w-full gap-2.5">
         {children}
-        <button type="button" onClick={() => { window.close(); }} className={secondary}>
+        <button
+          type="button"
+          onClick={() => {
+            window.close();
+            // A browser may refuse; a Close button that does nothing is worse than going to the app.
+            if (!window.closed) void navigate({ to: "/" });
+          }}
+          className={secondary}
+        >
           Close
         </button>
       </div>

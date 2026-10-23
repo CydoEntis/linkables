@@ -1,8 +1,10 @@
 import { useSyncExternalStore } from "react";
+import { POPUP_NAME } from "./bookmarklet";
 
-// The bookmark button opens /save at 420 × 640. The window's size decides, not a
-// URL flag, so no link can switch the layout. The fine pointer keeps small
-// phones, where window.close() does nothing, on the full-screen layout.
+// The bookmark button opens /save at 420 × 640 in a window it names. The name
+// and size decide, not a URL flag, so no link can switch the layout. The name
+// keeps a small tab the user opened, which script may not close, on the full
+// layout; the fine pointer does the same for small phones.
 const POPUP_QUERY = "(max-width: 520px) and (max-height: 760px) and (pointer: fine)";
 
 function subscribe(onChange: () => void) {
@@ -12,5 +14,5 @@ function subscribe(onChange: () => void) {
 }
 
 export function usePopupWindow(): boolean {
-  return useSyncExternalStore(subscribe, () => window.matchMedia(POPUP_QUERY).matches);
+  return useSyncExternalStore(subscribe, () => window.name === POPUP_NAME && window.matchMedia(POPUP_QUERY).matches);
 }
