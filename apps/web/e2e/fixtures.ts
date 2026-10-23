@@ -8,6 +8,7 @@ import { createTestUser, signedInState, type TestUser } from "./session";
 
 type Fixtures = {
   signedIn: boolean;
+  welcomed: boolean;
   user: TestUser;
   seedLinks: (links: SeedLink[]) => Promise<SeededLink[]>;
   cleanDb: undefined;
@@ -36,14 +37,15 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
   ],
 
   signedIn: [true, { option: true }],
+  welcomed: [true, { option: true }],
 
   // eslint-disable-next-line no-empty-pattern -- Playwright reads fixture dependencies from this pattern.
   user: async ({}, use) => {
     await use(await createTestUser());
   },
 
-  storageState: async ({ signedIn, user }, use) => {
-    await use(signedIn ? signedInState(user, WEB_URL) : undefined);
+  storageState: async ({ signedIn, welcomed, user }, use) => {
+    await use(signedIn ? signedInState(user, WEB_URL, { welcomed }) : undefined);
   },
 
   context: async ({ context }, use) => {

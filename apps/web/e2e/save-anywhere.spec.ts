@@ -69,3 +69,20 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+test.describe("the first time this device sees the signed-in app", () => {
+  test.use({ welcomed: false });
+
+  test("Save from anywhere shows once, can be skipped, and stays skipped after a reload", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/save-from-anywhere\?welcome=true$/);
+    await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
+
+    await page.getByRole("link", { name: "Skip" }).click();
+    await expect(page.getByRole("heading", { name: "All links", level: 1 })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "All links", level: 1 })).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/");
+  });
+});
