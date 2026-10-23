@@ -1,0 +1,27 @@
+# Production stack on the server, run from /srv/linkaroo (see deploy/README.md).
+# CI publishes both images on every green push to main; the server's update
+# timer pulls them, so nothing on the internet needs to reach the server.
+name: linkaroo
+
+# Docker's default json-file logs never rotate and would fill the Pi's disk.
+x-logging: &logging
+  driver: local
+
+services:
+  api:
+    image: ghcr.io/cydoentis/linkables-api:main
+    env_file: .env
+    init: true
+    logging: *logging
+    restart: unless-stopped
+    # No published port: only the web container's proxy talks to it.
+
+  web:
+    image: ghcr.io/cydoentis/linkables-web:main
+    depends_on:
+      - api
+    restart: unless-stopped
+    logging: *logging
+    ports:
+      # Localhost only; Tailscale serve puts HTTPS in front.
+      - "127.0.0.1:8080:8080"
