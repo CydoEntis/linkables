@@ -38,6 +38,8 @@ export const savedLinkSchema = z.strictObject({
   note: z.string().nullable(),
   pinned: z.boolean(),
   savedAt: z.iso.datetime(),
+  // The caller's collections holding this link, ordered by name ignoring case.
+  collections: z.array(z.strictObject({ id: z.uuid(), name: z.string() })),
   resource: resourceSummarySchema,
 });
 
