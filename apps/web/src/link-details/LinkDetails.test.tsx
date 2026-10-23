@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
 import { listedCollection } from "../collections/test-collections";
+import { LinkRow } from "../links/LinkRow";
 import { useLinksUi } from "../links/links-ui-store";
 import { savedLink } from "../links/test-links";
 import { linksKeys, type LinksPages } from "../links/use-links";
@@ -55,6 +56,23 @@ describe("link details", () => {
     expect(within(details()).getByText("To sort")).toBeInTheDocument();
     expect(within(details()).getByText("Coming soon")).toBeInTheDocument();
     expect(within(details()).getByRole("link", { name: /Open ↗/ })).toHaveAttribute("href", "https://www.youtube.com/watch?v=1");
+  });
+
+  it("goes back to the list's own history entry when the details were opened from a row", async () => {
+    const link = savedLink({ resource: { title: "Rust by Example" } });
+    const queryClient = testQueryClient();
+    queryClient.setQueryData<LinksPages>(linksKeys.list("all"), { pages: [{ items: [link], cursor: null }], pageParams: [undefined] });
+    const { router } = await renderWithRouter(
+      <>
+        <LinkRow link={link} now={Date.now()} />
+        <LinkDetails />
+      </>,
+      { queryClient },
+    );
+    await userEvent.click(screen.getByRole("link", { name: /^Rust by Example/ }));
+    await userEvent.click(within(details()).getByRole("button", { name: "Back" }));
+    await waitFor(() => { expect(router.state.location.search).toEqual({}); });
+    expect(router.history.canGoBack()).toBe(false);
   });
 
   it("offers no Open for a saved URL that is not http or https", async () => {

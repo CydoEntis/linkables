@@ -7,9 +7,12 @@ export const linkDetailsSearchShape = { link: z.uuid().optional().catch(undefine
 
 export const linkDetailsSearchSchema = z.object(linkDetailsSearchShape);
 
-// Whether the open details have a history entry of their own to go back from,
-// rather than arriving with the page (a reload or a pasted address).
-let pushedByApp = false;
+declare module "@tanstack/react-router" {
+  interface HistoryState {
+    // Set on the entry that opening details pushed, so Back can return to the list's own entry.
+    linkDetailsPushed?: boolean;
+  }
+}
 
 export function useLinkDetails() {
   const linkId = useSearch({ strict: false, select: (search) => search.link });
@@ -19,14 +22,18 @@ export function useLinkDetails() {
   // Swapping one open link for another replaces the entry, so Back still closes the panel.
   function open(id: string) {
     const replace = linkId !== undefined;
-    if (!replace) pushedByApp = true;
-    void navigate({ to: ".", search: (prev) => ({ ...prev, link: id }), replace });
+    void navigate({
+      to: ".",
+      search: (prev) => ({ ...prev, link: id }),
+      replace,
+      state: (prev) => (replace ? prev : { ...prev, linkDetailsPushed: true }),
+    });
   }
 
+  // Details that arrived with the page (a pasted address) have no list entry to go back to.
   function close() {
     if (linkId === undefined) return;
-    if (pushedByApp) {
-      pushedByApp = false;
+    if (router.state.location.state.linkDetailsPushed === true) {
       router.history.back();
       return;
     }
