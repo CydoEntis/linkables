@@ -65,6 +65,8 @@ function pendingLink(url: string): SavedLink {
     note: null,
     pinned: false,
     savedAt: new Date().toISOString(),
+    savedFrom: null,
+    collections: [],
     resource: {
       id: crypto.randomUUID(),
       canonicalUrl: url,
