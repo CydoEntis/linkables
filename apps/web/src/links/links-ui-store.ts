@@ -27,6 +27,10 @@ type LinksUi = {
 const HIGHLIGHT_MS = 1500;
 export const LEAVE_MS = 220;
 
+// One timer per link: a second leave restarts the window instead of an earlier
+// timer ending it early.
+const leaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
 export const useLinksUi = create<LinksUi>()((set, get) => ({
   saveSheetOpen: false,
   setSaveSheetOpen: (open) => { set({ saveSheetOpen: open }); },
@@ -42,8 +46,15 @@ export const useLinksUi = create<LinksUi>()((set, get) => ({
   },
   leavingIds: [],
   leave: (linkId) => {
+    clearTimeout(leaveTimers.get(linkId));
     set({ leavingIds: [...get().leavingIds.filter((id) => id !== linkId), linkId] });
-    setTimeout(() => { set({ leavingIds: get().leavingIds.filter((id) => id !== linkId) }); }, LEAVE_MS);
+    leaveTimers.set(
+      linkId,
+      setTimeout(() => {
+        leaveTimers.delete(linkId);
+        set({ leavingIds: get().leavingIds.filter((id) => id !== linkId) });
+      }, LEAVE_MS),
+    );
   },
   heldId: null,
   setHeldId: (linkId) => { set({ heldId: linkId }); },
