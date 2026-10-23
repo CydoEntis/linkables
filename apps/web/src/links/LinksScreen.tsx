@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AddToSheet } from "../collections/AddToSheet";
 import { AppShell } from "../shell/AppShell";
 import { LinkList } from "./LinkList";
 import { SaveBar } from "./SaveBar";
@@ -19,6 +20,7 @@ export function LinksScreen({ scope, heading }: { scope: ListScope; heading: Rea
       <SaveStatus />
       <SaveFab />
       <SaveSheet />
+      <AddToSheet />
     </AppShell>
   );
 }

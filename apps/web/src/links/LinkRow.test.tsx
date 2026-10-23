@@ -1,12 +1,22 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { LinkRow } from "./LinkRow";
 import { savedLink } from "./test-links";
+
+const request = vi.hoisted(() => vi.fn<(path: string, schema: unknown, init?: RequestInit) => Promise<unknown>>());
+vi.mock("../api/api", () => ({ api: { request } }));
 
 const now = new Date(2026, 9, 22, 12, 0).getTime();
 
 function renderRow(link = savedLink(), inCollection = false) {
-  return render(<LinkRow link={link} now={now} inCollection={inCollection} />);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <LinkRow link={link} now={now} inCollection={inCollection} />
+    </QueryClientProvider>,
+  );
 }
 
 describe("LinkRow", () => {
@@ -79,6 +89,16 @@ describe("LinkRow", () => {
   it("marks a link in no collection as To sort", () => {
     renderRow(savedLink({ originalUrl: "https://youtube.com/w" }));
     expect(screen.getByText(/^youtube.com/)).toHaveTextContent(/^youtube.com · To sort/);
+  });
+
+  it("pins the link at once and asks the API to pin it", async () => {
+    const link = savedLink();
+    request.mockResolvedValue({ ...link, pinned: true });
+    renderRow(link);
+    const pin = screen.getByTitle("Pin");
+    await userEvent.click(pin);
+    expect(pin).toHaveAttribute("aria-pressed", "true");
+    expect(request).toHaveBeenCalledWith(`/links/${link.id}`, expect.anything(), expect.objectContaining({ method: "PATCH", body: JSON.stringify({ pinned: true }) }));
   });
 
   it("leaves out where the link is filed on a collection page", () => {
