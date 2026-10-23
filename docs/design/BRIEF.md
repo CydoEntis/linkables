@@ -9,6 +9,10 @@ Sources: `docs/PLANNING.md` (scope and phases), `CONTEXT.md` (terms), `docs/adr/
 (decisions), the Plane tickets (project `linkaroo`, LNK-1 onward), and research on
 competitors and platform limits done 2026-10-22.
 
+**Status (2026-10-22):** the designer's handoff is in `docs/design/handoff/`. Where it
+differs from this brief (for example "To sort" instead of Inbox, dark theme only),
+the handoff wins; this brief still lists the surfaces not yet designed.
+
 ## 1. The product in one paragraph
 
 Save any URL in seconds, find it later from any device, share it when needed. The

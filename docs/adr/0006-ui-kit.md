@@ -24,7 +24,13 @@ work to the same kit.
 Use **Tailwind CSS v4** and **shadcn/ui** on its default Base UI primitives, with
 **Lucide** icons. Colour, radius and font tokens use shadcn's semantic names
 (`background`, `foreground`, `primary`, `muted`, `border`, `ring`, ...), defined in
-`:root` and overridden for dark mode; themes are Light, Dark and System (default).
+`:root` and overridden for dark mode. The designer's handoff (`docs/design/handoff/`,
+2026-10-22) is dark only, so Phase 1 ships the dark theme; Light and System come
+back when a light theme is drawn.
+
+**Forms** use react-hook-form with `@hookform/resolvers/zod` and shadcn's form field
+components. Fields validate with the shared Zod schemas from `packages/shared`, the
+same ones the API uses, so the client and server never disagree on a rule.
 
 ## Reasoning
 
