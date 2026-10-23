@@ -1,3 +1,4 @@
+import { LIST_LIMIT_DEFAULT } from "@linkables/shared/links";
 import type { Page } from "@playwright/test";
 import { API_URL } from "./env";
 import { expect, test } from "./fixtures";
@@ -89,6 +90,15 @@ test.describe("at 1280 px", () => {
     await expect(panel(page).getByRole("heading", { name: /Tokyo night walk/ })).toBeVisible();
     await page.waitForTimeout(500);
     expect(listLoads).toEqual([]);
+  });
+
+  test("an address for a link past the first page opens its details", async ({ page, seedLinks }) => {
+    const oldest = { url: "https://example.com/oldest", resource: { title: "The oldest link", fetchStatus: "fetched" as const } };
+    const newer = Array.from({ length: LIST_LIMIT_DEFAULT }, (_, index) => ({ url: `https://example.com/newer-${String(index)}` }));
+    const [target] = await seedLinks([oldest, ...newer]);
+    await page.goto(`/?link=${target?.id ?? ""}`);
+    await expect(panel(page).getByRole("heading", { name: /The oldest link/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /^The oldest link/ })).toHaveCount(0);
   });
 
   test("pinning from the details pins the link", async ({ page, seedLinks }) => {

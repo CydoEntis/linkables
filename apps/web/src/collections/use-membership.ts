@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "../api/api";
 import { useLinksUi } from "../links/links-ui-store";
-import { linksKeys, type LinksPages } from "../links/use-links";
+import { linksKeys, updateCachedLink } from "../links/use-links";
 import { collectionsKeys } from "./use-collections";
 import { displayName } from "./display-name";
 
@@ -26,19 +26,7 @@ export function withMembership(collections: readonly CollectionRef[], collection
 }
 
 function applyToLinks(queryClient: QueryClient, { link, collection, filed }: MembershipChange) {
-  queryClient.setQueriesData<LinksPages>({ queryKey: linksKeys.all }, (data) =>
-    data === undefined
-      ? data
-      : {
-          ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            items: page.items.map((item) =>
-              item.id === link.id ? { ...item, collections: withMembership(item.collections, collection, filed) } : item,
-            ),
-          })),
-        },
-  );
+  updateCachedLink(queryClient, link.id, (item) => ({ ...item, collections: withMembership(item.collections, collection, filed) }));
 }
 
 // The cover refreshes from the server; the count and recent order move at once.

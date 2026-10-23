@@ -9,12 +9,13 @@ import { collectionsKeys } from "../collections/use-collections";
 import { useLinksUi } from "./links-ui-store";
 import { linksKeys, type LinksPages } from "./use-links";
 
-function removeFromLists(queryClient: QueryClient, linkId: string) {
-  queryClient.setQueriesData<LinksPages>({ queryKey: linksKeys.all }, (data) =>
+function removeFromCache(queryClient: QueryClient, linkId: string) {
+  queryClient.setQueriesData<LinksPages>({ queryKey: linksKeys.lists }, (data) =>
     data === undefined
       ? data
       : { ...data, pages: data.pages.map((page) => ({ ...page, items: page.items.filter((item) => item.id !== linkId) })) },
   );
+  queryClient.removeQueries({ queryKey: linksKeys.detail(linkId), exact: true });
 }
 
 // A link that is already gone on the server counts as deleted.
@@ -28,7 +29,7 @@ async function sendDelete(queryClient: QueryClient, linkId: string) {
       return;
     }
   }
-  removeFromLists(queryClient, linkId);
+  removeFromCache(queryClient, linkId);
   useLinksUi.getState().stopDeleting(linkId);
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: linksKeys.all }),

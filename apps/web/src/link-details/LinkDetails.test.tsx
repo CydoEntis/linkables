@@ -1,8 +1,10 @@
+import { ERROR_CODES } from "@linkables/shared/http";
 import type { SavedLink } from "@linkables/shared/links";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
+import { ApiError } from "../api/client";
 import { listedCollection } from "../collections/test-collections";
 import { LinkRow } from "../links/LinkRow";
 import { useLinksUi } from "../links/links-ui-store";
@@ -248,6 +250,56 @@ describe("link details", () => {
     expect(request.mock.calls.some(([, , init]) => init?.method === "DELETE")).toBe(false);
     await act(() => vi.advanceTimersByTimeAsync(6000));
     await waitFor(() => { expect(request).toHaveBeenCalledWith(`/links/${link.id}`, expect.anything(), { method: "DELETE" }); });
+  });
+});
+
+describe("a link no loaded list holds", () => {
+  const reads = (id: string) => request.mock.calls.filter(([path, , init]) => path === `/links/${id}` && init?.method === undefined);
+
+  async function renderUnlisted(link: SavedLink, read: () => Promise<unknown>) {
+    request.mockImplementation((path, _schema, init) => {
+      if (init?.method === "PATCH") return new Promise(() => undefined);
+      if (path === `/links/${link.id}`) return read();
+      return Promise.resolve(path === "/collections" ? { items: [] } : null);
+    });
+    const queryClient = testQueryClient();
+    queryClient.setQueryData<LinksPages>(linksKeys.list("all"), { pages: [{ items: [savedLink()], cursor: "next" }], pageParams: [undefined] });
+    return renderWithRouter(<LinkDetails />, { path: `/?link=${link.id}`, queryClient });
+  }
+
+  it("is fetched, with Loading shown until it arrives", async () => {
+    const link = savedLink({ resource: { title: "Deep in the list" } });
+    const { promise, resolve: arrive } = Promise.withResolvers<SavedLink>();
+    await renderUnlisted(link, () => promise);
+    expect(screen.getByRole("status")).toHaveTextContent("Loading…");
+    act(() => { arrive(link); });
+    expect(await within(details()).findByRole("heading", { name: /Deep in the list/ })).toBeInTheDocument();
+    expect(reads(link.id)).toHaveLength(1);
+  });
+
+  it("is not fetched when a loaded list holds it", async () => {
+    const link = savedLink({ resource: { title: "On the first page" } });
+    await renderDetails(link);
+    expect(within(details()).getByRole("heading", { name: /On the first page/ })).toBeInTheDocument();
+    expect(reads(link.id)).toEqual([]);
+  });
+
+  it("reads as not found when the API has no such link", async () => {
+    const link = savedLink();
+    await renderUnlisted(link, () => Promise.reject(new ApiError(ERROR_CODES.NOT_FOUND, "Link not found")));
+    expect(await within(details()).findByText("Couldn't find this link")).toBeInTheDocument();
+    expect(reads(link.id)).toHaveLength(1);
+  });
+
+  it("takes a rename into its own copy at once", async () => {
+    const link = savedLink({ resource: { title: "Fetched title" } });
+    const { queryClient } = await renderUnlisted(link, () => Promise.resolve(link));
+    await userEvent.click(await screen.findByRole("button", { name: /Fetched title/ }));
+    const input = screen.getByRole("textbox", { name: "Title" });
+    await userEvent.clear(input);
+    await userEvent.type(input, "My name{Enter}");
+    expect(patches()).toEqual([{ titleOverride: "My name" }]);
+    expect(queryClient.getQueryData<SavedLink>(linksKeys.detail(link.id))?.titleOverride).toBe("My name");
   });
 });
 

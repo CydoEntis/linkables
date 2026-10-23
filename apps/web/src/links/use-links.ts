@@ -23,6 +23,8 @@ export type ListScope = { view: LinksView } | { collectionId: string };
 
 export const linksKeys = {
   all: ["links"] as const,
+  lists: ["links", "list"] as const,
+  detail: (linkId: string) => ["links", "detail", linkId] as const,
   list: (view: LinksView) => ["links", "list", view] as const,
   collection: (collectionId: string) => ["links", "list", "collection", collectionId] as const,
 };
@@ -84,13 +86,34 @@ function listPath(scope: ListScope, filters: ListFilters, cursor: string | undef
   return query ? `/links?${query}` : "/links";
 }
 
-// The link as any loaded list has it, for UI that holds only an id.
-export function findCachedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
-  for (const [, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.all })) {
+export function findListedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
+  for (const [, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.lists })) {
     const found = data?.pages.flatMap((page) => page.items).find((item) => item.id === linkId);
     if (found) return found;
   }
   return undefined;
+}
+
+// The link as the cache has it, for UI that holds only an id: from a loaded
+// list, or else as details fetched it on its own.
+export function findCachedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
+  return findListedLink(queryClient, linkId) ?? queryClient.getQueryData<SavedLink>(linksKeys.detail(linkId));
+}
+
+// Applies a change made on this device to every cached copy of the link.
+export function updateCachedLink(queryClient: QueryClient, linkId: string, update: (link: SavedLink) => SavedLink) {
+  queryClient.setQueriesData<LinksPages>({ queryKey: linksKeys.lists }, (data) =>
+    data === undefined
+      ? data
+      : {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) => (item.id === linkId ? update(item) : item)),
+          })),
+        },
+  );
+  queryClient.setQueryData<SavedLink>(linksKeys.detail(linkId), (link) => link && update(link));
 }
 
 export function isPending(link: SavedLink): boolean {

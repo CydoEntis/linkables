@@ -94,7 +94,7 @@ function Gone() {
   return (
     <div className="flex flex-col gap-2 py-10">
       <p className="text-[17px] font-bold">Couldn't find this link</p>
-      <p className="text-sm text-muted-foreground">It may have been deleted, or it isn't in the list you have open.</p>
+      <p className="text-sm text-muted-foreground">It may have been deleted.</p>
     </div>
   );
 }

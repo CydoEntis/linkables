@@ -1,24 +1,13 @@
 import { savedLinkSchema, type SavedLink } from "@linkables/shared/links";
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api } from "../api/api";
-import { findCachedLink, linksKeys, type LinksPages } from "../links/use-links";
+import { findCachedLink, linksKeys, updateCachedLink } from "../links/use-links";
 
 // One field at a time, as the shared schema outputs it: trimmed, with blank as null.
 export type LinkEdits = { titleOverride: string | null } | { note: string | null };
 
-
-function patchLists(queryClient: QueryClient, linkId: string, edits: Partial<SavedLink>) {
-  queryClient.setQueriesData<LinksPages>({ queryKey: linksKeys.all }, (data) =>
-    data === undefined
-      ? data
-      : {
-          ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            items: page.items.map((item) => (item.id === linkId ? { ...item, ...edits } : item)),
-          })),
-        },
-  );
+function applyFields(queryClient: QueryClient, linkId: string, fields: Partial<SavedLink>) {
+  updateCachedLink(queryClient, linkId, (link) => ({ ...link, ...fields }));
 }
 
 function previousValues(link: SavedLink | undefined, edits: LinkEdits): Partial<SavedLink> | undefined {
@@ -41,9 +30,9 @@ function patchLink(linkId: string, edits: LinkEdits, keepalive = false) {
 // shortcut: an earlier save still in flight may land after this one.
 export function saveAsPageLeaves(queryClient: QueryClient, linkId: string, edits: LinkEdits): Promise<unknown> {
   const previous = previousValues(findCachedLink(queryClient, linkId), edits);
-  patchLists(queryClient, linkId, edits);
+  applyFields(queryClient, linkId, edits);
   return patchLink(linkId, edits, true).catch((error: unknown) => {
-    if (previous) patchLists(queryClient, linkId, previous);
+    if (previous) applyFields(queryClient, linkId, previous);
     throw error;
   });
 }
@@ -58,11 +47,11 @@ export function useUpdateLink(linkId: string) {
     onMutate: async ({ edits }) => {
       await queryClient.cancelQueries({ queryKey: linksKeys.all });
       const previous = previousValues(findCachedLink(queryClient, linkId), edits);
-      patchLists(queryClient, linkId, edits);
+      applyFields(queryClient, linkId, edits);
       return { previous };
     },
     onError: (_error, _edits, context) => {
-      if (context?.previous) patchLists(queryClient, linkId, context.previous);
+      if (context?.previous) applyFields(queryClient, linkId, context.previous);
     },
     // A new title can move the link in a title-sorted list; a note moves nothing.
     onSuccess: (_link, { edits }) => {
