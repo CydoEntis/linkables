@@ -7,6 +7,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, i
 // schema: DROP DATABASE waits for a checkpoint, which can outlast a hook timeout.
 const testUrl = new URL(inject("testDatabaseUrl"));
 const scratchName = `${testUrl.pathname.slice(1).replace(/_test$/, "")}_migrations_test`;
+if (scratchName === testUrl.pathname.slice(1)) {
+  throw new Error("The migration scratch database would be the test database itself; rename TEST_DATABASE_URL.");
+}
 const scratchUrl = new URL(testUrl);
 scratchUrl.pathname = `/${scratchName}`;
 
