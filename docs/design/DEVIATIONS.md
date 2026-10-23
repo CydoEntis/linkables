@@ -24,13 +24,27 @@ Contrast was measured in headless Chrome with the WCAG formula.
 - **First-run swipe hint** ("Swipe a link left for actions") and the first row's nudge.
 - **Pin confetti**: pinning pops the pin icon and holds the list still for 1.5 s, but plays no confetti.
 - **Link details panel**: clicking a row opens the saved URL in a new tab instead.
-- **Search**: the web bar only saves (Enter on text that is not a link explains why), and phones have no search field yet.
-- **⌘K hint** in the bar: hidden until the command palette exists, so it promises nothing that does not work.
 - **"Saved · Add to…" toast** after a new save, and **"Already saved in X"**. A duplicate says "Already saved" and flashes the existing row.
 - **Saving into the open collection**: a link saved on a collection's page lands in To sort, as in the prototype.
 - **Demoted paste box and the "Save from anywhere" header hint** (save-anywhere screen 8): the bar keeps its size, and there is no hint in the header.
 - **New collection on the share card**: the card ticks existing collections only; creating one comes with the collections UI.
 - **App icons are placeholders**: rendered from `assets/linkables-logo.png` (the 3D render) on the `--bg` colour. The designer's flat SVG logo is still pending; the icons are redrawn from it when it lands.
+
+## Search, sort and filter
+
+The handoff draws the search/paste bar, the phone search field and lime matches; sort, filters, the command palette and the shortcut list are not drawn (brief 5.9).
+
+- **Where a search looks.** From All links, Pinned or To sort it covers every link, as in the prototype: the heading reads "Search" and All links is the active view. On a collection's page it stays inside that collection, which keeps the page's header and Share (brief 4.3: collection search).
+- **Matches are marked in titles and domains**, each word of the search on its own. The prototype marks the whole query in titles only.
+- **The phone field only searches.** Saving on a phone stays with the + button and its sheet, so the field never turns into a Save button.
+- **Sort and Filter** sit under the heading as two quiet buttons. Filter opens a panel with Kind (Any, Videos, Pages, Other), Pinned only, Saved between (two date fields) and Collection. Active filters show as white chips that remove themselves when tapped, with Clear all. Pinned only is not offered on Pinned, and Collection is not offered on To sort or on a collection's page.
+- **Results count** above the results ("3 matches", "50+ matches" while more pages exist), since the API has no total.
+- **Sorted or searched lists are one list** with no day headings; pinned links still come first.
+- **Saved between uses local days.** The URL holds the days picked (`from=2026-10-01`); the request sends each as the first and last instant of that day on this device. A reversed range is held back with "The first date is after the second."
+- **Everything is in the URL** (`q`, `sort`, `kind`, `pinned`, `from`, `to`, `collection`), so a filtered list can be bookmarked, survives a reload and steps back with Back. Typing more of a search replaces its history entry instead of adding one per pause. The sidebar views start fresh, without the search or filters.
+- **Esc** clears the search, and a second Esc leaves the field.
+- **Command palette** (Ctrl+K, or ⌘K on Apple keyboards): Search links for the typed text, Save a link, Get the bookmark button, Keyboard shortcuts, Go to All links / Pinned / To sort, and Go to each collection. The bar's hint reads "Ctrl K" where the keyboard has no ⌘.
+- **"?" lists the shortcuts** (/, Esc, Ctrl/⌘ K, Ctrl/⌘ V, ?). The brief's single-key actions on a selected card (p, c, e) wait for link details, since rows have no selection yet.
 
 ## Share flow (`/save`)
 
