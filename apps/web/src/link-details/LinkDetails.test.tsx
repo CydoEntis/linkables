@@ -157,6 +157,14 @@ describe("link details", () => {
     await waitFor(() => { expect(patches()).toEqual([{ note: "on pagehide" }]); });
   });
 
+  it("says so when an unsaveable note is dropped as the details close", async () => {
+    await renderDetails(savedLink());
+    await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "a‮b");
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(await screen.findByText("Your note has characters that can't be saved, so it wasn't kept.")).toBeInTheDocument();
+    expect(patches()).toEqual([]);
+  });
+
   it("refuses a note with characters the API rejects, without sending it", async () => {
     await renderDetails(savedLink());
     await userEvent.type(screen.getByRole("textbox", { name: "Note" }), "a‮b");
