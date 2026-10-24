@@ -13,7 +13,7 @@ Saved link only.
 **Inbox**
 Each user's saved links that belong to no collection. Saving never requires
 choosing a collection. The Inbox is derived, not stored. The UI labels it
-**To sort** (design handoff); code and the API keep the name Inbox (`view=inbox`).
+**New** (renamed from "To sort" in the 2026-10-24 handoff); code and the API keep the name Inbox (`view=inbox`).
 
 **Collection**
 A named group of a user's saved links. One saved link can belong to several
