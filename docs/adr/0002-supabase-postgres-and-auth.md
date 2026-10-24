@@ -51,9 +51,10 @@ without the paid add-on. `user_id` is a plain `uuid` equal to the JWT `sub`, wit
 **no foreign key to `auth.users`**, so plain Postgres can run integration tests in
 CI.
 
-**Sign-in.** Phase 1 uses an email magic link on Supabase's default SMTP. That
-works because default SMTP delivers only to the org's team-member addresses (the
-owner's included), and Phase 1 stays under its limit of 2 emails per hour. Custom SMTP is required before any other user signs up (Phase 3 beta).
+**Sign-in.** Phase 1 leads with Google sign-in through Supabase Auth, because
+single-use magic links get spent by iPhone link previews and in-app browsers. An
+email magic link stays as the fallback, sent through Resend SMTP as
+noreply@linkables.app.
 
 ## Reasoning
 
