@@ -20,6 +20,12 @@ Under **Authentication → Providers → Email** (or **Sign In / Providers → E
   and these emails say "an hour". If you change it, change the copy in
   `apps/web/src/auth/CodeStep.tsx`, `apps/web/src/auth/SignInScreen.tsx` and here.
 
+Under **Authentication → Rate Limits**:
+
+- The gap between emails to one address is 60 seconds by default. The sign-in
+  page holds **Resend** for 60 seconds to match (`RESEND_WAIT_SECONDS` in
+  `apps/web/src/auth/CodeStep.tsx`). If you change one, change the other.
+
 ## Magic Link
 
 **Subject:** `Your linkables sign-in code`
