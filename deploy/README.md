@@ -1,8 +1,11 @@
 # Deploy
 
-Production runs on an OVHcloud VPS (x86_64, Ubuntu 26.04, `40.160.103.45`) at
-`https://linkables.app` (ADR-0005). The owner's Raspberry Pi, over Tailscale,
-was the earlier private host.
+Production runs on an OVHcloud VPS (x86_64, Ubuntu 26.04, `40.160.103.45` and
+`2604:2dc0:101:200::3b68`) at `https://linkables.app` (ADR-0005). The owner's
+Raspberry Pi, over Tailscale, was the earlier private host. Turn its copy off so
+it is not a second production writer:
+`sudo systemctl disable --now linkables-update.timer && cd /srv/linkables && sudo docker compose down`,
+then `sudo tailscale serve reset`.
 
 ```
 push to main → CI: verify, e2e, image smoke test
@@ -36,6 +39,7 @@ Run on the server as a user with sudo.
    per domain in `/etc/caddy/Caddyfile`:
    ```
    linkables.app {
+   	encode zstd gzip
    	reverse_proxy 127.0.0.1:8080
    }
 
@@ -62,8 +66,14 @@ Run on the server as a user with sudo.
 
 ## DNS
 
-At Porkbun: an `A` and an `AAAA` record for `linkables.app` pointing at the
-server.
+At Porkbun, for both `linkables.app` and `www.linkables.app` (the `www` block
+needs its own records to get a certificate):
+
+- `A` → `40.160.103.45`
+- `AAAA` → `2604:2dc0:101:200::3b68`
+
+Keep Resend's records (`resend._domainkey`, `send`, `rsend`); sign-in email
+depends on them.
 
 ## GitHub settings
 
@@ -80,8 +90,9 @@ Authentication → URL Configuration: Site URL `https://linkables.app`, and add
 
 ## Google OAuth
 
-In the Google Cloud OAuth client, add `https://linkables.app` as an authorized
-JavaScript origin.
+Nothing to change for a new app origin. Google only sees Supabase's callback
+(`https://<project-ref>.supabase.co/auth/v1/callback`) as the redirect URI; the
+app's own address is checked by Supabase's Redirect URLs above.
 
 ## Day to day
 
