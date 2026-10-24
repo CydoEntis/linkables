@@ -84,9 +84,19 @@ describe("LinkRow", () => {
     expect(screen.getByText(/^youtube.com/)).toHaveTextContent("youtube.com · in Rust · from iPhone");
   });
 
-  it("marks a link in no collection as New", async () => {
+  it("marks a link in no collection with a dot named for screen readers", async () => {
+    await renderRow(savedLink());
+    expect(screen.getByRole("img", { name: "Not in a collection" })).toBeInTheDocument();
+  });
+
+  it("leaves New out of the meta text of a link in no collection", async () => {
     await renderRow(savedLink({ originalUrl: "https://youtube.com/w" }));
-    expect(screen.getByText(/^youtube.com/)).toHaveTextContent(/^youtube.com · New/);
+    expect(screen.getByText(/^youtube.com/)).not.toHaveTextContent("New");
+  });
+
+  it("shows no dot for a link in a collection", async () => {
+    await renderRow(savedLink({ collections: [{ id: crypto.randomUUID(), name: "rust" }] }));
+    expect(screen.queryByRole("img", { name: "Not in a collection" })).not.toBeInTheDocument();
   });
 
   it("pins the link at once and asks the API to pin it", async () => {

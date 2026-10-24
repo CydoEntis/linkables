@@ -49,10 +49,10 @@ export function tileFor(domain: string): { hue: number; letter: string } {
   return { hue: (hash * 47) % 360, letter: (domain[0] ?? "?").toUpperCase() };
 }
 
-// "in Rust", "in Rust +1", or "New" when the link is in no collection.
-export function filedLabel(collections: SavedLink["collections"]): string {
+// "in Rust", "in Rust +1", or null when the link is in no collection (the row shows a dot instead).
+export function filedLabel(collections: SavedLink["collections"]): string | null {
   const [first, ...rest] = collections;
-  if (first === undefined) return "New";
+  if (first === undefined) return null;
   return `in ${displayName(first.name)}${rest.length > 0 ? ` +${String(rest.length)}` : ""}`;
 }
 

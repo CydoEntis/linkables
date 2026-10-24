@@ -157,7 +157,8 @@ function RowText({ link, now, inCollection, pinned, opacity, query }: RowTextPro
       </span>
       {unsorted ? (
         <span
-          aria-hidden
+          role="img"
+          aria-label="Not in a collection"
           style={{ opacity }}
           className="size-[7px] shrink-0 rounded-full bg-primary md:size-2 md:shadow-[0_0_0_4px_var(--primary-soft)]"
         />

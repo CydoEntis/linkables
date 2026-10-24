@@ -44,7 +44,7 @@ test.describe("at 1280 px", () => {
     await expect(page.getByText("Nothing here yet")).toBeVisible();
 
     await sidebar(page).getByRole("link", { name: "New", exact: true }).click();
-    await expect(page.getByRole("link", { name: row })).toContainText("· New");
+    await expect(page.getByRole("link", { name: row }).getByRole("img", { name: "Not in a collection" })).toBeVisible();
     const picker = await openAddTo(page, row);
     await picker.getByRole("button", { name: "Rust" }).click();
     await expect(picker.getByRole("button", { name: "Rust" })).toHaveAttribute("aria-pressed", "true");
@@ -67,7 +67,7 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("link", { name: row })).toHaveCount(0);
 
     await sidebar(page).getByRole("link", { name: "New", exact: true }).click();
-    await expect(page.getByRole("link", { name: row })).toContainText("· New");
+    await expect(page.getByRole("link", { name: row }).getByRole("img", { name: "Not in a collection" })).toBeVisible();
   });
 
   test("closing Add to… returns focus to it, or to the next row when the link leaves", async ({ page, seedLinks, request, user }) => {
