@@ -1,5 +1,5 @@
 [Unit]
-Description=Check for new linkaroo images every 5 minutes
+Description=Check for new linkables images every 5 minutes
 
 [Timer]
 OnBootSec=1min

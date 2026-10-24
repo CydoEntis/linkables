@@ -1,7 +1,7 @@
-# Production stack on the server, run from /srv/linkaroo (see deploy/README.md).
+# Production stack on the server, run from /srv/linkables (see deploy/README.md).
 # CI publishes both images on every green push to main; the server's update
 # timer pulls them, so nothing on the internet needs to reach the server.
-name: linkaroo
+name: linkables
 
 # Docker's default json-file logs never rotate and would fill the Pi's disk.
 x-logging: &logging
