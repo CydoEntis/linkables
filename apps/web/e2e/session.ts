@@ -20,7 +20,7 @@ export async function createTestUser(): Promise<TestUser> {
   return { id, email, accessToken };
 }
 
-function sessionJson(user: TestUser): string {
+export function sessionJson(user: TestUser): string {
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_SECONDS;
   return JSON.stringify({
     access_token: user.accessToken,
