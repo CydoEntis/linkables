@@ -82,7 +82,7 @@ describe("LinkList", () => {
     request.mockResolvedValue({ items: [savedLink({ originalUrl: "https://example.com/a", collections: [japan] })], cursor: null });
     useCollectionsUi.getState().startDeleting(japan.id, { name: japan.name, undo: () => undefined });
     renderList();
-    expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · New");
+    expect(await screen.findByRole("img", { name: "Not in a collection" })).toBeInTheDocument();
     useCollectionsUi.getState().stopDeleting(japan.id);
     expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · in Japan");
   });
