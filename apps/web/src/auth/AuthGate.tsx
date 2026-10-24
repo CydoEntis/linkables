@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { keepPendingSave, pendingSaveHref, SAVE_PATH } from "../save/pending-save";
 import { AuthPage } from "./AuthPage";
 import { AuthStateContext, useAuthState } from "./auth-state";
-import { openedFromEmailLink } from "./supabase";
+import { returningFromSignIn } from "./supabase";
 import { useAuth } from "./use-auth";
 
 export function AuthGate() {
@@ -24,7 +24,7 @@ function GatedOutlet() {
   const onSignIn = pathname === "/sign-in";
 
   if (auth.status === "loading") {
-    return openedFromEmailLink ? <AuthPage title="Signing you in…" /> : null;
+    return returningFromSignIn ? <AuthPage title="Signing you in…" /> : null;
   }
   if (auth.status === "signed-out" && !onSignIn) {
     // Written during render so it lands before Navigate's effect leaves /save; the write is idempotent.
