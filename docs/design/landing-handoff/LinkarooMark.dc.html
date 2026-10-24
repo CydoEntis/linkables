@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="{{ box }}">
+<sc-if value="{{ isPouch }}" hint-placeholder-val="{{ true }}"><div style="width:var(--m);height:var(--m);border-radius:calc(var(--m)*.28);background:var(--primary);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden"><span style="font-family:var(--fd);font-weight:800;font-size:calc(var(--m)*.78);line-height:1;color:var(--primaryfg);margin-top:calc(var(--m)*-.14)">l</span><span style="position:absolute;left:20%;right:20%;bottom:14%;height:28%;background:var(--accent);border-radius:calc(var(--m)*.04) calc(var(--m)*.04) calc(var(--m)*.18) calc(var(--m)*.18)"></span></div></sc-if>
+<sc-if value="{{ isHop }}"><img src="assets/linkables-logo.png" alt="linkables" style="width:var(--m);height:var(--m);object-fit:contain;display:block;transform:scale(1.12)"></sc-if>
+<sc-if value="{{ isField }}"><div style="width:var(--m);height:var(--m);border-radius:calc(var(--m)*.18);background:var(--fg);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden"><span style="font-family:var(--fm);font-weight:700;font-size:calc(var(--m)*.62);line-height:1;color:var(--bg)">l/</span><span style="position:absolute;right:0;top:0;width:30%;height:30%;background:var(--accent)"></span></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:96,&quot;height&quot;:96},&quot;brand&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pouch&quot;,&quot;hop&quot;,&quot;field&quot;],&quot;default&quot;:&quot;pouch&quot;,&quot;tsType&quot;:&quot;'pouch'|'hop'|'field'&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:24,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:12,&quot;max&quot;:200}}">
+class Component extends DCLogic {
+  renderVals() {
+    const b = this.props.brand ?? 'pouch', s = this.props.size ?? 24;
+    return { isPouch: b === 'pouch', isHop: b === 'hop', isField: b === 'field', box: { '--m': s + 'px', width: s, height: s, flex: 'none' } };
+  }
+}
+</script>
+</body>
+</html>
