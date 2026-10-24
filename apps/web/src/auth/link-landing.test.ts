@@ -34,3 +34,9 @@ it("strips a Google error from the query and keeps the other parameters", async 
   await readLinkProblem();
   expect(currentUrl()).toBe("/sign-in?keep=1");
 });
+
+it("reports a Google failure that Supabase sends to the app root", async () => {
+  window.history.replaceState(null, "", "/?error=server_error&error_code=bad_oauth_state&error_description=x");
+  failWith("server_error", "bad_oauth_state");
+  await expect(readLinkProblem()).resolves.toBe("google-failed");
+});
