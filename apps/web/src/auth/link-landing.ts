@@ -5,15 +5,21 @@ import { supabase } from "./supabase";
 
 export type LinkProblem = "expired" | "invalid" | "google-failed";
 
-// Supabase redirects a failed sign-in back with error=... in the hash or query. Email links
-// land on the app root and Google on the sign-in page, so the path says which one failed.
+// Supabase redirects a failed sign-in back with error=... in the hash or query. Some OAuth
+// failures (lost flow state) go to the Site URL, not redirectTo, so the code is checked first;
+// otherwise the path decides: email links land on the app root, Google on the sign-in page.
 export async function readLinkProblem(): Promise<LinkProblem | null> {
   const { error } = await supabase.auth.initialize();
   if (!isAuthImplicitGrantRedirectError(error)) return null;
-  const fromGoogle = window.location.pathname === GOOGLE_RETURN_PATH;
+  const code = error.details?.code ?? "";
+  const fromGoogle = isOAuthErrorCode(code) || window.location.pathname === GOOGLE_RETURN_PATH;
   removeSignInErrorFromUrl();
   if (fromGoogle) return "google-failed";
-  return error.details?.code === "otp_expired" ? "expired" : "invalid";
+  return code === "otp_expired" ? "expired" : "invalid";
+}
+
+function isOAuthErrorCode(code: string): boolean {
+  return code.startsWith("bad_oauth_") || code.startsWith("provider_");
 }
 
 function removeSignInErrorFromUrl(): void {
