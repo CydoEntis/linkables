@@ -102,5 +102,11 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **Pending rows stop polling** two minutes after this device first sees the newest pending row (2 s, then 5 s, then 15 s); a row still pending after that keeps "Getting details…" until the list next loads.
 - **Phone save button** stays enabled while grey; pressing it with an invalid link shows the reason instead of doing nothing.
 - **Fonts are self-hosted** (Fontsource packages) instead of loaded from Google Fonts, so a page view does not tell a font CDN who uses linkables.
-- **Sign-in screens** keep their earlier look; the handoff does not cover them. Arriving from a share while signed out, the heading reads "Sign in to save this link", and the save finishes after sign-in.
+- **Sign-in from a share**: arriving from a share while signed out, the heading reads "Sign in to save this link", and the save finishes after sign-in by Google, link or code.
+
+## Sign-in (landing-handoff section 0b)
+
+- **"For an hour", not "for 15 minutes".** Supabase's email code and link last an hour by default (`docs/supabase-email-templates.md`), so the copy says so.
+- **No "open the link" button** on Check your email: it is the prototype's stand-in for clicking the email. Resend fills the row instead.
+- **Not built yet:** the "Signing you in…" progress bar, "You're in" with its device choices, and "Welcome back" for returning users. The handoff's Privacy, Terms and Help pages arrive later; the footer links point at `/privacy`, `/terms` and `/support`.
 - **Removed state** on `/save` after Undo ("Removed"), and an error state with Retry: the prompt lists neither.
