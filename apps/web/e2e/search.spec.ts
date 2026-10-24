@@ -149,7 +149,7 @@ test.describe("at 1280 px", () => {
     await expect(row(page, RUST)).toHaveCount(0);
 
     await page.keyboard.press("Control+k");
-    await palette.getByRole("option", { name: "Go to New" }).click();
+    await palette.getByRole("option", { name: "Go to New", exact: true }).click();
     await expect(page).toHaveURL(/view=inbox/);
     await expect(page).not.toHaveURL(/q=/);
     await expect(page.getByRole("heading", { level: 1, name: "New", exact: true })).toBeVisible();
@@ -169,6 +169,7 @@ test.describe("at 375 px", () => {
     await seedLinks(LINKS);
     await page.goto("/?kind=page&pinned=true&from=2026-01-01&to=2026-12-31");
     await expect(page.getByRole("button", { name: "Clear all" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Links" }).getByRole("link", { name: "New", exact: true })).toBeVisible();
     const field = page.getByRole("searchbox", { name: "Search your links" });
     expect((await page.getByRole("search").filter({ visible: true }).locator("label").boundingBox())?.height).toBe(48);
 
