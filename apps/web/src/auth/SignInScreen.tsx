@@ -10,10 +10,13 @@ import { Input } from "@/components/ui/input";
 import { pendingSaveHref } from "../save/pending-save";
 import { AuthPage } from "./AuthPage";
 import { useAuthState } from "./auth-state";
+import { GoogleMark } from "./GoogleMark";
+import { signInWithGoogle } from "./google-sign-in";
 import type { LinkProblem } from "./link-landing";
 import { sendMagicLink, type SendLinkProblem } from "./magic-link";
 
 type Problem = SendLinkProblem | LinkProblem;
+type EmailProblem = Exclude<Problem, "google-failed">;
 
 const PROBLEM_MESSAGES: Record<Problem, string> = {
   "invalid-email": "Enter a valid email address.",
@@ -23,6 +26,7 @@ const PROBLEM_MESSAGES: Record<Problem, string> = {
   failed: "We couldn't send the link. Try again.",
   expired: "This link has expired. Send a new one.",
   invalid: "This sign-in link didn't work. Send a new one.",
+  "google-failed": "Google sign-in didn't finish. Try again.",
 };
 
 const signInSchema = z.object({
@@ -49,6 +53,8 @@ export function SignInScreen({ linkProblem, focusHeading, title = "Sign in to li
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [cameBack, setCameBack] = useState(false);
+  const [emailChosen, setEmailChosen] = useState(false);
+  const emailLinkProblem = linkProblem === "google-failed" ? null : linkProblem;
 
   if (sentTo !== null) {
     return (
@@ -62,29 +68,58 @@ export function SignInScreen({ linkProblem, focusHeading, title = "Sign in to li
     );
   }
   return (
-    <EmailForm
-      title={title}
-      defaultEmail={email}
-      initialProblem={linkProblem}
-      onSent={(address) => {
-        setEmail(address);
-        setSentTo(address);
-      }}
-      focusHeading={focusHeading || cameBack}
-    />
+    <AuthPage title={title} description="Sign in to save and find your links." focusHeading={focusHeading || cameBack}>
+      <div className="space-y-4">
+        <GoogleSignIn initialProblem={linkProblem === "google-failed" ? linkProblem : null} />
+        {emailChosen || cameBack || emailLinkProblem !== null ? (
+          <EmailForm
+            defaultEmail={email}
+            initialProblem={emailLinkProblem}
+            focusEmail={emailChosen && !cameBack}
+            onSent={(address) => {
+              setEmail(address);
+              setSentTo(address);
+            }}
+          />
+        ) : (
+          <Button variant="ghost" onClick={() => { setEmailChosen(true); }} className="h-11 w-full">
+            Use email instead
+          </Button>
+        )}
+      </div>
+    </AuthPage>
+  );
+}
+
+function GoogleSignIn({ initialProblem }: { initialProblem: "google-failed" | null }) {
+  const start = useMutation({ mutationFn: signInWithGoogle });
+  const result = start.isError ? ({ ok: false, problem: "google-failed" } as const) : start.data;
+  const problem = result ? (result.ok ? null : result.problem) : initialProblem;
+
+  return (
+    <div className="space-y-2">
+      {problem ? (
+        <p role="alert" className="text-sm text-destructive">
+          {PROBLEM_MESSAGES[problem]}
+        </p>
+      ) : null}
+      <Button disabled={start.isPending} onClick={() => { start.mutate(); }} className="h-11 w-full">
+        <GoogleMark />
+        Continue with Google
+      </Button>
+    </div>
   );
 }
 
 type EmailFormProps = {
-  title: string;
   defaultEmail: string;
-  initialProblem: LinkProblem | null;
+  initialProblem: EmailProblem | null;
+  focusEmail: boolean;
   onSent: (email: string) => void;
-  focusHeading: boolean;
 };
 
-function EmailForm({ title, defaultEmail, initialProblem, onSent, focusHeading }: EmailFormProps) {
-  const [problem, setProblem] = useState<Problem | null>(initialProblem);
+function EmailForm({ defaultEmail, initialProblem, focusEmail, onSent }: EmailFormProps) {
+  const [problem, setProblem] = useState<EmailProblem | null>(initialProblem);
   const send = useMutation({ mutationFn: sendMagicLink });
   const form = useForm<SignInValues>({ resolver: zodResolver(signInSchema), defaultValues: { email: defaultEmail } });
   const problemId = useId();
@@ -104,34 +139,29 @@ function EmailForm({ title, defaultEmail, initialProblem, onSent, focusHeading }
   }
 
   return (
-    <AuthPage
-      title={title}
-      description="We'll email you a link that signs you in."
-      focusHeading={focusHeading}
-    >
-      <form noValidate onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
-        <Field data-invalid={invalid || undefined}>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            {...form.register("email")}
-            aria-invalid={invalid || undefined}
-            aria-describedby={message ? problemId : undefined}
-            className="h-11"
-          />
-          <FieldError id={problemId}>{message}</FieldError>
-        </Field>
-        <Button type="submit" disabled={send.isPending} className="h-11 w-full">
-          {send.isPending ? "Sending…" : "Email me a sign-in link"}
-        </Button>
-        <p role="status" className="sr-only">
-          {send.isPending ? "Sending the sign-in link" : null}
-        </p>
-      </form>
-    </AuthPage>
+    <form noValidate onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
+      <Field data-invalid={invalid || undefined}>
+        <FieldLabel htmlFor="email">Email</FieldLabel>
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          required
+          autoFocus={focusEmail}
+          {...form.register("email")}
+          aria-invalid={invalid || undefined}
+          aria-describedby={message ? problemId : undefined}
+          className="h-11"
+        />
+        <FieldError id={problemId}>{message}</FieldError>
+      </Field>
+      <Button type="submit" disabled={send.isPending} className="h-11 w-full">
+        {send.isPending ? "Sending…" : "Email me a sign-in link"}
+      </Button>
+      <p role="status" className="sr-only">
+        {send.isPending ? "Sending the sign-in link" : null}
+      </p>
+    </form>
   );
 }
 

@@ -7,7 +7,8 @@ import { SignInScreen } from "./SignInScreen";
 import type { LinkProblem } from "./link-landing";
 
 const signInWithOtp = vi.hoisted(() => vi.fn());
-vi.mock("./supabase", () => ({ supabase: { auth: { signInWithOtp } } }));
+const signInWithOAuth = vi.hoisted(() => vi.fn());
+vi.mock("./supabase", () => ({ supabase: { auth: { signInWithOtp, signInWithOAuth } } }));
 
 function renderScreen(linkProblem: LinkProblem | null = null, focusHeading = false) {
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
@@ -20,6 +21,7 @@ function renderScreen(linkProblem: LinkProblem | null = null, focusHeading = fal
 
 async function submitEmail(email: string) {
   const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Use email instead" }));
   await user.type(screen.getByLabelText("Email"), email);
   await user.click(screen.getByRole("button", { name: "Email me a sign-in link" }));
   return user;
@@ -27,9 +29,46 @@ async function submitEmail(email: string) {
 
 beforeEach(() => {
   signInWithOtp.mockReset();
+  signInWithOAuth.mockReset();
+  window.history.replaceState(null, "", "/sign-in");
 });
 
 describe("SignInScreen", () => {
+  it("leads with Continue with Google and keeps email behind Use email instead", () => {
+    renderScreen();
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+  });
+
+  it("starts Google sign-in with a redirect back to this page", async () => {
+    signInWithOAuth.mockResolvedValue({ data: {}, error: null });
+    renderScreen();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Continue with Google" }));
+    expect(signInWithOAuth).toHaveBeenCalledWith({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/sign-in` },
+    });
+  });
+
+  it("says the user is offline instead of opening Google", async () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValueOnce(false);
+    renderScreen();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Continue with Google" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("You're offline.");
+    expect(signInWithOAuth).not.toHaveBeenCalled();
+  });
+
+  it("explains a cancelled or failed Google sign-in on landing", () => {
+    renderScreen("google-failed");
+    expect(screen.getByRole("alert")).toHaveTextContent("Google sign-in didn't finish. Try again.");
+  });
+
+  it("moves focus to the email field on Use email instead", async () => {
+    renderScreen();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Use email instead" }));
+    expect(screen.getByLabelText("Email")).toHaveFocus();
+  });
+
   it("sends a magic link and shows check-your-email with the address", async () => {
     signInWithOtp.mockResolvedValue({ data: {}, error: null });
     renderScreen();
