@@ -94,7 +94,7 @@ export function SignInScreen({ linkProblem, focusHeading, title = "Sign in to li
 function GoogleSignIn({ initialProblem }: { initialProblem: "google-failed" | null }) {
   const start = useMutation({ mutationFn: signInWithGoogle });
   const result = start.isError ? ({ ok: false, problem: "google-failed" } as const) : start.data;
-  const problem = result ? (result.ok ? null : result.problem) : initialProblem;
+  const problem = start.isIdle ? initialProblem : result && !result.ok ? result.problem : null;
 
   return (
     <div className="space-y-2">

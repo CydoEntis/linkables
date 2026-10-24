@@ -67,6 +67,13 @@ describe("SignInScreen", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Google sign-in didn't finish. Try again.");
   });
 
+  it("clears the landing message while Google sign-in starts again", async () => {
+    signInWithOAuth.mockReturnValue(new Promise(() => undefined));
+    renderScreen("google-failed");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Continue with Google" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("moves focus to the email field on Use email instead", async () => {
     renderScreen();
     await userEvent.setup().click(screen.getByRole("button", { name: "Use email instead" }));
