@@ -66,12 +66,10 @@ noreply@linkables.app.
 
 - Auth is the main lock-in; moving off it means re-issuing tokens and sign-ins.
 - Remote thumbnails can break or leak referrers. Caching them is a later decision.
-- The default SMTP has a low hourly rate limit, which is fine for one user.
 
 ## Revisit when
 
-- Auth needs a provider Supabase does not offer, or a coworker needs to sign up
-  (custom SMTP).
+- Auth needs a provider Supabase does not offer.
 - Thumbnail or file storage becomes a real requirement.
 
 ## Sources (verified 2026-10-21 against Supabase docs)
