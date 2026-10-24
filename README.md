@@ -13,7 +13,7 @@ Save any URL in seconds, find it later from any device, share it when needed.
 - [`CONTEXT.md`](CONTEXT.md): what the words mean (Resource, Saved link, Inbox, ...).
 - [`AGENTS.md`](AGENTS.md): rules for anyone (human or agent) writing code here,
   and how a ticket gets worked.
-- Tickets: Plane project `linkaroo` (LNK-1 onward).
+- Tickets: Plane project `linkables` (LNK-1 onward).
 
 ## Develop
 

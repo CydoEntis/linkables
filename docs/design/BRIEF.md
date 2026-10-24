@@ -6,7 +6,7 @@ coding agents (Claude Code) reading the Figma file through the Figma MCP server,
 the handoff rules in section 8 matter as much as the visuals.
 
 Sources: `docs/PLANNING.md` (scope and phases), `CONTEXT.md` (terms), `docs/adr/`
-(decisions), the Plane tickets (project `linkaroo`, LNK-1 onward), and research on
+(decisions), the Plane tickets (project `linkables`, LNK-1 onward), and research on
 competitors and platform limits done 2026-10-22.
 
 **Status (2026-10-22):** the designer's handoff is in `docs/design/handoff/`. Where it

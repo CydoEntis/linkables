@@ -105,13 +105,13 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 - Deferred: browser extension, any sharing.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
-- Tickets: Plane project `linkaroo` (LNK), workspace `ideayard`, project id
+- Tickets: Plane project `linkables` (LNK), workspace `ideayard`, project id
   `34d1ff25-ab11-4617-bb3b-7b56acb0c8cd`. 33 tickets, revised 2026-10-21 after the
   second Opus 5.5 audit; P1-23 to P1-25 added 2026-10-22.
 - Product renamed from linkaroo to linkables on 2026-10-22; the GitHub repo is now
-  `CydoEntis/linkables` (the old URL redirects). The Supabase and Plane projects
-  keep the old name until renamed in their dashboards; their refs don't change.
-- Supabase project: `linkaroo`, ref `tiechzmcvmdlceyovskg`, region `us-east-1`,
+  `CydoEntis/linkables` (the old URL redirects). The Plane and Supabase projects
+  were renamed too; their ids and refs did not change.
+- Supabase project: `linkables`, ref `tiechzmcvmdlceyovskg`, region `us-east-1`,
   free plan, created 2026-10-22 (ES256 signing key by default).
 - **Blockers live only in each ticket body's `Blocked by:` line.** Do not create
   native Plane relations: this self-hosted Plane's API can add a relation but not

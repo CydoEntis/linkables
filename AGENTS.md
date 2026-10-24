@@ -2,7 +2,7 @@
 
 Save any URL, find it later, share it when needed. The plan, scope and phase
 order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
-`CONTEXT.md`. Tickets are in Plane (project `linkaroo`, LNK-1 onward).
+`CONTEXT.md`. Tickets are in Plane (project `linkables`, LNK-1 onward).
 
 ## Dev Deck
 
