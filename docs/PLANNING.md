@@ -22,7 +22,8 @@ from the work computer, with no Discord message and no open tab.
   extension sharing UI code, one TypeScript Node API on Hono that also runs the
   worker loop, Postgres via Drizzle on Supabase (Postgres + Auth). No Supabase
   Storage in the MVP. Marketing site deferred.
-- Sign-in in Phase 1: Continue with Google first; email magic link as the fallback.
+- Sign-in in Phase 1: Continue with Google first; email magic link as the fallback,
+  sent through Resend SMTP.
 - Hosting: one long-running container on the owner's Raspberry Pi, over Tailscale.
 
 ## Decisions
@@ -166,7 +167,7 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 
 - Objective: coworkers and friends can use shared collections.
 - In: share links and collections; roles (owner, editor, viewer); invitations;
-  follow collections; contributor attribution; custom SMTP so others can sign up.
+  follow collections; contributor attribution.
 - Exit: private resources do not leak through API, search or metadata endpoints.
 - Tickets: none (outline only).
 
