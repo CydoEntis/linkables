@@ -1,9 +1,9 @@
 # Production stack on the server, run from /srv/linkables (see deploy/README.md).
 # CI publishes both images on every green push to main; the server's update
-# timer pulls them, so nothing on the internet needs to reach the server.
+# timer pulls them, so CI never connects to the server.
 name: linkables
 
-# Docker's default json-file logs never rotate and would fill the Pi's disk.
+# Docker's default json-file logs never rotate and would fill the server's disk.
 x-logging: &logging
   driver: local
 
@@ -23,5 +23,6 @@ services:
     restart: unless-stopped
     logging: *logging
     ports:
-      # Localhost only; Tailscale serve puts HTTPS in front.
+      # Localhost only: Docker's published ports bypass ufw, so binding to all
+      # interfaces would expose this. Caddy on the host proxies HTTPS to it.
       - "127.0.0.1:8080:8080"
