@@ -22,7 +22,7 @@ from the work computer, with no Discord message and no open tab.
   extension sharing UI code, one TypeScript Node API on Hono that also runs the
   worker loop, Postgres via Drizzle on Supabase (Postgres + Auth). No Supabase
   Storage in the MVP. Marketing site deferred.
-- Sign-in in Phase 1: email magic link / OTP.
+- Sign-in in Phase 1: Continue with Google first; email magic link as the fallback.
 - Hosting: one long-running container on the owner's Raspberry Pi, over Tailscale.
 
 ## Decisions
