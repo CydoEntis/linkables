@@ -17,7 +17,7 @@ export type DetailsLink =
 // Details show the link as the loaded lists have it, and fetch it on its own
 // only when no list holds it (an address opened directly, or a link deep in an
 // unloaded page). The fetch starts from the list's copy, so a link a refetch
-// drops from the lists (filed out of To sort, say) stays up while it refreshes.
+// drops from the lists (filed out of New, say) stays up while it refreshes.
 export function useDetailsLink(linkId: string): DetailsLink {
   const queryClient = useQueryClient();
   // Batched like TanStack's own hooks: a query created while another component renders must not update this one mid-render.

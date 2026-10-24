@@ -2,7 +2,7 @@ import { z } from "zod";
 import { linkDetailsSearchShape } from "../link-details/details-search";
 import { listFiltersShape, orderRange } from "../search/list-filters";
 
-// The URL's views. "inbox" keeps the API's name; the UI calls it To sort (CONTEXT.md).
+// The URL's views. "inbox" keeps the API's name; the UI calls it New (CONTEXT.md).
 export const LINKS_VIEWS = ["all", "pinned", "inbox"] as const;
 
 export type LinksView = (typeof LINKS_VIEWS)[number];
@@ -10,7 +10,7 @@ export type LinksView = (typeof LINKS_VIEWS)[number];
 export const VIEW_LABELS: Record<LinksView, string> = {
   all: "All links",
   pinned: "Pinned",
-  inbox: "To sort",
+  inbox: "New",
 };
 
 export const DEFAULT_LINKS_SEARCH = { view: "all" } as const;

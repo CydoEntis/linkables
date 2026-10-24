@@ -60,7 +60,7 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("button", { name: "Save link" })).toHaveCount(0);
   });
 
-  test("searching from To sort covers every link", async ({ page, seedLinks }) => {
+  test("searching from New covers every link", async ({ page, seedLinks }) => {
     await seedLinks(LINKS);
     await page.goto("/?view=inbox");
     await expect(row(page, RUST)).toBeVisible();
@@ -149,10 +149,10 @@ test.describe("at 1280 px", () => {
     await expect(row(page, RUST)).toHaveCount(0);
 
     await page.keyboard.press("Control+k");
-    await palette.getByRole("option", { name: "Go to To sort" }).click();
+    await palette.getByRole("option", { name: "Go to New" }).click();
     await expect(page).toHaveURL(/view=inbox/);
     await expect(page).not.toHaveURL(/q=/);
-    await expect(page.getByRole("heading", { level: 1, name: "To sort" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "New", exact: true })).toBeVisible();
 
     // Leave focus on the page without clicking: a click in the middle could land on a row and open its details.
     await expect(palette).toBeHidden();

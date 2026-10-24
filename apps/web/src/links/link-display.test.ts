@@ -42,8 +42,8 @@ describe("filedLabel", () => {
   const rust = { id: crypto.randomUUID(), name: "rust" };
   const recipes = { id: crypto.randomUUID(), name: "Recipes" };
 
-  it("says To sort for a link in no collection", () => {
-    expect(filedLabel([])).toBe("To sort");
+  it("says New for a link in no collection", () => {
+    expect(filedLabel([])).toBe("New");
   });
 
   it("names the first collection, capitalised, and counts the rest", () => {

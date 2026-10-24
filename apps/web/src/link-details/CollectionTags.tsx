@@ -32,7 +32,7 @@ export function CollectionTags({ link }: { link: SavedLink }) {
         </li>
       ))}
       {tags.length === 0 ? (
-        <li className={`${PILL} bg-muted font-normal text-muted-foreground`}>To sort</li>
+        <li className={`${PILL} bg-muted font-normal text-muted-foreground`}>New</li>
       ) : null}
       <li>
         <AddToPopover

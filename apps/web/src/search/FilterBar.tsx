@@ -15,7 +15,7 @@ const CONTROL =
   "flex h-11 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-soft-foreground hover:bg-muted hover:text-foreground data-popup-open:bg-muted md:h-9";
 
 // Pinned and collection filters are offered only where they can narrow the list:
-// not on the Pinned view, and not on To sort, which has no filed links.
+// not on the Pinned view, and not on New, which has no filed links.
 function offers(scope: ListScope, filters: ListFilters) {
   const view = "view" in scope && filters.q === undefined ? scope.view : null;
   return { pinned: view !== "pinned", collection: "view" in scope && view !== "inbox" };

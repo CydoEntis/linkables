@@ -80,9 +80,9 @@ describe("CommandPalette", () => {
   it("narrows the commands to the ones matching the text", async () => {
     const { user } = renderPalette();
     const palette = await openPalette(user);
-    await user.keyboard("sort");
+    await user.keyboard("new");
     const options = within(palette).getAllByRole("option").map((option) => option.textContent);
-    expect(options).toEqual(["Search links for “sort”", "Go to To sort"]);
+    expect(options).toEqual(["Search links for “new”", "Go to New"]);
   });
 
   it("goes to a view or a collection", async () => {

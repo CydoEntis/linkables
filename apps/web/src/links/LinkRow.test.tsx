@@ -84,9 +84,9 @@ describe("LinkRow", () => {
     expect(screen.getByText(/^youtube.com/)).toHaveTextContent("youtube.com · in Rust · from iPhone");
   });
 
-  it("marks a link in no collection as To sort", async () => {
+  it("marks a link in no collection as New", async () => {
     await renderRow(savedLink({ originalUrl: "https://youtube.com/w" }));
-    expect(screen.getByText(/^youtube.com/)).toHaveTextContent(/^youtube.com · To sort/);
+    expect(screen.getByText(/^youtube.com/)).toHaveTextContent(/^youtube.com · New/);
   });
 
   it("pins the link at once and asks the API to pin it", async () => {
