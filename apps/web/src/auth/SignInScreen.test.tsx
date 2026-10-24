@@ -1,6 +1,6 @@
 import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SignInScreen } from "./SignInScreen";
@@ -8,7 +8,8 @@ import type { LinkProblem } from "./link-landing";
 
 const signInWithOtp = vi.hoisted(() => vi.fn());
 const signInWithOAuth = vi.hoisted(() => vi.fn());
-vi.mock("./supabase", () => ({ supabase: { auth: { signInWithOtp, signInWithOAuth } } }));
+const verifyOtp = vi.hoisted(() => vi.fn());
+vi.mock("./supabase", () => ({ supabase: { auth: { signInWithOtp, signInWithOAuth, verifyOtp } } }));
 
 function renderScreen(linkProblem: LinkProblem | null = null, focusHeading = false) {
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
@@ -19,29 +20,47 @@ function renderScreen(linkProblem: LinkProblem | null = null, focusHeading = fal
   );
 }
 
-async function submitEmail(email: string) {
-  const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Use email instead" }));
+async function submitEmail(email: string, user = userEvent.setup()) {
   await user.type(screen.getByLabelText("Email"), email);
   await user.click(screen.getByRole("button", { name: "Email me a sign-in link" }));
+  return user;
+}
+
+async function reachCodeStep(user = userEvent.setup()) {
+  signInWithOtp.mockResolvedValue({ data: {}, error: null });
+  renderScreen();
+  await submitEmail("owner@example.com", user);
+  await screen.findByRole("heading", { name: "Check your email" });
   return user;
 }
 
 beforeEach(() => {
   signInWithOtp.mockReset();
   signInWithOAuth.mockReset();
+  verifyOtp.mockReset();
   window.history.replaceState(null, "", "/sign-in");
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
-describe("SignInScreen", () => {
-  it("leads with Continue with Google and keeps email behind Use email instead", () => {
+describe("sign-in start", () => {
+  it("offers Continue with Google above the email field", () => {
     renderScreen();
-    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    const google = screen.getByRole("button", { name: "Continue with Google" });
+    const email = screen.getByLabelText("Email");
+    expect(google.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("links back to home and to the Terms, Privacy and Help pages", () => {
+    renderScreen();
+    expect(screen.getByRole("link", { name: "← Back to home" })).toHaveAttribute("href", "/");
+    expect(screen.getAllByRole("link", { name: "Terms" }).map((link) => link.getAttribute("href"))).toEqual(["/terms", "/terms"]);
+    expect(screen.getByRole("link", { name: "Privacy policy" })).toHaveAttribute("href", "/privacy");
+    expect(screen.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+    expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "/support");
   });
 
   it("starts Google sign-in with a redirect back to this page", async () => {
@@ -54,12 +73,21 @@ describe("SignInScreen", () => {
     });
   });
 
-  it("says the user is offline instead of opening Google", async () => {
-    vi.spyOn(navigator, "onLine", "get").mockReturnValueOnce(false);
+  it("shows an offline banner and disables the buttons while offline", () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     renderScreen();
-    await userEvent.setup().click(screen.getByRole("button", { name: "Continue with Google" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("You're offline.");
-    expect(signInWithOAuth).not.toHaveBeenCalled();
+    expect(screen.getByText("You're offline. Check your connection and try again.")).toHaveAttribute("role", "status");
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Email me a sign-in link" })).toBeDisabled();
+  });
+
+  it("drops the offline banner when the connection comes back", () => {
+    const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    renderScreen();
+    onLine.mockReturnValue(true);
+    act(() => { window.dispatchEvent(new Event("online")); });
+    expect(screen.queryByText(/You're offline/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeEnabled();
   });
 
   it("explains a cancelled or failed Google sign-in on landing", () => {
@@ -74,13 +102,7 @@ describe("SignInScreen", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("moves focus to the email field on Use email instead", async () => {
-    renderScreen();
-    await userEvent.setup().click(screen.getByRole("button", { name: "Use email instead" }));
-    expect(screen.getByLabelText("Email")).toHaveFocus();
-  });
-
-  it("sends a magic link and shows check-your-email with the address", async () => {
+  it("sends a sign-in email and shows check-your-email with the address", async () => {
     signInWithOtp.mockResolvedValue({ data: {}, error: null });
     renderScreen();
     await submitEmail("owner@example.com");
@@ -90,21 +112,6 @@ describe("SignInScreen", () => {
       email: "owner@example.com",
       options: { emailRedirectTo: "http://localhost:5173/" },
     });
-  });
-
-  it("moves focus to the check-your-email heading after a link is sent", async () => {
-    signInWithOtp.mockResolvedValue({ data: {}, error: null });
-    renderScreen();
-    await submitEmail("owner@example.com");
-    expect(await screen.findByRole("heading", { name: "Check your email" })).toHaveFocus();
-  });
-
-  it("moves focus to the sign-in heading on Use a different email", async () => {
-    signInWithOtp.mockResolvedValue({ data: {}, error: null });
-    renderScreen();
-    const user = await submitEmail("owner@example.com");
-    await user.click(await screen.findByRole("button", { name: "Use a different email" }));
-    expect(screen.getByRole("heading", { name: "Sign in to linkables" })).toHaveFocus();
   });
 
   it("focuses the sign-in heading when it replaces the signed-in screen", () => {
@@ -117,18 +124,10 @@ describe("SignInScreen", () => {
     expect(screen.getByRole("heading", { name: "Sign in to linkables" })).not.toHaveFocus();
   });
 
-  it("goes back to the form with the address kept on Use a different email", async () => {
-    signInWithOtp.mockResolvedValue({ data: {}, error: null });
-    renderScreen();
-    const user = await submitEmail("owner@example.com");
-    await user.click(await screen.findByRole("button", { name: "Use a different email" }));
-    expect(screen.getByLabelText("Email")).toHaveValue("owner@example.com");
-  });
-
   it("shows an invalid email message without asking Supabase", async () => {
     renderScreen();
     await submitEmail("not-an-email");
-    expect(screen.getByRole("alert")).toHaveTextContent("Enter a valid email address.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter an email address, like you@example.com");
     expect(screen.getByLabelText("Email")).toHaveAttribute("aria-invalid", "true");
     expect(signInWithOtp).not.toHaveBeenCalled();
   });
@@ -154,7 +153,7 @@ describe("SignInScreen", () => {
     });
     renderScreen();
     await submitEmail("owner@example.com");
-    expect(await screen.findByRole("alert")).toHaveTextContent("Wait a bit and try again.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Too many tries. Wait a minute, then try again.");
   });
 
   it("says the user is offline when the request cannot reach Supabase", async () => {
@@ -164,17 +163,99 @@ describe("SignInScreen", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("You're offline.");
   });
 
-  it("explains an expired link on landing", () => {
+  it("explains a sign-in link that didn't work on landing", () => {
+    renderScreen("invalid");
+    expect(screen.getByRole("alert")).toHaveTextContent("This sign-in link didn't work. Send a new one.");
+  });
+});
+
+describe("expired link", () => {
+  it("says the link has expired on landing", () => {
     renderScreen("expired");
-    expect(screen.getByRole("alert")).toHaveTextContent("This link has expired. Send a new one.");
+    expect(screen.getByRole("heading", { name: "This link has expired" })).toBeInTheDocument();
   });
 
-  it("confirms a resend from the check-your-email screen", async () => {
-    signInWithOtp.mockResolvedValue({ data: {}, error: null });
-    renderScreen();
-    const user = await submitEmail("owner@example.com");
-    await user.click(await screen.findByRole("button", { name: "Resend" }));
-    expect(await screen.findByText("Sent another link.")).toBeInTheDocument();
+  it("goes to the email field on Send a new link", async () => {
+    renderScreen("expired");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Send a new link" }));
+    expect(screen.getByLabelText("Email")).toHaveFocus();
+  });
+});
+
+describe("check your email", () => {
+  it("moves focus to the check-your-email heading after the email is sent", async () => {
+    await reachCodeStep();
+    expect(screen.getByRole("heading", { name: "Check your email" })).toHaveFocus();
+  });
+
+  it("asks for the code as a one-time code on the numeric keypad", async () => {
+    await reachCodeStep();
+    const code = screen.getByLabelText("6-digit code");
+    expect(code).toHaveAttribute("inputmode", "numeric");
+    expect(code).toHaveAttribute("autocomplete", "one-time-code");
+  });
+
+  it("signs in with the code as soon as the sixth digit is typed", async () => {
+    verifyOtp.mockResolvedValue({ data: {}, error: null });
+    const user = await reachCodeStep();
+    await user.type(screen.getByLabelText("6-digit code"), "12345");
+    expect(verifyOtp).not.toHaveBeenCalled();
+    await user.type(screen.getByLabelText("6-digit code"), "6");
+    expect(verifyOtp).toHaveBeenCalledWith({ email: "owner@example.com", token: "123456", type: "email" });
+  });
+
+  it("signs in with a pasted code that has a space in it", async () => {
+    verifyOtp.mockResolvedValue({ data: {}, error: null });
+    const user = await reachCodeStep();
+    await user.click(screen.getByLabelText("6-digit code"));
+    await user.paste("123 456");
+    expect(screen.getByLabelText("6-digit code")).toHaveValue("123456");
+    expect(verifyOtp).toHaveBeenCalledWith({ email: "owner@example.com", token: "123456", type: "email" });
+  });
+
+  it("says a wrong code didn't work", async () => {
+    verifyOtp.mockResolvedValue({ data: {}, error: new AuthApiError("Token has expired or is invalid", 403, "otp_expired") });
+    const user = await reachCodeStep();
+    await user.type(screen.getByLabelText("6-digit code"), "000000");
+    expect(await screen.findByRole("alert")).toHaveTextContent("That code didn't work. Check it, or send a new one.");
+    expect(screen.getByLabelText("6-digit code")).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("asks for all six digits when a short code is submitted", async () => {
+    const user = await reachCodeStep();
+    await user.type(screen.getByLabelText("6-digit code"), "123{Enter}");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Enter the 6-digit code from the email.");
+    expect(verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it("holds Resend for 60 seconds, then sends another email", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = await reachCodeStep(userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) }));
+    expect(screen.getByRole("button", { name: "Resend in 60s" })).toBeDisabled();
+    act(() => { vi.advanceTimersByTime(60_000); });
+    await user.click(screen.getByRole("button", { name: "Resend" }));
+    expect(await screen.findByText("Sent another email.")).toBeInTheDocument();
     expect(signInWithOtp).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "Resend in 60s" })).toBeDisabled();
+  });
+
+  it("goes back to the form with the address kept on Use a different email", async () => {
+    const user = await reachCodeStep();
+    await user.click(screen.getByRole("button", { name: "Use a different email" }));
+    expect(screen.getByLabelText("Email")).toHaveValue("owner@example.com");
+    expect(screen.getByRole("heading", { name: "Sign in to linkables" })).toHaveFocus();
+  });
+
+  it("tells the user where to look and how long the email works", async () => {
+    await reachCodeStep();
+    expect(screen.getByText("Can't find it? Check spam. The link and code work for an hour.")).toBeInTheDocument();
+  });
+
+  it("disables Resend while offline", async () => {
+    const onLine = vi.spyOn(navigator, "onLine", "get");
+    await reachCodeStep();
+    onLine.mockReturnValue(false);
+    fireEvent(window, new Event("offline"));
+    expect(screen.getByRole("button", { name: /^Resend/ })).toBeDisabled();
   });
 });
