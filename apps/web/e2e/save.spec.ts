@@ -35,7 +35,7 @@ test.describe("at 375 px", () => {
 
     await page.goto(shared);
     await expect(page.getByRole("heading", { name: "Already saved" })).toBeVisible();
-    await expect(page.getByText(/^You saved this on .+ · in To sort$/)).toBeVisible();
+    await expect(page.getByText(/^You saved this on .+ · in New$/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
     await testInfo.attach("save-already-375", { body: await page.screenshot({ animations: "disabled" }), contentType: "image/png" });
     expect(await savedUrls(db, user)).toEqual(["https://example.test/b"]);

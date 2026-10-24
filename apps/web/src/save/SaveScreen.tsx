@@ -146,12 +146,12 @@ function Saved({ link, title, onUndo, undoing }: SavedProps) {
   );
 }
 
-// "You saved this on Mar 3 · in Rust"; a link in no collection is in To sort.
+// "You saved this on Mar 3 · in Rust"; a link in no collection is in New.
 export function savedOnNote(link: SaveLinkResponse, now: number): string {
   const at = new Date(link.savedAt);
   const sameYear = at.getFullYear() === new Date(now).getFullYear();
   const date = at.toLocaleDateString("en-US", { month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
-  const where = link.collections.length > 0 ? link.collections.map((collection) => collection.name).join(", ") : "To sort";
+  const where = link.collections.length > 0 ? link.collections.map((collection) => collection.name).join(", ") : "New";
   return `You saved this on ${date} · in ${where}`;
 }
 

@@ -35,7 +35,7 @@ export function scopeKey(scope: ListScope) {
 
 // What the list really shows. A search covers every link (brief 5.9), so on the
 // views it drops the view; a collection's page searches inside the collection.
-// To sort holds no filed links, so narrowing it to a collection means all links.
+// New holds no filed links, so narrowing it to a collection means all links.
 export function effectiveScope(scope: ListScope, filters: ListFilters): ListScope {
   if ("collectionId" in scope) return scope;
   if (filters.q !== undefined) return { view: "all" };

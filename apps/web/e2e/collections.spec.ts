@@ -32,7 +32,7 @@ async function openAddTo(page: Page, title: RegExp) {
 test.describe("at 1280 px", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("filing a link moves it from To sort to its collection, and back when removed", async ({ page, seedLinks }) => {
+  test("filing a link moves it from New to its collection, and back when removed", async ({ page, seedLinks }) => {
     await seedLinks([{ url: "https://doc.rust-lang.org/rust-by-example/", resource: { title: "Rust by Example", fetchStatus: "fetched" } }]);
     const row = /^Rust by Example/;
 
@@ -43,8 +43,8 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("heading", { level: 1, name: /^Rust/ })).toBeVisible();
     await expect(page.getByText("Nothing here yet")).toBeVisible();
 
-    await sidebar(page).getByRole("link", { name: "To sort" }).click();
-    await expect(page.getByRole("link", { name: row })).toContainText("To sort");
+    await sidebar(page).getByRole("link", { name: "New", exact: true }).click();
+    await expect(page.getByRole("link", { name: row })).toContainText("· New");
     const picker = await openAddTo(page, row);
     await picker.getByRole("button", { name: "Rust" }).click();
     await expect(picker.getByRole("button", { name: "Rust" })).toHaveAttribute("aria-pressed", "true");
@@ -66,8 +66,8 @@ test.describe("at 1280 px", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("link", { name: row })).toHaveCount(0);
 
-    await sidebar(page).getByRole("link", { name: "To sort" }).click();
-    await expect(page.getByRole("link", { name: row })).toContainText("To sort");
+    await sidebar(page).getByRole("link", { name: "New", exact: true }).click();
+    await expect(page.getByRole("link", { name: row })).toContainText("· New");
   });
 
   test("closing Add to… returns focus to it, or to the next row when the link leaves", async ({ page, seedLinks, request, user }) => {

@@ -67,7 +67,7 @@ describe("link details", () => {
     await renderDetails(savedLink({ originalUrl: "https://www.youtube.com/watch?v=1", savedFrom: "iphone", resource: { title: "Tokyo night walk" } }));
     expect(within(details()).getByRole("heading", { name: /Tokyo night walk/ })).toBeInTheDocument();
     expect(within(details()).getByText(/^youtube\.com · Saved just now · on iPhone$/)).toBeInTheDocument();
-    expect(within(details()).getByText("To sort")).toBeInTheDocument();
+    expect(within(details()).getByText("New")).toBeInTheDocument();
     expect(within(details()).getByText("Coming soon")).toBeInTheDocument();
     expect(within(details()).getByRole("link", { name: /Open ↗/ })).toHaveAttribute("href", "https://www.youtube.com/watch?v=1");
   });
@@ -97,7 +97,7 @@ describe("link details", () => {
   it("links each collection tag to its collection", async () => {
     await renderDetails(savedLink({ collections: [{ id: rust.id, name: "rust" }] }));
     expect(within(details()).getByRole("link", { name: "Rust" })).toHaveAttribute("href", `/c/${rust.id}`);
-    expect(within(details()).queryByText("To sort")).not.toBeInTheDocument();
+    expect(within(details()).queryByText("New")).not.toBeInTheDocument();
   });
 
   it("opens the collection picker from + Add to", async () => {

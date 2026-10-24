@@ -52,7 +52,7 @@ describe("LinkList", () => {
     expect(headings).toEqual(["Pinned", "Today"]);
   });
 
-  it("asks the API for the To sort view as view=inbox", async () => {
+  it("asks the API for the New view as view=inbox", async () => {
     request.mockResolvedValue(page([]));
     renderList("inbox");
     await screen.findByText("All sorted");
@@ -82,12 +82,12 @@ describe("LinkList", () => {
     request.mockResolvedValue({ items: [savedLink({ originalUrl: "https://example.com/a", collections: [japan] })], cursor: null });
     useCollectionsUi.getState().startDeleting(japan.id, { name: japan.name, undo: () => undefined });
     renderList();
-    expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · To sort");
+    expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · New");
     useCollectionsUi.getState().stopDeleting(japan.id);
     expect(await screen.findByText(/^example.com/)).toHaveTextContent("example.com · in Japan");
   });
 
-  it("searches every link from To sort, leaving the view out", async () => {
+  it("searches every link from New, leaving the view out", async () => {
     request.mockResolvedValue(page([]));
     renderList("inbox", { q: "rust" });
     await screen.findByText("No links match “rust”");

@@ -85,7 +85,7 @@ describe("FilterBar", () => {
     expect(screen.getByRole("combobox", { name: "Collection" })).toBeInTheDocument();
   });
 
-  it("offers no collection filter on a collection's page or on To sort", async () => {
+  it("offers no collection filter on a collection's page or on New", async () => {
     const { user } = renderBar({}, { view: "inbox" });
     await user.click(screen.getByRole("button", { name: "Filter" }));
     expect(screen.queryByRole("combobox", { name: "Collection" })).not.toBeInTheDocument();

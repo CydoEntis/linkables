@@ -90,7 +90,7 @@ test.describe("the first time this device sees the signed-in app", () => {
     await page.goto("/?view=inbox");
     await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
     await page.getByRole("link", { name: "Skip" }).click();
-    await expect(page.getByRole("heading", { name: "To sort", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "New", level: 1, exact: true })).toBeVisible();
     expect(new URL(page.url()).search).toBe("?view=inbox");
   });
 });
@@ -123,9 +123,9 @@ test.describe("on a phone", () => {
 test.describe("drag and drop at 1280 px", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("dropping a text/uri-list link on To sort saves it", async ({ page, db, user }, testInfo) => {
+  test("dropping a text/uri-list link on New saves it", async ({ page, db, user }, testInfo) => {
     await page.goto("/?view=inbox");
-    await expect(page.getByRole("heading", { name: "To sort", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "New", level: 1, exact: true })).toBeVisible();
     const dataTransfer = await page.evaluateHandle(() => {
       const data = new DataTransfer();
       data.setData("text/uri-list", "https://example.test/dropped");
@@ -147,7 +147,7 @@ test.describe("drag and drop at 1280 px", () => {
     expect(rows.map((row) => row.original_url)).toEqual(["https://example.test/dropped"]);
   });
 
-  test("after a row is dragged onto a collection and leaves To sort, an outside link still drops", async ({ page, seedLinks, request, user }) => {
+  test("after a row is dragged onto a collection and leaves New, an outside link still drops", async ({ page, seedLinks, request, user }) => {
     const created = await request.post(`${API_URL}/api/v1/collections`, {
       headers: { Authorization: `Bearer ${user.accessToken}` },
       data: { name: "Watch later" },
