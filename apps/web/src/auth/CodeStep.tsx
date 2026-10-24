@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { cn } from "cn";
 import { Mail } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useController, useForm } from "react-hook-form";
 import { z } from "zod";
 import { CODE_LENGTH, toCodeDigits, verifyEmailCode, type VerifyCodeProblem } from "./email-code";
@@ -61,19 +61,29 @@ function CodeForm({ email }: { email: string }) {
   const form = useForm<CodeValues>({ resolver: zodResolver(codeSchema), defaultValues: { code: "" } });
   const { field, fieldState } = useController({ control: form.control, name: "code" });
   const { shake, fieldProps } = useShake();
+  // Refs, not state: a second submit can arrive before the re-render that marks the first.
+  const checking = useRef(false);
+  const lastSent = useRef<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const inputId = useId();
   const messageId = useId();
   const message = fieldState.error?.message ?? (problem ? PROBLEM_MESSAGES[problem] : null);
 
   const submit = form.handleSubmit(({ code }) => {
+    if (checking.current) return;
+    checking.current = true;
+    lastSent.current = code;
     setProblem(null);
     verify.mutate(code, {
       onSuccess: (result) => {
         if (result.ok) return;
         setProblem(result.problem);
         shake();
+        // Selected, so a pasted or retyped code replaces the wrong one.
+        inputRef.current?.select();
       },
       onError: () => { setProblem("failed"); },
+      onSettled: () => { checking.current = false; },
     });
   }, shake);
 
@@ -85,7 +95,10 @@ function CodeForm({ email }: { email: string }) {
       {/* No maxLength: a pasted "123 456" must arrive whole so the space can be dropped. */}
       <input
         id={inputId}
-        ref={field.ref}
+        ref={(element) => {
+          field.ref(element);
+          inputRef.current = element;
+        }}
         name={field.name}
         value={field.value}
         onBlur={field.onBlur}
@@ -93,7 +106,7 @@ function CodeForm({ email }: { email: string }) {
           const digits = toCodeDigits(event.target.value);
           field.onChange(digits);
           setProblem(null);
-          if (digits.length === CODE_LENGTH) void submit();
+          if (digits.length === CODE_LENGTH && digits !== lastSent.current) void submit();
         }}
         inputMode="numeric"
         autoComplete="one-time-code"

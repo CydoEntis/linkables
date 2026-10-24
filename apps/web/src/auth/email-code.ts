@@ -7,8 +7,9 @@ export type VerifyCodeProblem = "wrong-code" | "rate-limited" | "offline" | "fai
 export type VerifyCodeResult = { ok: true } | { ok: false; problem: VerifyCodeProblem };
 
 // Pasted codes arrive as "123 456" or inside a sentence; the digits are the code.
+// The newest digits win, so a code pasted after an old one replaces it.
 export function toCodeDigits(raw: string): string {
-  return raw.replace(/\D/g, "").slice(0, CODE_LENGTH);
+  return raw.replace(/\D/g, "").slice(-CODE_LENGTH);
 }
 
 // type "email" covers the code from both the magic-link and the confirm-signup email.

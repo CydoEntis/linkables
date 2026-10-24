@@ -17,8 +17,8 @@ it("keeps only the digits of a pasted code", () => {
   expect(toCodeDigits("123 456")).toBe("123456");
 });
 
-it("keeps the first six digits when more arrive", () => {
-  expect(toCodeDigits("Code: 1234567")).toBe("123456");
+it("keeps the newest six digits when more arrive", () => {
+  expect(toCodeDigits("111111222222")).toBe("222222");
 });
 
 it("verifies the code as an email OTP for the address", async () => {

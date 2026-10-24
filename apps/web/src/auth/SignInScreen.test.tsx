@@ -221,6 +221,36 @@ describe("check your email", () => {
     expect(screen.getByLabelText("6-digit code")).toHaveAttribute("aria-invalid", "true");
   });
 
+  it("checks the code only once when Enter is pressed while checking", async () => {
+    verifyOtp.mockReturnValue(new Promise(() => undefined));
+    const user = await reachCodeStep();
+    await user.type(screen.getByLabelText("6-digit code"), "111111");
+    await user.type(screen.getByLabelText("6-digit code"), "{Enter}");
+    expect(verifyOtp).toHaveBeenCalledTimes(1);
+  });
+
+  it("checks a new code pasted after a wrong one", async () => {
+    verifyOtp
+      .mockResolvedValueOnce({ data: {}, error: new AuthApiError("Token has expired or is invalid", 403, "otp_expired") })
+      .mockResolvedValueOnce({ data: {}, error: null });
+    const user = await reachCodeStep();
+    await user.type(screen.getByLabelText("6-digit code"), "111111");
+    await screen.findByRole("alert");
+    await user.paste("222222");
+    expect(verifyOtp).toHaveBeenCalledTimes(2);
+    expect(verifyOtp).toHaveBeenLastCalledWith({ email: "owner@example.com", token: "222222", type: "email" });
+  });
+
+  it("does not send a wrong code again when a digit is typed after it", async () => {
+    verifyOtp.mockResolvedValue({ data: {}, error: new AuthApiError("Token has expired or is invalid", 403, "otp_expired") });
+    const user = await reachCodeStep();
+    const code = screen.getByLabelText("6-digit code");
+    await user.type(code, "111111");
+    await screen.findByRole("alert");
+    await user.type(code, "1", { initialSelectionStart: 6, initialSelectionEnd: 6 });
+    expect(verifyOtp).toHaveBeenCalledTimes(1);
+  });
+
   it("asks for all six digits when a short code is submitted", async () => {
     const user = await reachCodeStep();
     await user.type(screen.getByLabelText("6-digit code"), "123{Enter}");
