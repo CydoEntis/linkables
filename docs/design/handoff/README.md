@@ -223,5 +223,5 @@ Map these to shadcn names:
 
 ## Files
 - `prototype.dc.html` (delivered as `linkables Night.dc.html`): the full prototype, covering all three surfaces. Its logic class at the bottom of the file documents every behaviour above.
-- `LinkarooMark.dc.html`: the logo component, which renders `assets/linkables-logo.png`.
+- `LinkablesMark.dc.html`: the logo component, which renders `assets/linkables-logo.png`.
 - `support.js`: the prototype runtime, needed only to open the HTML. Not for production.
