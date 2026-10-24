@@ -1,6 +1,6 @@
 # ADR-0005: One long-running container for the API and worker; static SPA
 
-**Status:** accepted (2026-10-21); host settled 2026-10-23 (see Update)
+**Status:** accepted (2026-10-21); host settled 2026-10-23, moved 2026-10-24 (see Updates)
 
 ## Problem
 
@@ -59,3 +59,14 @@ in `deploy/README.md`.
 The constraints above still hold. Revisit when someone outside the owner's
 tailnet needs access: that needs a public address (Tailscale Funnel or a
 cloud host).
+
+## Update (2026-10-24): an OVH VPS at linkables.app
+
+Production moved to an OVHcloud VPS (x86_64, Ubuntu) at `https://linkables.app`,
+so people outside the owner's tailnet can use it. The Pi is no longer
+production.
+
+Caddy on the host terminates TLS and serves several sites, one site block each;
+linkables is one of them, proxied to the web container on localhost. Deploys stay
+pull-based: CI pushes amd64 and arm64 images and the server's timer pulls them.
+Setup is in `deploy/README.md`.
