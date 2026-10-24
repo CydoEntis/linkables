@@ -166,7 +166,13 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 
 - Objective: coworkers and friends can use shared collections.
 - In: share links and collections; roles (owner, editor, viewer); invitations;
-  follow collections; contributor attribution; custom SMTP so others can sign up.
+  follow collections; contributor attribution; custom SMTP so others can sign up;
+  a public address so people outside the owner's Tailscale can reach the app
+  (Tailscale Funnel or a cloud host, revisiting ADR-0005); an iPhone app whose
+  share extension saves with no setup, replacing the Shortcut. iPhone web apps
+  can't join the share menu, and asking others to build a Shortcut won't work.
+  Costs a $99/year Apple Developer account, a Mac (or cloud Mac) to build, and
+  App Store review.
 - Exit: private resources do not leak through API, search or metadata endpoints.
 - Tickets: none (outline only).
 
@@ -188,7 +194,7 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 ### Phase 6 — Later
 
 - Objective: nothing committed. Each item is evaluated by user demand and cost.
-- Candidates: native apps, nested collections, import integrations, public
+- Candidates: other native apps (Android, desktop), nested collections, import integrations, public
   directories, marketing site.
 - Tickets: none.
 
