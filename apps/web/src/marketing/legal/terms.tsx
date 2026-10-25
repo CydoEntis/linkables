@@ -96,6 +96,11 @@ export const TERMS_DOC: LongTextDoc = {
       ),
     },
     {
+      id: "law",
+      heading: "Governing law",
+      body: <p>These terms are governed by the laws of the State of New Jersey, USA.</p>,
+    },
+    {
       id: "changes",
       heading: "Changes to these terms",
       body: <p>If these terms change, we update this page and the date at the top. For changes that matter, we'll email you before they take effect.</p>,
