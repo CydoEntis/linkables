@@ -49,7 +49,7 @@ function DetailsHeader({ link, onClose }: { link: SavedLink | null; onClose: () 
       <span className="flex-1" />
       {link && hasReaderView(link) ? (
         <Link
-          to="/read/$linkId"
+          to="/l/$linkId/read"
           params={{ linkId: link.id }}
           className={buttonVariants({ variant: "ghost", size: "touch", className: "gap-1.5 px-3.5 text-[13.5px] md:h-9" })}
         >
