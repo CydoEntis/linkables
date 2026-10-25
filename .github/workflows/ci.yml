@@ -173,7 +173,18 @@ jobs:
         run: |
           pnpm --filter extension release
           mkdir -p apps/web/dist/downloads
-          cp apps/extension/release/linkables-chrome-*.zip apps/web/dist/downloads/linkables-chrome.zip
+          cp apps/extension/release/linkables-chrome-[0-9]*.zip apps/web/dist/downloads/linkables-chrome.zip
+      # The Web Store upload (apps/extension/STORE.md): kept as a run artifact, not served.
+      - run: pnpm --filter extension release:store
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_URL: ${{ vars.APP_ORIGIN }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linkables-chrome-store
+          path: apps/extension/release/linkables-chrome-store-*.zip
+          if-no-files-found: error
       # The server is x86_64; arm64 is built too (under QEMU) so the images
       # still run on an arm64 host. Each SHA tag is one multi-arch manifest.
       - uses: docker/setup-qemu-action@v3
