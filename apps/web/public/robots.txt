@@ -1,0 +1,10 @@
+# The landing, privacy, terms and support pages are public. App screens such as
+# /sign-in are not blocked here but carry a noindex tag, which crawlers can only
+# see if they may fetch the page.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /save
+Disallow: /c/
+
+Sitemap: https://linkables.app/sitemap.xml

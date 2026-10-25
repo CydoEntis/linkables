@@ -20,12 +20,15 @@
 		file_server
 	}
 
-	# Everything else (index.html, the manifest, icons) is re-checked so a
-	# deploy shows up; unknown paths are SPA routes.
+	# Everything else (pages, the manifest, icons) is re-checked so a deploy
+	# shows up. / and the public pages are prerendered HTML (landing.html,
+	# privacy.html, ...); the landing page itself loads the app for a signed-in
+	# visitor. Any other path is an SPA route.
 	handle {
 		root * /srv
 		header Cache-Control "no-cache"
-		try_files {path} /index.html
+		rewrite / /landing.html
+		try_files {path} {path}.html /index.html
 		file_server
 	}
 }
