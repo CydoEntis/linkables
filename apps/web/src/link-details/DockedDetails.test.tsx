@@ -49,6 +49,13 @@ describe("the docked details panel", () => {
     expect(panel()).not.toBeInTheDocument();
   });
 
+  it("moves on instead of staying closed after a delete", async () => {
+    stubViewport(2560);
+    await renderDocked();
+    await userEvent.click(within(panel() ?? document.body).getByRole("button", { name: /Delete/ }));
+    expect(useDockedDetails.getState().dismissed).toBe(false);
+  });
+
   it("stays shut below 2200 px until a link is opened", async () => {
     stubViewport(1440);
     await renderDocked();

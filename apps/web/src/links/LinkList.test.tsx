@@ -163,6 +163,14 @@ describe("LinkList", () => {
     expect(screen.getByRole("link", { name: /^Fresh/ })).toHaveAttribute("aria-current", "true");
   });
 
+  it("leaves the details shut on a search, even at 2200 px", async () => {
+    stubViewport(2560);
+    request.mockResolvedValue(page(["Rust book"]));
+    renderList("all", { q: "rust" });
+    await screen.findByRole("list", { name: "Links" });
+    expect(screen.queryByRole("region", { name: "Link details" })).not.toBeInTheDocument();
+  });
+
   it("keeps a sorted list flat, in the API's order", async () => {
     request.mockResolvedValue(page(["Alpha", "Beta"]));
     renderList("all", { sort: "title" });

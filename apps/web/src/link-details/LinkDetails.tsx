@@ -26,21 +26,22 @@ export function LinkDetails({ newestLinkId }: { newestLinkId?: string | undefine
       dismiss();
       close();
     };
-    return <DockedPanel linkId={shownId} opened={linkId !== undefined} onClose={closeDocked} />;
+    // Deleting is not closing: the panel moves on to the next newest link.
+    return <DockedPanel linkId={shownId} opened={linkId !== undefined} onClose={closeDocked} onDeleted={close} />;
   }
   return wide ? <DetailsPanel linkId={shownId} onClose={close} /> : <DetailsSheet linkId={shownId} onClose={close} />;
 }
 
 type DetailsProps = { linkId: string; onClose: () => void };
 
-function useDetails({ linkId, onClose }: DetailsProps) {
+function useDetails({ linkId, onClose, onDeleted = onClose }: DetailsProps & { onDeleted?: () => void }) {
   const details = useDetailsLink(linkId);
   const deleteLink = useDeleteLink();
   return {
     details,
     onDelete: (link: SavedLink) => {
       deleteLink(link.id);
-      onClose();
+      onDeleted();
     },
   };
 }
@@ -53,7 +54,7 @@ function usePanelFocus(linkId: string, onClose: () => void, takeFocus = true) {
   useEffect(() => {
     if (takeFocus) panelRef.current?.focus({ preventScroll: true });
   }, [linkId, takeFocus]);
-  useReturnFocusToRow(panelRef, linkId);
+  useReturnFocusToRow(panelRef, linkId, takeFocus);
   return { panelRef, onKeyDown: panelKeyHandler(onClose) };
 }
 
@@ -82,8 +83,8 @@ function DetailsPanel({ linkId, onClose }: DetailsProps) {
 }
 
 // A fixed third column; data-docked-details makes the shell leave room for it.
-function DockedPanel({ linkId, opened, onClose }: DetailsProps & { opened: boolean }) {
-  const { details, onDelete } = useDetails({ linkId, onClose });
+function DockedPanel({ linkId, opened, onClose, onDeleted }: DetailsProps & { opened: boolean; onDeleted: () => void }) {
+  const { details, onDelete } = useDetails({ linkId, onClose, onDeleted });
   const { panelRef, onKeyDown } = usePanelFocus(linkId, onClose, opened);
   return (
     <section
@@ -118,16 +119,21 @@ function panelKeyHandler(onClose: () => void) {
 
 // Closing hands focus back to the row it came from, or to the next row when the
 // link was deleted, if focus was in the panel (or lost to the page as it went).
-function useReturnFocusToRow(panelRef: RefObject<HTMLElement | null>, linkId: string) {
+// A panel that opened by itself and never held focus leaves focus alone, so a
+// docked panel going away on resize does not pull focus to a row.
+function useReturnFocusToRow(panelRef: RefObject<HTMLElement | null>, linkId: string, tookFocus: boolean) {
   const openId = useRef(linkId);
+  const took = useRef(tookFocus);
   useEffect(() => {
     openId.current = linkId;
-  }, [linkId]);
+    took.current = tookFocus;
+  }, [linkId, tookFocus]);
   useEffect(() => {
     const panel = panelRef.current;
     return () => {
       const active = document.activeElement;
-      if (active !== null && active !== document.body && !panel?.contains(active)) return;
+      const inPanel = active !== null && Boolean(panel?.contains(active));
+      if (!inPanel && (!took.current || (active !== null && active !== document.body))) return;
       const row = document.querySelector<HTMLElement>(`[data-row-link][data-link-id="${openId.current}"]`);
       const deleted = useLinksUi.getState().deletingIds.includes(openId.current);
       (row && deleted ? neighbourRowLink(row) : row)?.focus();

@@ -36,7 +36,10 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const belongs = (link: SavedLink) => belongsIn(scope, link, filters);
   const stays = (link: SavedLink) => !deletingIds.includes(link.id) && (belongs(link) || link.id === heldId);
   const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
-  const newestId = newestLinkId(links.filter(stays));
+  // Only the plain newest-first list opens the docked panel by itself; a search
+  // or another sort is the user looking for something else.
+  const plainList = filters.q === undefined && (filters.sort ?? "newest") === "newest";
+  const newestId = plainList ? newestLinkId(links.filter(stays)) : undefined;
   const selectedId = useShownLinkId(newestId).shownId;
 
   const narrowed = isNarrowed(filters);
