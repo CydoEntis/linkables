@@ -1,4 +1,5 @@
 import type { SaveLinkResponse } from "@linkables/shared/links";
+import { BUTTON_DARK } from "@linkables/shared/ui";
 import { cn } from "cn";
 import { Check, LibraryBig, Pin } from "lucide-react";
 import { CollectionPicker } from "../collections/CollectionPicker";
@@ -42,7 +43,8 @@ export function Saved({ link, pageTitle }: SavedProps) {
           aria-pressed={pin.pinned}
           onClick={pin.toggle}
           className={cn(
-            "flex h-14 flex-col items-center justify-center gap-1 rounded-xl text-[12px] font-semibold",
+            BUTTON_DARK,
+            "flex h-14 flex-col items-center justify-center gap-1 rounded-xl text-[12px]",
             pin.pinned ? "bg-foreground text-background" : "bg-muted hover:bg-accent",
           )}
         >
@@ -52,7 +54,7 @@ export function Saved({ link, pageTitle }: SavedProps) {
         <button
           type="button"
           onClick={() => void openLinkables()}
-          className="flex h-14 flex-col items-center justify-center gap-1 rounded-xl bg-muted text-[12px] font-semibold hover:bg-accent"
+          className={cn(BUTTON_DARK, "flex h-14 flex-col items-center justify-center gap-1 rounded-xl bg-muted text-[12px] hover:bg-accent")}
         >
           <LibraryBig aria-hidden strokeWidth={2} className="size-[15px]" />
           All links

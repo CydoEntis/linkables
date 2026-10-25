@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../packages/shared/src/ui";
 
 /* The handoff's dark tokens, the same values as apps/web/src/index.css, limited to what the pop-up uses. */
 @theme inline {
