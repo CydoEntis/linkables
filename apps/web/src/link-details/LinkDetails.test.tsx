@@ -63,12 +63,12 @@ function failPatches() {
 }
 
 describe("link details", () => {
-  it("shows the link, where it is filed, and the summary still to come", async () => {
+  it("shows the link and where it is filed, with no summary card", async () => {
     await renderDetails(savedLink({ originalUrl: "https://www.youtube.com/watch?v=1", savedFrom: "iphone", resource: { title: "Tokyo night walk" } }));
     expect(within(details()).getByRole("heading", { name: /Tokyo night walk/ })).toBeInTheDocument();
     expect(within(details()).getByText(/^youtube\.com · Saved just now · on iPhone$/)).toBeInTheDocument();
     expect(within(details()).getByText("New")).toBeInTheDocument();
-    expect(within(details()).getByText("Coming soon")).toBeInTheDocument();
+    expect(within(details()).queryByRole("region", { name: "Summary" })).not.toBeInTheDocument();
     expect(within(details()).getByRole("link", { name: /Open ↗/ })).toHaveAttribute("href", "https://www.youtube.com/watch?v=1");
   });
 
