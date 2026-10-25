@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json && tsc -p e2e/tsconfig.json",
     "test": "vitest run",
-    "e2e": "playwright test -c e2e"
+    "e2e": "playwright test -c e2e",
+    "e2e:built": "playwright test -c e2e/playwright.built.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",

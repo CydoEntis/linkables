@@ -75,6 +75,8 @@ jobs:
       # Runs even on a cache hit: the system libraries Chromium needs are not cached.
       - run: pnpm --filter web exec playwright install --with-deps chromium
       - run: pnpm e2e
+      # The production build behind the real Caddyfile: prerendered pages and the landing page's app boot.
+      - run: pnpm --filter web e2e:built
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
