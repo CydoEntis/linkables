@@ -9,7 +9,8 @@ const COPIED_MS = 1800;
 
 type ShareOnProps = { token: string; title: string; wide: boolean; turningOff: boolean; onTurnOff: () => void };
 
-// Phones send through the system share sheet; a browser without one copies instead.
+// Phones send through the system share sheet; a browser without one, or a share
+// that fails for any reason but the person cancelling, copies instead.
 async function sendLink(url: string, title: string): Promise<void> {
   if (typeof navigator.share !== "function") {
     await copyLink(url);
@@ -18,8 +19,8 @@ async function sendLink(url: string, title: string): Promise<void> {
   try {
     await navigator.share({ title, url });
   } catch (error) {
-    if (!(error instanceof DOMException)) throw error;
-    if (error.name !== "AbortError") await copyLink(url);
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    await copyLink(url);
   }
 }
 
