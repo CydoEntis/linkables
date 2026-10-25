@@ -76,7 +76,7 @@ function Collection({ collection }: { collection: SharedCollection }) {
         {collection.links.length > 0 ? <OpenAll links={collection.links} /> : null}
       </div>
       {collection.links.length > 0 ? (
-        <ul className="flex flex-col gap-1">
+        <ul className="-mx-2 flex flex-col gap-1 md:-mx-3.5">
           {collection.links.map((link, index) => (
             <SharedRow key={`${String(index)}-${link.url}`} link={link} />
           ))}

@@ -100,7 +100,7 @@ function LinkField({ url }: { url: string }) {
         readOnly
         value={url}
         onFocus={(event) => { event.currentTarget.select(); }}
-        className="h-11 min-w-0 flex-1 rounded-md bg-muted px-3.5 font-mono text-[13px] text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring"
+        className="h-11 w-full min-w-0 rounded-md sm:flex-1 bg-muted px-3.5 font-mono text-[13px] text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring"
       />
       <Button
         size="touch"
