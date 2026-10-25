@@ -33,6 +33,13 @@ describe("LinkCard", () => {
     expect(screen.getByText(/^japan-guide\.com · in Trip to Japan$/)).toBeInTheDocument();
   });
 
+  it("highlights the search in the description", async () => {
+    const { container } = await renderWithRouter(
+      <LinkCard link={savedLink({ resource: { description: "Thousands of vermilion torii gates." } })} now={now} query="torii" />,
+    );
+    expect([...container.querySelectorAll("mark")].map((mark) => mark.textContent)).toContain("torii");
+  });
+
   it("marks a pinned link and a link in no collection", async () => {
     await renderWithRouter(<LinkCard link={savedLink({ pinned: true })} now={now} />);
     expect(screen.getByRole("link")).toHaveAccessibleName(/Pinned/);

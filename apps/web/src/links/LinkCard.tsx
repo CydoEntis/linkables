@@ -76,7 +76,9 @@ function CardText({ link, now, inCollection, query }: CardTextProps) {
       <span className={cn("line-clamp-2 text-[15.5px] leading-[1.35] font-semibold wrap-anywhere", title.isUrl && "text-muted-foreground")}>
         <MatchedText text={title.text} query={query} />
       </span>
-      {description ? <span className="line-clamp-2 text-[13.5px] leading-[1.45] text-[#b3b2ad]">{description}</span> : null}
+      {description ? <span className="line-clamp-2 text-[13.5px] leading-[1.45] text-description-foreground">
+          <MatchedText text={description} query={query} />
+        </span> : null}
       <span className="mt-auto flex items-center gap-1.5 pt-1.5 text-[12.5px] whitespace-nowrap text-muted-foreground">
         <span className="min-w-0 truncate">
           <MatchedText text={domainOf(link.originalUrl)} query={query} />
