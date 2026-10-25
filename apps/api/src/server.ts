@@ -4,7 +4,7 @@ import { createApp } from "./app";
 import { parseEnv } from "./config/env";
 import { createDb } from "./db/client";
 import { createLogger } from "./log/logger";
-import { fetchHtml, fetchJson } from "./metadata/fetcher";
+import { fetchHtml, fetchJson, fetchPage } from "./metadata/fetcher";
 import { startWorker } from "./metadata/worker";
 
 const env = parseEnv(process.env);
@@ -18,7 +18,7 @@ const logger = createLogger(env.config.logLevel);
 const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey } = env.config;
 const { db, close } = createDb(databaseUrl);
 const notifyOwner = resendApiKey === undefined ? skipNotifyOwner : resendNotifier({ apiKey: resendApiKey });
-const app = createApp({ logger, corsOrigins, auth: { ...auth, nodeEnv }, db, notifyOwner });
+const app = createApp({ logger, corsOrigins, auth: { ...auth, nodeEnv }, db, notifyOwner, fetchPage });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
   logger.info("api listening", { port: info.port });
