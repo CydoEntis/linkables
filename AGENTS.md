@@ -61,10 +61,18 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - All data access goes through the API and is scoped to the signed-in user's
   `sub`. No query returns another user's rows (plan Rule 3). Every new route gets
   a two-user test and an entry in `apps/api/test/authz.db.test.ts`.
+- Every route needs a JWT except `GET /health` and `POST /access-requests`. The
+  request-access form is public because the people filling it in have no account
+  yet; it only inserts, answers every request the same way, and is rate-limited
+  per IP. authz.db.test.ts lists both as public and checks the form returns no
+  data. A new public route needs the same reasoning written down here.
 - Anything that fetches a user-supplied URL goes through the SSRF-guarded
   fetcher (ADR-0003, `apps/api/src/metadata/fetcher.ts`). Never call `fetch` on a
   saved URL directly; never weaken the guard to make a test pass. The fetcher
-  never forwards `X-Request-Id` or `traceparent` to saved URLs.
+  never forwards `X-Request-Id` or `traceparent` to saved URLs. The one other
+  outbound client is `apps/api/src/access/notify-owner.ts`, which posts to
+  Resend's fixed API host; it is allowlisted by path in `eslint.config.js`.
+- Logs never contain personal data such as a requester's email address.
 - The test auth path (`AUTH_TEST_JWKS`, the committed test key pair) works only
   with `NODE_ENV=test`. Never add another way around token verification.
 - Logs never contain a URL's query string or fragment; use the redacting logger.
