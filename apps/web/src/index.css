@@ -55,6 +55,7 @@
     --animate-glow: glow 1.4s ease-out;
     --animate-row-in: row-in 0.4s var(--ease-out-soft) both;
     --animate-fade-in: fade-in 0.3s ease-out both;
+    --animate-fade-up: fade-up 0.45s var(--ease-out-soft) both;
     --animate-pop: pop 0.18s ease-out both;
     --animate-sheet-up: sheet-up 0.32s var(--ease-out-soft) both;
     --animate-saved: spring 0.55s var(--ease-out-soft), ring 1s ease-out;
@@ -131,6 +132,11 @@
 @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
 }
 
 @keyframes pop {

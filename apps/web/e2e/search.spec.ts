@@ -109,7 +109,7 @@ test.describe("at 1280 px", () => {
     await page.goto("/");
     await page.getByRole("textbox", { name: "Search or paste a link" }).fill("zebra");
     await expect(page.getByText("No links match “zebra”")).toBeVisible();
-    await expect(page.getByText("No links yet")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /Save your first link/ })).toHaveCount(0);
     await page.getByRole("button", { name: "Clear search" }).filter({ hasText: "Clear search" }).click();
     await expect(row(page, RUST)).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Search or paste a link" })).toHaveValue("");

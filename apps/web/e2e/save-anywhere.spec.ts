@@ -97,7 +97,7 @@ test.describe("the first time this device sees the signed-in app", () => {
 
 test("the empty list and the account menu lead to Save from anywhere", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "See how to save from anywhere" }).click();
+  await page.getByRole("link", { name: "Set up your phone" }).click();
   await expect(page.getByRole("heading", { name: "Save from anywhere", level: 1 })).toBeVisible();
   await page.getByRole("link", { name: "Back to links" }).click();
 
