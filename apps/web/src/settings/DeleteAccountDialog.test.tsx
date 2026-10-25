@@ -1,8 +1,9 @@
 import { ApiError } from "@linkables/shared/api-client";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithRouter } from "../test/render-with-router";
+import { wasAccountDeleted } from "./account-deleted";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import { ACCOUNT_DELETED_PATH } from "./path";
 
@@ -36,7 +37,15 @@ beforeEach(() => {
   signOutEverywhere.mockReset().mockResolvedValue();
 });
 
+afterEach(() => { sessionStorage.clear(); });
+
 describe("DeleteAccountDialog", () => {
+  it("puts the focus in the confirm field when it opens", async () => {
+    await renderDialog();
+
+    await waitFor(() => { expect(confirmField()).toHaveFocus(); });
+  });
+
   it("keeps Delete account off until DELETE is typed", async () => {
     const { user } = await renderDialog();
 
@@ -60,6 +69,7 @@ describe("DeleteAccountDialog", () => {
     await waitFor(() => { expect(signOutEverywhere).toHaveBeenCalledOnce(); });
     expect(request).toHaveBeenCalledWith("/me", expect.anything(), { method: "DELETE" });
     expect(router.state.location.pathname).toBe(ACCOUNT_DELETED_PATH);
+    expect(wasAccountDeleted()).toBe(true);
   });
 
   it("still shows the goodbye and signs this browser out when signing out everywhere fails", async () => {
