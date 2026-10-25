@@ -7,7 +7,15 @@ import { sharedPrefix, sharedUrl } from "./use-share";
 
 const COPIED_MS = 1800;
 
-type ShareOnProps = { token: string; title: string; wide: boolean; turningOff: boolean; onTurnOff: () => void };
+type ShareOnProps = {
+  token: string;
+  title: string;
+  wide: boolean;
+  copied: boolean;
+  onCopied: (copied: boolean) => void;
+  turningOff: boolean;
+  onTurnOff: () => void;
+};
 
 // Phones send through the system share sheet; a browser without one, or a share
 // that fails for any reason but the person cancelling, copies instead.
@@ -24,7 +32,8 @@ async function sendLink(url: string, title: string): Promise<void> {
   }
 }
 
-function useCopy(url: string): { copied: boolean; copy: () => void } {
+// Whether the link was just copied, for the Copied ✓ that wears off after 1.8 s.
+export function useCopied(): [boolean, (copied: boolean) => void] {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -33,12 +42,12 @@ function useCopy(url: string): { copied: boolean; copy: () => void } {
     return () => { clearTimeout(timer); };
   }, [copied]);
 
-  return { copied, copy: () => void copyLink(url).then(setCopied) };
+  return [copied, setCopied];
 }
 
-export function ShareOn({ token, title, wide, turningOff, onTurnOff }: ShareOnProps) {
+export function ShareOn({ token, title, wide, copied, onCopied, turningOff, onTurnOff }: ShareOnProps) {
   const url = sharedUrl(token);
-  const { copied, copy } = useCopy(url);
+  const copy = () => void copyLink(url).then(onCopied);
   const copiedMark = copied ? <Check aria-hidden strokeWidth={2.6} /> : null;
   const copyLabel = copied ? "Copied" : "Copy link";
 
