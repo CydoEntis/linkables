@@ -39,10 +39,9 @@ export function SharedCollectionPage() {
           {CTA.label}
         </a>
       </header>
-      <main className="flex-1">
-        {body}
-        {shared.isSuccess ? <MadeWithLinkables /> : null}
-      </main>
+      <main className="flex-1">{body}</main>
+      {/* Outside main so a short collection still puts the card at the bottom, with the footer. */}
+      {shared.isSuccess ? <MadeWithLinkables /> : null}
       <footer className="flex justify-center gap-5 pt-[30px] pb-2 text-[12.5px] text-muted-foreground">
         <a href="/privacy" className="hover:text-foreground">Privacy</a>
         <a href="/terms" className="hover:text-foreground">Terms</a>
