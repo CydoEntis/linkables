@@ -104,7 +104,13 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
   search; sort and filter; JSON export of the user's links; responsive web UI;
   saving without copy and paste (Android share target, bookmark button, iPhone
   Shortcut, drag and drop), added 2026-10-22 because saving must be effortless.
-- Deferred: browser extension, any sharing.
+- Also in, added 2026-10-24 for the friends beta (P1-39, LNK-43): a **Chrome
+  extension beta, hand-installed** with Load unpacked (`apps/extension`). The
+  toolbar pop-up saves the current tab, then pins it or files it in a recent
+  collection; sign-in is the 6-digit email code with the session in
+  `chrome.storage.local`. The zip is served at `/downloads/linkables-chrome.zip`
+  with an install guide at `/extension`. Everything else in Phase 2 stays there.
+- Deferred: the rest of the browser extension (Phase 2), any sharing.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
 - Tickets: Plane project `linkables` (LNK), workspace `ideayard`, project id
