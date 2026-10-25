@@ -1,33 +1,31 @@
-import { act, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DISARM_AFTER_MS, TurnOffLinkButton } from "./TurnOffLinkButton";
+import { TurnOffLinkButton } from "./TurnOffLinkButton";
 
 afterEach(() => { vi.useRealTimers(); });
 
 describe("TurnOffLinkButton", () => {
-  it("asks for a second tap before turning the link off", async () => {
+  it("asks for a second tap before turning the link off", () => {
     const onConfirm = vi.fn();
-    const user = userEvent.setup();
     render(<TurnOffLinkButton onConfirm={onConfirm} />);
 
-    await user.click(screen.getByRole("button", { name: "Turn off link" }));
-    expect(onConfirm).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Tap again to turn off" }));
+    fireEvent.click(screen.getByRole("button", { name: "Turn off link" }));
 
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.getByText(/stops working right away/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tap again to turn off" }));
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 
-  it("goes back to asking once when the second tap doesn't come", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+  it("goes back to its first tap after 3.5 seconds", () => {
+    vi.useFakeTimers();
     const onConfirm = vi.fn();
-    const user = userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) });
     render(<TurnOffLinkButton onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole("button", { name: "Turn off link" }));
 
-    await user.click(screen.getByRole("button", { name: "Turn off link" }));
-    act(() => { vi.advanceTimersByTime(DISARM_AFTER_MS); });
-    await user.click(screen.getByRole("button", { name: "Turn off link" }));
+    act(() => { vi.advanceTimersByTime(3500); });
 
+    fireEvent.click(screen.getByRole("button", { name: "Turn off link" }));
     expect(onConfirm).not.toHaveBeenCalled();
   });
 });
