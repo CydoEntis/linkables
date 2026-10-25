@@ -17,6 +17,8 @@ import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
 import { SAVE_ANYWHERE_PATH, SaveAnywherePage, saveAnywhereSearchSchema } from "./save-anywhere/SaveAnywherePage";
 import { listFiltersShape, orderRange } from "./search/list-filters";
+import { SHARED_PATH_PREFIX } from "./sharing/path";
+import { SharedCollectionPage } from "./sharing/SharedCollectionPage";
 import { NotFoundPage } from "./shell/NotFoundPage";
 
 const rootRoute = createRootRoute({ component: AuthGate, notFoundComponent: NotFoundPage });
@@ -71,6 +73,13 @@ const requestAccessRoute = createRoute({
   component: RequestAccessPage,
 });
 
+// Public: the AuthGate lets anyone through, signed in or not.
+const sharedCollectionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: `${SHARED_PATH_PREFIX}$token`,
+  component: SharedCollectionPage,
+});
+
 const extensionGuideRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: EXTENSION_GUIDE_PATH,
@@ -78,7 +87,7 @@ const extensionGuideRoute = createRoute({
 });
 
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, extensionGuideRoute, requestAccessRoute, ...legalRoutes]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {

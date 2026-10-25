@@ -101,4 +101,13 @@ test.describe("prerendered pages", () => {
     expect(html).toContain(`<meta name="robots" content="noindex"`);
     expect(html).toContain(`<div id="root">`);
   });
+
+  test("a shared collection's deep link gets the app shell, kept out of search and Referer headers", async ({ request }) => {
+    const response = await request.get(`/s/${"A".repeat(32)}`);
+
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain(`<div id="root">`);
+    expect(response.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+    expect(response.headers()["referrer-policy"]).toBe("no-referrer");
+  });
 });
