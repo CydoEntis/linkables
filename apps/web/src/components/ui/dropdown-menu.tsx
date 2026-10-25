@@ -35,17 +35,19 @@ function DropdownMenuContent({
 
 // The highlight background is too close to the popup to show focus on its own,
 // so the highlighted item also gets the 2 px lime ring.
+const ITEM =
+  "flex h-11 cursor-pointer items-center gap-2.5 rounded-md px-2.5 text-sm font-semibold outline-none select-none data-highlighted:bg-muted data-highlighted:outline-2 data-highlighted:-outline-offset-2 data-highlighted:outline-ring data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+
 function DropdownMenuItem({ className, ...props }: MenuPrimitive.Item.Props) {
-  return (
-    <MenuPrimitive.Item
-      data-slot="dropdown-menu-item"
-      className={cn(
-        "flex h-11 cursor-pointer items-center gap-2.5 rounded-md px-2.5 text-sm font-semibold outline-none select-none data-highlighted:bg-muted data-highlighted:outline-2 data-highlighted:-outline-offset-2 data-highlighted:outline-ring data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
-      )}
-      {...props}
-    />
-  )
+  return <MenuPrimitive.Item data-slot="dropdown-menu-item" className={cn(ITEM, className)} {...props} />
+}
+
+function DropdownMenuLinkItem({ className, ...props }: MenuPrimitive.LinkItem.Props) {
+  return <MenuPrimitive.LinkItem data-slot="dropdown-menu-link-item" className={cn(ITEM, className)} {...props} />
+}
+
+function DropdownMenuSeparator({ className, ...props }: MenuPrimitive.Separator.Props) {
+  return <MenuPrimitive.Separator data-slot="dropdown-menu-separator" className={cn("-mx-1.5 my-1.5 h-px bg-border", className)} {...props} />
 }
 
 function DropdownMenuRadioGroup({ ...props }: MenuPrimitive.RadioGroup.Props) {
@@ -72,4 +74,13 @@ function DropdownMenuRadioItem({ className, children, ...props }: MenuPrimitive.
   )
 }
 
-export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem }
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLinkItem,
+  DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+}
