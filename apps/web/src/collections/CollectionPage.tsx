@@ -13,7 +13,8 @@ import { CollectionTitle } from "./CollectionTitle";
 import { useCollectionsUi, type PendingDelete } from "./collections-ui-store";
 import { displayName } from "./display-name";
 import { MiniCover } from "./MiniCover";
-import { linkCountLabel, ShareDialog } from "./ShareDialog";
+import { linkCountLabel } from "./link-count";
+import { ShareDialog } from "./ShareDialog";
 import { useCollections } from "./use-collections";
 import { useDeleteCollection } from "./use-delete-collection";
 
