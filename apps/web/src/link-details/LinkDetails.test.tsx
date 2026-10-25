@@ -72,6 +72,16 @@ describe("link details", () => {
     expect(within(details()).getByRole("link", { name: /Open ↗/ })).toHaveAttribute("href", "https://www.youtube.com/watch?v=1");
   });
 
+  it("shows the page's own description", async () => {
+    await renderDetails(savedLink({ resource: { description: "How ownership works, with examples." } }));
+    expect(within(details()).getByRole("region", { name: "From the page" })).toHaveTextContent("How ownership works, with examples.");
+  });
+
+  it("shows no description when the page has none", async () => {
+    await renderDetails(savedLink({ resource: { description: "   " } }));
+    expect(within(details()).queryByRole("region", { name: "From the page" })).not.toBeInTheDocument();
+  });
+
   it("goes back to the list's own history entry when the details were opened from a row", async () => {
     const link = savedLink({ resource: { title: "Rust by Example" } });
     const queryClient = testQueryClient();

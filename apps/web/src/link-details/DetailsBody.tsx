@@ -69,12 +69,23 @@ function LinkFacts({ link, onDelete }: { link: SavedLink; onDelete: () => void }
         <p className="text-[13px] text-muted-foreground">
           {domainOf(link.originalUrl)} · {savedOnLabel(link, Date.now())}
         </p>
+        <PageDescription text={link.resource.description} />
         <CollectionTags link={link} />
       </div>
       <DetailsActions link={link} onDelete={onDelete} />
       <SummaryCard />
       <NoteField link={link} />
     </>
+  );
+}
+
+// The page's own text (its og:description), kept apart from the summary to come so neither passes for the other.
+function PageDescription({ text }: { text: string | null }) {
+  if (!text?.trim()) return null;
+  return (
+    <section aria-label="From the page" className="pt-1">
+      <p className="line-clamp-3 text-[13.5px] leading-[1.5] text-muted-foreground wrap-anywhere">{text}</p>
+    </section>
   );
 }
 
