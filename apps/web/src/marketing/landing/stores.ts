@@ -8,7 +8,7 @@ export type StoreKey = "iphone" | "android" | "chrome" | "web";
 // platform is giving its card a body and a cta here.
 export type StoreCard = { key: StoreKey; name: string; body: string; cta: { label: string; href: string } | null };
 
-export function storeCards(shortcutUrl: string | undefined): StoreCard[] {
+export function storeCards(shortcutUrl: string | undefined, inviteOnly: boolean): StoreCard[] {
   return [
     {
       key: "iphone",
@@ -32,7 +32,7 @@ export function storeCards(shortcutUrl: string | undefined): StoreCard[] {
       key: "web",
       name: "Web app",
       body: "Open linkables.app in any browser to search, sort and find everything you've saved.",
-      cta: { label: "Open the web app", href: "/sign-in" },
+      cta: { label: inviteOnly ? "Sign in" : "Open the web app", href: "/sign-in" },
     },
   ];
 }

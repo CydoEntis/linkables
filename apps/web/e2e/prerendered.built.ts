@@ -20,6 +20,7 @@ test("a signed-out visitor gets the prerendered landing page without the app", a
   const response = await page.goto("/");
   expect(await response?.text()).toContain("Never lose a");
   await expect(page.getByRole("heading", { name: "Never lose a link again.", level: 1 })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Request access" }).first()).toBeVisible();
   expect(scripts).toEqual([]);
 });
 

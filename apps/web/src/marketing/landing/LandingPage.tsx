@@ -1,3 +1,4 @@
+import { INVITE_ONLY } from "../../config/access";
 import { env } from "../../config/env";
 import { MarketingShell } from "../MarketingShell";
 import { ExtensionSection } from "./ExtensionSection";
@@ -19,7 +20,7 @@ export function LandingPage() {
         <HowItWorks />
         <PhoneSection />
         <ExtensionSection />
-        <StoreSection cards={storeCards(env.VITE_IOS_SHORTCUT_URL)} />
+        <StoreSection cards={storeCards(env.VITE_IOS_SHORTCUT_URL, INVITE_ONLY)} />
         <FindSection />
         <PrivacySection />
         <Faq />

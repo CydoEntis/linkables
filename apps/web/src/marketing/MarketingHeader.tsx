@@ -1,4 +1,5 @@
 import { Menu } from "lucide-react";
+import { BetaPill, CTA } from "./cta";
 import { MarkWordmark } from "./Mark";
 
 const NAV = [
@@ -14,8 +15,9 @@ export function MarketingHeader() {
     <header className="sticky top-0 z-50 border-b border-border bg-[rgb(18_18_18/0.72)] backdrop-blur-[14px]">
       <div className="mx-auto flex h-[68px] max-w-[1200px] items-center gap-2.5 pr-4 pl-5">
         <a href="/" aria-label="linkables home" className="flex min-h-11 items-center rounded-md">
-          <MarkWordmark />
+          <MarkWordmark textClass="text-[18px] max-[400px]:sr-only" />
         </a>
+        <BetaPill className="hidden sm:flex" />
         <nav aria-label="Main" className="ml-[18px] hidden gap-1 text-[15px] min-[860px]:flex">
           {NAV.map((item) => (
             <a key={item.href} href={item.href} className="flex h-10 items-center rounded-[10px] px-3 text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -27,8 +29,8 @@ export function MarketingHeader() {
         <a href="/sign-in" className="lp-btn lp-btn-ghost hidden h-[42px] rounded-xl bg-muted hover:bg-accent px-4 text-[15px] font-semibold min-[860px]:inline-flex">
           Sign in
         </a>
-        <a href="/sign-in" className="lp-btn lp-btn-primary h-[42px] shrink-0 rounded-xl bg-primary px-[18px] text-[15px] font-bold text-primary-foreground">
-          Get started
+        <a href={CTA.href} className="lp-btn lp-btn-primary h-[42px] shrink-0 rounded-xl bg-primary px-[18px] text-[15px] font-bold text-primary-foreground">
+          {CTA.label}
         </a>
         <PhoneMenu />
       </div>

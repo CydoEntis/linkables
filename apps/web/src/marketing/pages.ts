@@ -1,6 +1,6 @@
 export const SITE_ORIGIN = "https://linkables.app";
 export const SOCIAL_IMAGE_PATH = "/social/linkables.png";
-export const SUPPORT_EMAIL = "support@linkables.app";
+export { SUPPORT_EMAIL } from "../config/access";
 
 export type MarketingPage = { path: string; file: string; title: string; description: string };
 
