@@ -72,7 +72,7 @@ test.describe("at 1280 px", () => {
 
     const actions = bar(page).getByRole("group", { name: "Link actions" });
     await actions.getByRole("button", { name: "Pin" }).click();
-    await expect(actions.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
+    await expect(actions.getByRole("button", { name: "Pin" })).toHaveAttribute("aria-pressed", "true");
     await actions.getByRole("button", { name: "Add to" }).click();
     await expect(page.getByRole("textbox", { name: "Find or create a collection" })).toBeFocused();
     await page.keyboard.press("Escape");
