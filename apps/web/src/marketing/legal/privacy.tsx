@@ -57,7 +57,11 @@ export const PRIVACY_DOC: LongTextDoc = {
             page they share its title and picture. Nobody can see who else saved it.
           </p>
           <p>
-            Preview images and site icons load in your browser straight from the site they belong to (for example YouTube). Like any image on the web, that
+            If you open a page in the reader, our server visits it the same way and stores a readable copy of the article's text and image addresses with
+            the page details, refreshing it when it's more than a week old.
+          </p>
+          <p>
+            Preview images, site icons and images in the reader load in your browser straight from the site they belong to (for example YouTube). Like any image on the web, that
             site can see your IP address when your browser loads it. We tell your browser not to send it your linkables address.
           </p>
         </>
