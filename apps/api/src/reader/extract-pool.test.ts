@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { readerArticleSchema } from "@linkables/shared/reader";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { createLogger } from "../log/logger";
 import { createExtractPool, ExtractError } from "./extract-pool";
 
 const TEST_WORKER = new URL("./fixtures/test-worker.js", import.meta.url);
@@ -35,6 +36,17 @@ describe("createExtractPool", () => {
     await expect(failure).rejects.toBeInstanceOf(ExtractError);
     await expect(failure).rejects.toMatchObject({ reason: "extract_failed" });
     await expect(pool.extract("after", "")).resolves.toBe("after");
+  });
+
+  it("logs and replaces a worker that fails while idle, without crashing the process", async () => {
+    const lines: string[] = [];
+    const pool = createExtractPool({ workerUrl: TEST_WORKER, size: 1, logger: createLogger("debug", (line) => lines.push(line)) });
+
+    await expect(pool.extract("fail-later", "https://example.com/?secret=1")).resolves.toBe("fail-later");
+    await vi.waitFor(() => { expect(lines.join("\n")).toContain("extract worker failed"); });
+
+    await expect(pool.extract("after", "")).resolves.toBe("after");
+    expect(lines.join("\n")).not.toContain("late failure");
   });
 
   it("queues pages past the pool size and refuses them past the queue limit", async () => {

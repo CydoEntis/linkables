@@ -8,7 +8,9 @@ import { parseWith } from "../http/validate";
 import { windowCounter } from "../http/window-counter";
 import { createReader, type ReaderDeps } from "./get-reader";
 
-// Counts only fetches: a cached copy costs one query, a fetch ties up the API for up to 10 s.
+// Counts only fetches: a cached copy costs one query. A fetch can keep its
+// request waiting up to 10 s for the page, then behind a full extraction queue
+// (16 pages × 5 s / 2 workers ≈ 40 s) plus its own 5 s.
 const FETCHES_PER_MINUTE = 10;
 // Keys are signed-in users, so this only guards memory; no beta comes close.
 const READERS_TRACKED = 100_000;
