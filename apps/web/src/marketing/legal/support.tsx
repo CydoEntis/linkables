@@ -44,8 +44,9 @@ export const SUPPORT_DOC: LongTextDoc = {
       heading: "Delete your account",
       body: (
         <p>
-          Email {mail} from the address you sign in with and ask us to delete your account. We delete your account, links, notes and collections within
-          30 days and tell you when it's done. Export your links first if you want to keep them.
+          Open your account menu, choose Settings, then Delete account. Your links, notes and collections are deleted right away, and your sign-in is
+          removed within 30 days. Export your links first if you want to keep them. If you can't sign in, email {mail} from the address you sign in
+          with and we'll delete it for you.
         </p>
       ),
     },

@@ -9,7 +9,7 @@ export const PRIVACY_DOC: LongTextDoc = {
   short: [
     "We store the links you save, and what you add to them, so you can find them on any device.",
     "No ads, no analytics, no tracking, and we never sell your data.",
-    "You can export everything any time, and ask us to delete your account.",
+    "You can export everything any time, and delete your account yourself in Settings.",
   ],
   sections: [
     {
@@ -93,7 +93,8 @@ export const PRIVACY_DOC: LongTextDoc = {
           </li>
           <li>
             <strong>Resend</strong> sends the sign-in emails, from noreply@linkables.app, so it receives your email address when you ask for a sign-in code. It also
-            delivers each access request to us.
+            delivers each access request to us, and, when you delete your account, a note with your email address and account ID so we can remove your
+            sign-in.
           </li>
           <li>
             <strong>Google</strong>, only if you choose Continue with Google, confirms who you are and tells us your email address.
@@ -169,9 +170,11 @@ export const PRIVACY_DOC: LongTextDoc = {
             collection.
           </p>
           <p>
-            To delete your account, email {mail} from the address you sign in with. We delete your account, links, notes and collections within 30 days,
-            and tell you when it's done. Page details stay, because they aren't tied to you.
+            To delete your account, open your account menu, choose Settings, then Delete account. Your links, notes and collections are deleted right
+            away, and any share links stop working. We remove your sign-in record, your email address and how you sign in, from Supabase within 30
+            days. Page details stay, because they aren't tied to you.
           </p>
+          <p>If you can't sign in, email {mail} from the address you sign in with and we'll delete your account for you.</p>
         </>
       ),
     },
