@@ -21,11 +21,12 @@ export const sharedLinkSchema = z.strictObject({
 });
 
 // links holds the newest filings first, at most SHARED_LINKS_MAX; linkCount counts them all.
-// updatedAt is when the newest link was filed, null while the collection is empty.
+// updatedAt is the UTC day the newest link was filed, null while the collection
+// is empty. Optional so a bundle and an API from either side of a deploy agree.
 export const sharedCollectionSchema = z.strictObject({
   name: z.string(),
   linkCount: z.number().int().nonnegative(),
-  updatedAt: z.iso.datetime().nullable(),
+  updatedAt: z.iso.datetime().nullable().optional(),
   links: z.array(sharedLinkSchema).max(SHARED_LINKS_MAX),
 });
 

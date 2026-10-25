@@ -85,7 +85,12 @@ async function sharedLinkStats(db: Db, collectionId: string): Promise<{ linkCoun
     .innerJoin(collection, eq(collection.id, collectionItem.collectionId))
     .innerJoin(savedLink, ownersFiling)
     .where(eq(collectionItem.collectionId, collectionId));
-  return { linkCount: row?.total ?? 0, updatedAt: row?.newest?.toISOString() ?? null };
+  return { linkCount: row?.total ?? 0, updatedAt: row?.newest ? utcDay(row.newest) : null };
+}
+
+// Viewers only see the day, so the exact filing time never leaves the server.
+function utcDay(date: Date): string {
+  return `${date.toISOString().slice(0, 10)}T00:00:00.000Z`;
 }
 
 // The URL as the owner saved it, which may carry a login; that never goes public.
