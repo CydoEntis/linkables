@@ -6,7 +6,7 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "jsdom",
-      include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts", "manifest.test.ts"],
+      include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts", "store/**/*.test.ts", "manifest.test.ts"],
       setupFiles: ["src/test/setup.ts"],
       env: {
         VITE_SUPABASE_URL: "http://supabase.test",

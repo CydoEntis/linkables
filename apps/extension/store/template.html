@@ -1,0 +1,185 @@
+<!doctype html>
+<!-- The Chrome Web Store images, drawn by render.ts: it picks one view with
+     body[data-view] and fills the screenshot's caption and pop-up image. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>linkables store images</title>
+    <style>
+      @font-face {
+        font-family: "Unbounded";
+        font-weight: 600;
+        src: url("../node_modules/@fontsource/unbounded/files/unbounded-latin-600-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Familjen Grotesk";
+        font-weight: 400 700;
+        src: url("../node_modules/@fontsource-variable/familjen-grotesk/files/familjen-grotesk-latin-wght-normal.woff2") format("woff2");
+      }
+      :root {
+        --background: #0e0e0e;
+        --foreground: #ecebe8;
+        --soft-foreground: #c9c9c4;
+        --muted-foreground: #8d8d88;
+        --line-strong: #2c2c2c;
+        --primary: oklch(0.89 0.19 125);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        background: var(--background);
+        color: var(--foreground);
+        font-family: "Familjen Grotesk", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      body > section {
+        display: none;
+      }
+      body[data-view="shot"] #shot,
+      body[data-view="promo"] #promo,
+      body[data-view="icon"] #icon {
+        display: flex;
+      }
+      body[data-view="icon"] {
+        background: transparent;
+      }
+
+      .backdrop {
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse 60% 70% at 72% 50%, oklch(0.89 0.19 125 / 0.13), transparent 70%),
+          radial-gradient(circle at 50% 0%, #1b1b1b, var(--background) 70%);
+      }
+      .backdrop::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(#2a2a2a 1px, transparent 1px);
+        background-size: 26px 26px;
+        mask-image: radial-gradient(ellipse at 50% 50%, black 30%, transparent 80%);
+      }
+      .backdrop > * {
+        position: relative;
+      }
+
+      .wordmark {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: "Unbounded", sans-serif;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+
+      #shot {
+        width: 1280px;
+        height: 800px;
+        align-items: center;
+        gap: 72px;
+        padding: 0 96px;
+      }
+      #shot .copy {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+      #shot .wordmark {
+        font-size: 22px;
+      }
+      #shot h1 {
+        font-family: "Unbounded", sans-serif;
+        font-weight: 600;
+        font-size: 50px;
+        line-height: 1.04;
+        letter-spacing: -0.05em;
+        text-wrap: balance;
+      }
+      #shot h1 em {
+        font-style: normal;
+        color: var(--primary);
+      }
+      #shot p {
+        max-width: 470px;
+        font-size: 22px;
+        line-height: 1.45;
+        color: var(--soft-foreground);
+      }
+      #shot .popup {
+        flex: none;
+        width: 516px;
+        border-radius: 22px;
+        border: 1px solid var(--line-strong);
+        box-shadow: 0 40px 90px rgb(0 0 0 / 0.6), 0 0 0 6px rgb(255 255 255 / 0.02);
+      }
+
+      #promo {
+        width: 440px;
+        height: 280px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+        padding: 0 40px;
+      }
+      #promo .wordmark {
+        font-size: 36px;
+      }
+      #promo p {
+        font-size: 20px;
+        line-height: 1.35;
+        color: var(--soft-foreground);
+      }
+      #promo p strong {
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      #icon {
+        width: 128px;
+        height: 128px;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <template id="mark">
+      <!-- apps/web/public/mark.svg, the flat mark, with the viewBox cropped to the artwork so it fills its box. -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="2.95 1.55 27 27">
+        <rect x="12.5" y="3.5" width="16" height="16" rx="4.5" fill="#bef050" transform="rotate(7 20.5 11.5)" />
+        <rect x="3.5" y="10" width="17.5" height="17.5" rx="5" fill="#ecebe8" />
+      </svg>
+    </template>
+
+    <section id="shot" class="backdrop">
+      <div class="copy">
+        <span class="wordmark"><span class="mark" style="width: 30px; height: 30px"></span>linkables</span>
+        <h1 data-caption></h1>
+        <p data-detail></p>
+      </div>
+      <img class="popup" alt="" data-popup />
+    </section>
+
+    <section id="promo" class="backdrop">
+      <span class="wordmark"><span class="mark" style="width: 48px; height: 48px"></span>linkables</span>
+      <p>Save the page you're on.<br /><strong>Find it later.</strong></p>
+    </section>
+
+    <!-- Chrome's icon guideline: 96×96 artwork centred in 128×128, the rest transparent. -->
+    <section id="icon">
+      <span class="mark" style="width: 96px; height: 96px"></span>
+    </section>
+
+    <script>
+      for (const slot of document.querySelectorAll(".mark")) {
+        slot.append(document.getElementById("mark").content.cloneNode(true));
+        slot.firstElementChild.setAttribute("width", "100%");
+        slot.firstElementChild.setAttribute("height", "100%");
+        slot.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
