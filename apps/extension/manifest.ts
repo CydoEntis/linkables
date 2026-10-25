@@ -14,17 +14,18 @@ export async function extensionIdFor(key: string): Promise<string> {
   return Array.from(hex, (digit) => String.fromCharCode(97 + parseInt(digit, 16))).join("");
 }
 
-type ManifestOptions = { version: string; appUrl: string; supabaseUrl: string };
+// store: the Chrome Web Store build. The store refuses an uploaded `key` and assigns its own id.
+type ManifestOptions = { version: string; appUrl: string; supabaseUrl: string; store?: boolean };
 
 const hostPattern = (origin: string) => `${origin.replace(/\/+$/, "")}/*`;
 
-export function buildManifest({ version, appUrl, supabaseUrl }: ManifestOptions) {
+export function buildManifest({ version, appUrl, supabaseUrl, store = false }: ManifestOptions) {
   return {
     manifest_version: 3,
     name: "linkables",
     description: "Save the page you're on to linkables.",
     version,
-    key: MANIFEST_KEY,
+    ...(store ? {} : { key: MANIFEST_KEY }),
     // activeTab reads the current tab's address only when the toolbar button is clicked.
     permissions: ["activeTab", "storage"],
     host_permissions: [hostPattern(appUrl), hostPattern(supabaseUrl)],

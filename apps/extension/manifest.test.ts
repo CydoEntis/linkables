@@ -20,6 +20,12 @@ describe("buildManifest", () => {
     expect(manifest.key).toBe(MANIFEST_KEY);
   });
 
+  it("leaves the key out of the Web Store build, which gets its id from the store", () => {
+    const built = buildManifest({ version: "0.2.0", appUrl: "https://linkables.app", supabaseUrl: "https://ref.supabase.co", store: true });
+    expect(built).not.toHaveProperty("key");
+    expect(built.permissions).toEqual(manifest.permissions);
+  });
+
   it("drops a trailing slash from the configured origins", () => {
     const built = buildManifest({ version: "0.1.0", appUrl: "http://127.0.0.1:3261/", supabaseUrl: "http://dummy.test/" });
     expect(built.host_permissions).toEqual(["http://127.0.0.1:3261/*", "http://dummy.test/*"]);
