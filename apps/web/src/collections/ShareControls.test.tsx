@@ -60,6 +60,19 @@ describe("ShareControls with the link off", () => {
     expect(await screen.findByRole("button", { name: "Copy link" })).toBeInTheDocument();
   });
 
+  it("moves focus to Copy link once the link is made", async () => {
+    serve(null);
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+    renderControls();
+
+    await user.click(screen.getByRole("button", { name: "Share" }));
+
+    const copy = await screen.findByRole("button", { name: "Copy link" });
+    expect(copy).toHaveFocus();
+    expect(copy).toHaveAccessibleDescription(URL);
+  });
+
   it("starts the copy inside the click where the browser takes a promised clipboard item", async () => {
     serve(null);
     const user = userEvent.setup();
@@ -83,7 +96,7 @@ describe("ShareControls with the link off", () => {
 
     await user.click(screen.getByRole("button", { name: "Share" }));
 
-    expect(await screen.findByText("Link is on")).toBeInTheDocument();
+    expect(await screen.findByText("Link is on · anyone with it can view")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
     expect(screen.queryByText(/Link copied/)).not.toBeInTheDocument();
   });
