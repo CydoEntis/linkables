@@ -1,6 +1,6 @@
 import { failureEnvelopeSchema } from "@linkables/shared/http";
 import { describe, expect, it } from "vitest";
-import { createTestApp } from "../../test/app";
+import { captureLogger, createTestApp, TEST_AUTH } from "../../test/app";
 
 type App = ReturnType<typeof createTestApp>;
 
@@ -13,7 +13,7 @@ function post(app: App, body: unknown, headers: Record<string, string> = {}) {
   });
 }
 
-const BOT = { email: "bot@example.com", website: "https://spam.example" };
+const BOT = { email: "bot@example.com", hp_confirm_field: "https://spam.example" };
 
 async function errorCode(res: Response) {
   return failureEnvelopeSchema.parse(await res.json()).error.code;
@@ -83,6 +83,31 @@ describe("POST /access-requests", () => {
     for (let i = 0; i < 5; i += 1) await post(app, BOT, { "X-Real-IP": "203.0.113.7" });
 
     expect((await post(app, BOT, { "X-Real-IP": "198.51.100.2" })).status).toBe(200);
+  });
+
+  it("counts every address in one IPv6 /64 together", async () => {
+    const app = createTestApp({ now: () => 0 });
+    for (let i = 1; i <= 5; i += 1) await post(app, BOT, { "X-Real-IP": `2001:db8:1:2::${String(i)}` });
+
+    expect((await post(app, BOT, { "X-Real-IP": "2001:db8:1:2:ffff::9" })).status).toBe(429);
+  });
+
+  it("warns once in production when the proxy sent no client address", async () => {
+    const { logger, lines } = captureLogger();
+    const app = createTestApp({ logger, auth: { ...TEST_AUTH, nodeEnv: "production", testJwks: undefined } });
+
+    await post(app, BOT);
+    await post(app, BOT);
+
+    expect(lines.filter((line) => line.includes("without X-Real-IP"))).toHaveLength(1);
+  });
+
+  it("does not warn about a missing client address outside production", async () => {
+    const { logger, lines } = captureLogger();
+
+    await post(createTestApp({ logger }), BOT);
+
+    expect(lines.join("\n")).not.toContain("without X-Real-IP");
   });
 
   it("has no route that reads requests back", async () => {

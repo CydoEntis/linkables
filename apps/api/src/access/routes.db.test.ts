@@ -13,10 +13,10 @@ beforeEach(() => truncateAll(db));
 
 type App = ReturnType<typeof createTestApp>;
 
-function post(app: App, body: unknown) {
+function post(app: App, body: unknown, ip = "203.0.113.7") {
   return app.request("/api/v1/access-requests", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0 Test" },
+    headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0 Test", "X-Real-IP": ip },
     body: JSON.stringify(body),
   });
 }
@@ -60,7 +60,7 @@ describe("POST /access-requests", () => {
   });
 
   it("stores nothing when the honeypot is filled", async () => {
-    await post(createTestApp({ db }), { email: "bot@example.com", website: "https://spam.example" });
+    await post(createTestApp({ db }), { email: "bot@example.com", hp_confirm_field: "https://spam.example" });
 
     expect(await db.$count(accessRequest)).toBe(0);
   });
@@ -81,6 +81,24 @@ describe("POST /access-requests", () => {
     await post(app, { email: "sam@example.com" });
 
     expect(notifyOwner).toHaveBeenCalledTimes(1);
+  });
+
+  it("emails the owner about at most 10 new requests an hour, and still stores the rest", async () => {
+    let now = NOW;
+    const { logger, lines } = captureLogger();
+    const notifyOwner = notifier();
+    const app = createTestApp({ db, logger, notifyOwner, now: () => now });
+    const ask = (i: number) => post(app, { email: `person${String(i)}@example.com` }, `198.51.100.${String(i)}`);
+    for (let i = 1; i <= 12; i += 1) await ask(i);
+
+    now += 60 * 60 * 1000;
+    await ask(13);
+
+    expect(notifyOwner).toHaveBeenCalledTimes(11);
+    expect(await db.$count(accessRequest)).toBe(13);
+    const skips = lines.filter((line) => line.includes("owner notification skipped"));
+    expect(skips.map((line) => (JSON.parse(line) as { skipped: number }).skipped)).toEqual([1, 2]);
+    expect(skips.join("\n")).not.toContain("@example.com");
   });
 
   it("answers without waiting for the owner's email", async () => {
