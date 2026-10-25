@@ -1,4 +1,4 @@
-// Runs after `vite build`: renders the landing, legal and 404 pages to static
+// Runs after `vite build`: renders the landing, legal and support pages to static
 // HTML in dist/, so search engines and link previews get real content and the
 // pages load without the app. Caddy serves them before the SPA fallback.
 import { readFileSync, writeFileSync } from "node:fs";

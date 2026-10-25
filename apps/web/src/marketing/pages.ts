@@ -33,13 +33,6 @@ export const SUPPORT_PAGE = {
   description: "Get help with linkables: contact support, export your links, delete your account, and save from iPhone or Android.",
 } as const satisfies MarketingPage;
 
-export const NOT_FOUND_PAGE = {
-  path: "/404",
-  file: "404.html",
-  title: "Page not found · linkables",
-  description: "There's nothing at this address.",
-} as const satisfies MarketingPage;
-
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([PRIVACY_PAGE.path, TERMS_PAGE.path, SUPPORT_PAGE.path]);
 
 // Pages anyone can read, signed in or not, without waiting for the session.
