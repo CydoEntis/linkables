@@ -1,6 +1,6 @@
 import type { SavedLink } from "@linkables/shared/links";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { domainOf, safeHref, savedOnLabel } from "../links/link-display";
 import { CollectionTags } from "./CollectionTags";
 import { DetailsActions } from "./DetailsActions";
@@ -51,7 +51,7 @@ function DetailsHeader({ link, onClose }: { link: SavedLink | null; onClose: () 
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex min-h-11 items-center rounded-md bg-primary px-4 text-[13.5px] font-bold text-primary-foreground md:min-h-9"
+          className={buttonVariants({ size: "touch", className: "px-4 text-[13.5px] md:h-9" })}
         >
           Open ↗<span className="sr-only"> (opens in a new tab)</span>
         </a>

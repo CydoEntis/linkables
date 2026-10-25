@@ -2,6 +2,7 @@ import { SEARCH_QUERY_MAX_LENGTH } from "@linkables/shared/links";
 import { Search, X } from "lucide-react";
 import { useId, type KeyboardEvent } from "react";
 import { cn } from "cn";
+import { Button } from "@/components/ui/button";
 import { modKeyLabel } from "../search/shortcut-keys";
 import { useSearchText } from "../search/use-search-text";
 import { saveLinkFormSchema } from "./save-link-form";
@@ -77,12 +78,9 @@ export function SaveBar({ className, query, onQueryChange }: SaveBarProps) {
           className="h-full min-w-0 flex-1 bg-transparent text-base outline-none"
         />
         {canSave ? (
-          <button
-            type="submit"
-            className="h-[38px] shrink-0 animate-pop rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground"
-          >
+          <Button type="submit" className="h-[38px] animate-pop px-4">
             Save link
-          </button>
+          </Button>
         ) : null}
         {searching ? (
           <button

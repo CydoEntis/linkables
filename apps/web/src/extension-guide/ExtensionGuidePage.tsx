@@ -1,14 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { Download, Plus } from "lucide-react";
 import type { ReactNode } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { Wordmark } from "../shell/Wordmark";
 import { CHROME_WEB_STORE_URL } from "./path";
 
 // CI copies the latest extension build here (apps/extension/README.md).
 const DOWNLOAD_URL = "/downloads/linkables-chrome.zip";
 
-const PRIMARY_LINK =
-  "mt-3 flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground sm:w-auto sm:self-start";
+const PRIMARY_LINK = buttonVariants({ size: "xl", className: "mt-3 w-full gap-2 sm:w-auto sm:self-start" });
 
 function Mono({ children }: { children: ReactNode }) {
   return <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[14px] text-foreground">{children}</span>;

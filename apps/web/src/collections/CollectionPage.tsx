@@ -54,7 +54,7 @@ function CollectionHeader({ collection }: { collection: ListedCollection }) {
         </div>
       </div>
       <div className="flex gap-2">
-        <Button size="touch" onClick={() => { setSharing(true); }} className="h-11 rounded-md px-4 font-semibold md:h-10">
+        <Button size="touch" onClick={() => { setSharing(true); }} className="px-4 md:h-10">
           Share
         </Button>
         <button

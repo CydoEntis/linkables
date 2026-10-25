@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Check, Plus } from "lucide-react";
 import { useId, useRef } from "react";
 import { cn } from "cn";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { SAVE_ANYWHERE_PATH } from "../save-anywhere/SaveAnywherePage";
 import { useLinksUi } from "./links-ui-store";
@@ -11,14 +12,14 @@ import { useSaveLinkForm } from "./use-save-link-form";
 export function SaveFab() {
   const setOpen = useLinksUi((state) => state.setSaveSheetOpen);
   return (
-    <button
-      type="button"
+    <Button
+      size="icon"
       aria-label="Save a link"
       onClick={() => { setOpen(true); }}
-      className="fixed right-5 bottom-[calc(28px+env(safe-area-inset-bottom))] z-40 flex size-[60px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fab md:hidden"
+      className="fixed right-5 bottom-[calc(28px+env(safe-area-inset-bottom))] z-40 size-[60px] rounded-full shadow-fab md:hidden"
     >
       <Plus aria-hidden strokeWidth={2.6} className="size-[26px]" />
-    </button>
+    </Button>
   );
 }
 
@@ -58,16 +59,15 @@ export function SaveSheet() {
             aria-describedby={error ? errorId : undefined}
             className="h-[54px] min-w-0 flex-1 rounded-2xl bg-muted px-4 text-base outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:shadow-[0_0_0_1.5px_var(--destructive)] aria-invalid:focus-visible:outline-destructive"
           />
-          <button
+          <Button
             type="submit"
             aria-label="Save"
-            className={cn(
-              "flex size-[54px] shrink-0 items-center justify-center rounded-2xl transition-colors duration-200",
-              canSave ? "bg-primary text-primary-foreground" : "bg-muted text-subtle-foreground",
-            )}
+            variant={canSave ? "default" : "ghost"}
+            size="icon"
+            className={cn("size-[54px] rounded-2xl", !canSave && "text-subtle-foreground")}
           >
             <Check aria-hidden strokeWidth={2.6} className="size-[22px]" />
-          </button>
+          </Button>
         </form>
         {error ? (
           <p id={errorId} role="alert" className="text-[13px] text-destructive">

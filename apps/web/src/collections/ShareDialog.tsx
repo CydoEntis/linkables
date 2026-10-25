@@ -71,7 +71,7 @@ function ShareLink({ collectionId, open }: { collectionId: string; open: boolean
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">The link is off. Turn it on and anyone you send it to can see these links, without signing in.</p>
-        <Button size="touch" disabled={setSharing.isPending} onClick={() => { turn(true); }} className="self-start font-semibold">
+        <Button size="touch" disabled={setSharing.isPending} onClick={() => { turn(true); }} className="self-start">
           {setSharing.isPending ? <LoaderCircle aria-hidden className="animate-spin" /> : null}
           Turn on link
         </Button>
@@ -116,7 +116,6 @@ function LinkField({ url }: { url: string }) {
         onClick={() => {
           void copyLink(url).then(setCopied);
         }}
-        className="font-semibold active:scale-[.96]"
       >
         {copied ? <Check aria-hidden /> : null}
         {copied ? "Copied" : "Copy link"}

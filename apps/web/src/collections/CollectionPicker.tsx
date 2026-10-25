@@ -119,7 +119,7 @@ export function CollectionPicker({ link, variant, inputRef }: CollectionPickerPr
         />
       ) : null}
       {sheet && !creating ? (
-        <Button size="touch" onClick={() => { setCreating(true); }} className="h-[50px] shrink-0 rounded-xl text-[15px] font-semibold">
+        <Button size="touch" onClick={() => { setCreating(true); }} className="h-[50px]">
           <Plus aria-hidden strokeWidth={2.4} />
           New collection
         </Button>
