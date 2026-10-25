@@ -18,7 +18,7 @@ import { REQUEST_ID_HEADER, requestId } from "./http/request-id";
 import { requestLog } from "./http/request-log";
 import { linkRoutes } from "./links/routes";
 import type { HtmlPage } from "./metadata/fetcher";
-import { extractInWorker } from "./reader/extract-pool";
+import { createExtractPool } from "./reader/extract-pool";
 import type { ReaderDeps } from "./reader/get-reader";
 import { readerRoutes } from "./reader/routes";
 import { sharedRoutes, shareRoutes } from "./sharing/routes";
@@ -47,7 +47,8 @@ export function createApp({
   now = Date.now,
   notifyOwner = skipNotifyOwner,
   fetchPage,
-  extract = extractInWorker,
+  // One pool per app, which is one per process, so concurrent reads share its bounds.
+  extract = createExtractPool({ logger }).extract,
 }: AppDeps) {
   const behindProxy = auth.nodeEnv === "production";
   const v1 = new Hono<AuthEnv>()
