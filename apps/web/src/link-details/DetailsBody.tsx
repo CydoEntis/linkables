@@ -1,5 +1,6 @@
 import type { SavedLink } from "@linkables/shared/links";
-import { ArrowLeft } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeft, BookOpen } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { domainOf, safeHref, savedOnLabel } from "../links/link-display";
 import { CollectionTags } from "./CollectionTags";
@@ -46,6 +47,16 @@ function DetailsHeader({ link, onClose }: { link: SavedLink | null; onClose: () 
         Back
       </button>
       <span className="flex-1" />
+      {link && hasReaderView(link) ? (
+        <Link
+          to="/read/$linkId"
+          params={{ linkId: link.id }}
+          className={buttonVariants({ variant: "ghost", size: "touch", className: "gap-1.5 px-3.5 text-[13.5px] md:h-9" })}
+        >
+          <BookOpen aria-hidden strokeWidth={2.2} className="size-4" />
+          Read
+        </Link>
+      ) : null}
       {href ? (
         <a
           href={href}
@@ -58,6 +69,12 @@ function DetailsHeader({ link, onClose }: { link: SavedLink | null; onClose: () 
       ) : null}
     </div>
   );
+}
+
+// Videos and files have no article, so they get no Read action; the reader
+// still explains itself for a page that turns out to have none.
+function hasReaderView(link: SavedLink): boolean {
+  return link.resource.kind !== "video" && link.resource.kind !== "other";
 }
 
 function LinkFacts({ link, onDelete }: { link: SavedLink; onDelete: () => void }) {
