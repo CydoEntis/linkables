@@ -30,7 +30,10 @@ function renderDialog() {
 }
 
 beforeEach(() => { request.mockReset(); });
-afterEach(() => { Reflect.deleteProperty(navigator, "share"); });
+afterEach(() => {
+  Reflect.deleteProperty(navigator, "share");
+  Reflect.deleteProperty(globalThis, "ClipboardItem");
+});
 
 describe("ShareDialog", () => {
   it("says only the owner can see the collection until a link is made", async () => {
@@ -41,9 +44,10 @@ describe("ShareDialog", () => {
     expect(screen.getByText("Never your notes, pins or name")).toBeInTheDocument();
   });
 
-  it("makes a share link and shows it", async () => {
+  it("makes a share link, copies it and shows it", async () => {
     serve(null);
     const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
     renderDialog();
 
     await user.click(await screen.findByRole("button", { name: "Get share link" }));
@@ -51,6 +55,35 @@ describe("ShareDialog", () => {
     expect(await screen.findByText("Link is on")).toBeInTheDocument();
     expect(screen.getByText(TOKEN)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "See what viewers see" })).toHaveAttribute("href", `${window.location.origin}/s/${TOKEN}`);
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/s/${TOKEN}`);
+    expect(await screen.findAllByRole("button", { name: "Copied" })).not.toHaveLength(0);
+  });
+
+  it("starts the copy inside the click where the browser takes a promised clipboard item", async () => {
+    serve(null);
+    const user = userEvent.setup();
+    const ClipboardItem = vi.fn<(item: Record<string, Promise<Blob>>) => void>();
+    Object.defineProperty(globalThis, "ClipboardItem", { value: ClipboardItem, configurable: true });
+    const write = vi.spyOn(navigator.clipboard, "write").mockResolvedValue();
+    renderDialog();
+
+    await user.click(await screen.findByRole("button", { name: "Get share link" }));
+
+    expect(write).toHaveBeenCalledOnce();
+    expect(await ClipboardItem.mock.calls[0]?.[0]["text/plain"]?.then((blob) => blob.text())).toBe(`${window.location.origin}/s/${TOKEN}`);
+    expect(await screen.findAllByRole("button", { name: "Copied" })).not.toHaveLength(0);
+  });
+
+  it("shows the link without claiming it was copied when the clipboard refuses", async () => {
+    serve(null);
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+    renderDialog();
+
+    await user.click(await screen.findByRole("button", { name: "Get share link" }));
+
+    expect(await screen.findByText("Link is on")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copied" })).not.toBeInTheDocument();
   });
 
   it("sends the link through the phone's share sheet", async () => {

@@ -1,5 +1,6 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import type { ListedCollection } from "@linkables/shared/collections";
+import type { ShareState } from "@linkables/shared/sharing";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useWideScreen } from "../link-details/use-wide-screen";
 import { ShareOff } from "../sharing/ShareOff";
-import { ShareOn } from "../sharing/ShareOn";
-import { useSetSharing, useShareState } from "../sharing/use-share";
+import { copyWhenReady } from "../sharing/copy-when-ready";
+import { ShareOn, useCopied } from "../sharing/ShareOn";
+import { sharedUrl, useSetSharing, useShareState } from "../sharing/use-share";
 import { displayName } from "./display-name";
 import { linkCountLabel } from "./link-count";
 import { MiniCover } from "./MiniCover";
@@ -82,11 +84,20 @@ function ShareContent({ collection, open, wide }: { collection: ListedCollection
   );
 }
 
+function urlOf({ token }: ShareState): string {
+  if (token === null) throw new Error("Turning the link on returned no token");
+  return sharedUrl(token);
+}
+
 function ShareLink({ collection, token, wide }: { collection: ListedCollection; token: string | null; wide: boolean }) {
   const setSharing = useSetSharing(collection.id);
+  const [copied, setCopied] = useCopied();
 
+  // Making the link also copies it, so sharing for the first time is one click.
   function turnOn() {
-    setSharing.mutate(true, { onError: () => { toast.error("Couldn't make the link. Try again."); } });
+    copyWhenReady(setSharing.mutateAsync(true).then(urlOf)).then(setCopied, () => {
+      toast.error("Couldn't make the link. Try again.");
+    });
   }
 
   function turnOff() {
@@ -97,5 +108,15 @@ function ShareLink({ collection, token, wide }: { collection: ListedCollection; 
   }
 
   if (token === null) return <ShareOff collection={collection} pending={setSharing.isPending} onTurnOn={turnOn} />;
-  return <ShareOn token={token} title={displayName(collection.name)} wide={wide} turningOff={setSharing.isPending} onTurnOff={turnOff} />;
+  return (
+    <ShareOn
+      token={token}
+      title={displayName(collection.name)}
+      wide={wide}
+      copied={copied}
+      onCopied={setCopied}
+      turningOff={setSharing.isPending}
+      onTurnOff={turnOff}
+    />
+  );
 }
