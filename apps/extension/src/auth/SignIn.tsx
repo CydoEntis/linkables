@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { BUTTON_DARK } from "@linkables/shared/ui";
 import { useMutation } from "@tanstack/react-query";
 import { cn } from "cn";
 import { LoaderCircle } from "lucide-react";
@@ -243,7 +244,7 @@ function Resend({ email, sentAt, offline, onSent }: ResendProps) {
         type="button"
         disabled={offline || waiting || resend.isPending}
         onClick={() => { resend.mutate(email); }}
-        className="h-10 rounded-[10px] bg-muted text-[13.5px] font-semibold hover:bg-accent disabled:cursor-default disabled:text-subtle-foreground disabled:hover:bg-muted"
+        className={cn(BUTTON_DARK, "h-10 rounded-[10px] bg-muted text-[13.5px] hover:bg-accent disabled:cursor-default disabled:text-subtle-foreground disabled:hover:bg-muted")}
       >
         {resend.isPending ? "Sending…" : waiting ? `Resend in ${String(countdown.secondsLeft)}s` : "Resend the code"}
       </button>
