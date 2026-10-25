@@ -30,7 +30,7 @@ export const PRIVACY_DOC: LongTextDoc = {
           <p>To run your account and your library, we store:</p>
           <ul>
             <li>
-              <strong>Your account:</strong> your email address, and how you sign in (Google or an email link). If you sign in with Google, Google also
+              <strong>Your account:</strong> your email address, and how you sign in (Google, or a code we email you). If you sign in with Google, Google also
               shares your name and profile picture with our sign-in provider. We don't use them.
             </li>
             <li>
@@ -51,7 +51,8 @@ export const PRIVACY_DOC: LongTextDoc = {
       body: (
         <>
           <p>
-            After you save a link, our server visits that address once to read the page's title, description and preview image. The visit comes from our
+            After you save a link, our server visits that address, following any redirects and trying again if it fails, to read the page's title,
+            description and preview image. The visit comes from our
             server, not your device, and carries no cookies or details about you. Page details are stored once per address, so if two people save the same
             page they share its title and picture. Nobody can see who else saved it.
           </p>
@@ -81,13 +82,13 @@ export const PRIVACY_DOC: LongTextDoc = {
       body: (
         <ul>
           <li>
-            <strong>Supabase</strong> runs our sign-in and database. Your account and links are stored in its US East region (Virginia, USA).
+            <strong>Supabase</strong> runs our sign-in and database. Your account and links are stored in its US East region (Virginia, USA). Supabase also keeps sign-in logs, which include IP addresses.
           </li>
           <li>
-            <strong>OVHcloud</strong> hosts the linkables website and server, in the United States.
+            <strong>OVHcloud</strong> hosts the linkables website and server, in Vint Hill, Virginia, USA.
           </li>
           <li>
-            <strong>Resend</strong> sends the sign-in emails, so it receives your email address when you ask for a sign-in link.
+            <strong>Resend</strong> sends the sign-in emails, from noreply@linkables.app, so it receives your email address when you ask for a sign-in code.
           </li>
           <li>
             <strong>Google</strong>, only if you choose Continue with Google, confirms who you are and tells us your email address.

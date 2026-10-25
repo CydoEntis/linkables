@@ -77,8 +77,9 @@ export const SUPPORT_DOC: LongTextDoc = {
       heading: "Trouble signing in",
       body: (
         <p>
-          If the sign-in email doesn't arrive, check your spam folder, or ask for a new one. Each email link works once and for a short time. You can
-          also continue with Google if you use a Google account.
+          Sign in with Google, or with the 6-digit code we email you. Type the code on the device you want to sign in on; the email also has a link
+          that does the same. The code and the link each work once, for an hour. If the email doesn't arrive, check your spam folder, or ask for a
+          new one.
         </p>
       ),
     },
