@@ -19,6 +19,8 @@ import { REQUEST_ID_HEADER, requestId } from "./http/request-id";
 import { requestLog } from "./http/request-log";
 import { linkRoutes } from "./links/routes";
 import type { HtmlPage } from "./metadata/fetcher";
+import { extractInWorker } from "./reader/extract-pool";
+import type { ReaderDeps } from "./reader/get-reader";
 import { readerRoutes } from "./reader/routes";
 import { sharedRoutes, shareRoutes } from "./sharing/routes";
 
@@ -35,12 +37,22 @@ export type AppDeps = {
   notifyAccountDeleted?: NotifyAccountDeleted | undefined;
   // The SSRF-guarded whole-page fetch (metadata/fetcher.ts); tests pass a stub.
   fetchPage: (url: string) => Promise<HtmlPage>;
+  extract?: ReaderDeps["extract"];
 };
 
 const PREFLIGHT_MAX_AGE_SECONDS = 2 * 60 * 60;
 
-export function createApp(deps: AppDeps) {
-  const { logger, corsOrigins, auth, db, now = Date.now, notifyOwner = skipNotifyOwner, notifyAccountDeleted, fetchPage } = deps;
+export function createApp({
+  logger,
+  corsOrigins,
+  auth,
+  db,
+  now = Date.now,
+  notifyOwner = skipNotifyOwner,
+  notifyAccountDeleted,
+  fetchPage,
+  extract = extractInWorker,
+}: AppDeps) {
   const behindProxy = auth.nodeEnv === "production";
   const v1 = new Hono<AuthEnv>()
     // Over the cap, bodyLimit throws a 413 HTTPException, which onError maps to VALIDATION.
@@ -49,7 +61,7 @@ export function createApp(deps: AppDeps) {
     .route("/", me)
     .route("/", accountRoutes({ db, logger, now, notifyAccountDeleted }))
     .route("/", linkRoutes({ db, now }))
-    .route("/", readerRoutes({ db, fetchPage, logger, now }))
+    .route("/", readerRoutes({ db, fetchPage, extract, logger, now }))
     .route("/", collectionRoutes({ db }))
     .route("/", exportRoutes({ db, now }))
     .route("/", shareRoutes({ db }));
