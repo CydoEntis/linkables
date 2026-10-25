@@ -16,6 +16,8 @@ import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
 import { SAVE_ANYWHERE_PATH, SaveAnywherePage, saveAnywhereSearchSchema } from "./save-anywhere/SaveAnywherePage";
+import { SETTINGS_PATH } from "./settings/path";
+import { SettingsPage } from "./settings/SettingsPage";
 import { listFiltersShape, orderRange } from "./search/list-filters";
 import { SHARED_PATH_PREFIX } from "./sharing/path";
 import { SharedCollectionPage } from "./sharing/SharedCollectionPage";
@@ -86,8 +88,14 @@ const extensionGuideRoute = createRoute({
   component: ExtensionGuidePage,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: SETTINGS_PATH,
+  component: SettingsPage,
+});
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {
