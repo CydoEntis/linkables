@@ -11,14 +11,15 @@ import { Wordmark } from "./Wordmark";
 
 // scope: the list the page shows, if any; Settings has none, so no view is marked current.
 // search: the phone's search field, above the view chips as in the handoff.
-type AppShellProps = { scope?: ListScope; search?: ReactNode; children: ReactNode };
+// phoneChrome: false drops the phone's header and chips, for a full-screen page with its own Back.
+type AppShellProps = { scope?: ListScope; search?: ReactNode; phoneChrome?: boolean; children: ReactNode };
 
 // The phone's first chip picks All links or a collection, so only these two are plain links there.
 const PHONE_VIEW_CHIPS: LinksView[] = ["pinned", "inbox"];
 
 // shortcut: the sidebar shows no counts yet; the API has no count endpoint, and
 // counting loaded pages would be wrong past the first page.
-export function AppShell({ scope, search, children }: AppShellProps) {
+export function AppShell({ scope, search, phoneChrome = true, children }: AppShellProps) {
   const view = scope && "view" in scope ? scope.view : undefined;
   const collectionId = scope && "collectionId" in scope ? scope.collectionId : undefined;
 
@@ -52,14 +53,14 @@ export function AppShell({ scope, search, children }: AppShellProps) {
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="flex h-[50px] items-center justify-between px-[18px] pt-1 md:hidden">
+        <header className={cn("flex h-[50px] items-center justify-between px-[18px] pt-1 md:hidden", !phoneChrome && "hidden")}>
           <Link to="/" className="flex min-h-11 items-center rounded-md" aria-label="linkables, All links">
             <Wordmark />
           </Link>
           <AccountMenu />
         </header>
         {search ? <div className="px-4 pt-1.5 pb-1 md:hidden">{search}</div> : null}
-        <nav aria-label="Links" className="flex gap-2 overflow-x-auto px-4 md:hidden">
+        <nav aria-label="Links" className={cn("flex gap-2 overflow-x-auto px-4 md:hidden", !phoneChrome && "hidden")}>
           <CollectionChip activeId={collectionId} allActive={view === "all"} />
           {PHONE_VIEW_CHIPS.map((item) => (
             <Link
