@@ -36,6 +36,13 @@
       "when": 1792893872771,
       "tag": "0004_access_request",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792942380298,
+      "tag": "0005_collection_share_token",
+      "breakpoints": true
     }
   ]
 }

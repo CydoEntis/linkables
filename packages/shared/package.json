@@ -10,6 +10,7 @@
     "./collections": "./src/collections/index.ts",
     "./export": "./src/export/index.ts",
     "./links": "./src/links/index.ts",
+    "./sharing": "./src/sharing/index.ts",
     "./url": "./src/url/index.ts"
   },
   "scripts": {

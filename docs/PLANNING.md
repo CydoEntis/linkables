@@ -66,13 +66,16 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
    `globalThis.fetch`, and static or dynamic imports of `undici` (and subpaths),
    `http`, `https` and `http2` (test files may import `http` for local test
    servers); `pnpm lint`.
-3. Every route except `/health` and `POST /access-requests` needs a valid
-   Supabase JWT, and every query is scoped to `sub`. The request-access form is
-   public because its users have no account yet; it only inserts, gives the same
-   answer whatever is stored, and is rate-limited per IP.
+3. Every route except `/health`, `POST /access-requests` and
+   `GET /shared/:token` needs a valid Supabase JWT, and every query is scoped to
+   `sub`. The request-access form is public because its users have no account
+   yet; it only inserts, gives the same answer whatever is stored, and is
+   rate-limited per IP. A shared collection is public because its owner turned
+   its view-only link on; it reads only that collection's display fields and is
+   rate-limited per IP.
    Check: `apps/api/test/authz.db.test.ts` (every route: no token → 401, another
-   user's ids → 404, no leaks in any listing; each public API route returns no
-   data; fails if a route is missing from it).
+   user's ids → 404, no leaks in any listing; each public API route is probed for
+   what it gives back; fails if a route is missing from it).
 4. The database is reachable only through the API.
    Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
    project (turned off 2026-10-22).

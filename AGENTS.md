@@ -61,11 +61,17 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - All data access goes through the API and is scoped to the signed-in user's
   `sub`. No query returns another user's rows (plan Rule 3). Every new route gets
   a two-user test and an entry in `apps/api/test/authz.db.test.ts`.
-- Every route needs a JWT except `GET /health` and `POST /access-requests`. The
-  request-access form is public because the people filling it in have no account
-  yet; it only inserts, answers every request the same way, and is rate-limited
-  per IP. authz.db.test.ts lists both as public and checks the form returns no
-  data. A new public route needs the same reasoning written down here.
+- Every route needs a JWT except `GET /health`, `POST /access-requests` and
+  `GET /shared/:token`. The request-access form is public because the people
+  filling it in have no account yet; it only inserts, answers every request the
+  same way, and is rate-limited per IP. A shared collection is public because
+  its owner chose to show it to people without an account: the token is 192
+  random bits that the owner turns on and off, it reads only that one
+  collection's name and its links' display fields (no ids, notes, pins, dates or
+  owner), an unknown, malformed or turned-off token is the same NOT_FOUND, and
+  it is rate-limited per IP. authz.db.test.ts lists these as public and checks
+  what each gives back. A new public route needs the same reasoning written down
+  here.
 - Anything that fetches a user-supplied URL goes through the SSRF-guarded
   fetcher (ADR-0003, `apps/api/src/metadata/fetcher.ts`). Never call `fetch` on a
   saved URL directly; never weaken the guard to make a test pass. The fetcher
