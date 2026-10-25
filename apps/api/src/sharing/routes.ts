@@ -54,6 +54,7 @@ export function sharedRoutes({ db, logger, now, behindProxy }: SharedRoutesDeps)
       now,
       key: clientKey(logger, behindProxy, "shared collection view"),
       message: "Too many requests, try again later",
+      whenFull: { message: "Shared collections are busy. Try again in a minute.", logger, name: "shared-view" },
     }),
     tokenParams,
     async (c) => ok(c, await sharedCollection(db, c.req.valid("param").token)),
