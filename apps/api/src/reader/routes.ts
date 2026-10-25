@@ -6,7 +6,7 @@ import { ok } from "../http/envelope";
 import { RateLimitError } from "../http/errors";
 import { parseWith } from "../http/validate";
 import { windowCounter } from "../http/window-counter";
-import { getReader, type ReaderDeps } from "./get-reader";
+import { createReader, type ReaderDeps } from "./get-reader";
 
 // Counts only fetches: a cached copy costs one query, a fetch ties up the API for up to 10 s.
 const FETCHES_PER_MINUTE = 10;
@@ -17,6 +17,7 @@ const linkParamSchema = z.object({ id: z.uuid() });
 
 export function readerRoutes(deps: ReaderDeps) {
   // shortcut: in process memory like rateLimit (http/rate-limit.ts); fine for one container.
+  const getReader = createReader(deps);
   const fetches = windowCounter({ limit: FETCHES_PER_MINUTE, windowMs: 60_000, maxKeys: READERS_TRACKED, now: deps.now });
 
   return new Hono<AuthEnv>().get(
@@ -30,7 +31,7 @@ export function readerRoutes(deps: ReaderDeps) {
         c.header("Retry-After", String(Math.ceil(hit.retryAfterMs / 1000)));
         throw new RateLimitError("Too many pages opened in the reader, try again shortly");
       };
-      return ok(c, await getReader(deps, { userId, linkId: c.req.valid("param").id, beforeFetch }));
+      return ok(c, await getReader({ userId, linkId: c.req.valid("param").id, beforeFetch }));
     },
   );
 }

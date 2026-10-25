@@ -2,11 +2,11 @@ import { readerArticleSchema, type ReaderArticle, type ReaderView } from "@linka
 import { and, eq } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { resource, resourceReader, savedLink } from "../db/schema";
-import { NotFoundError } from "../http/errors";
+import { NotFoundError, RateLimitError } from "../http/errors";
 import type { Logger } from "../log/logger";
 import { isYouTube } from "../metadata/extract";
 import { FetchError, type HtmlPage } from "../metadata/fetcher";
-import { extractArticle } from "./extract-article";
+import { ExtractError } from "./extract-pool";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const OK_FRESH_MS = 7 * DAY_MS;
@@ -16,6 +16,8 @@ const UNAVAILABLE_FRESH_MS = DAY_MS / 4;
 export type ReaderDeps = {
   db: Db;
   fetchPage: (url: string) => Promise<HtmlPage>;
+  // Runs extractArticle off the API's thread (extract-pool.ts).
+  extract: (html: string, pageUrl: string) => Promise<unknown>;
   logger: Logger;
   now: () => number;
 };
@@ -23,27 +25,44 @@ export type ReaderDeps = {
 export type GetReaderInput = {
   userId: string;
   linkId: string;
-  // Runs before a fetch, never for a cached copy; throws to refuse the fetch.
+  // Runs before a fetch, never for a cached copy or one already under way; throws to refuse the fetch.
   beforeFetch: () => void;
 };
 
 type Copy = { status: "ok"; article: ReaderArticle } | { status: "unavailable"; reason: string };
 
-export async function getReader(deps: ReaderDeps, { userId, linkId, beforeFetch }: GetReaderInput): Promise<ReaderView> {
-  const target = await findTarget(deps.db, userId, linkId);
-  if (target === undefined) throw new NotFoundError("Link not found");
-  if (!mayHaveArticle(target)) return { status: "unavailable", url: target.url };
-  const cached = freshCopy(target.cached, deps.now());
-  if (cached !== null) return toView(target.url, cached);
-  beforeFetch();
-  const copy = await readPage(deps.fetchPage, target.canonicalUrl);
-  await storeCopy(deps.db, target.resourceId, copy, deps.now());
-  deps.logger.info("reader copy fetched", {
-    resourceId: target.resourceId,
-    status: copy.status,
-    ...(copy.status === "unavailable" ? { reason: copy.reason } : {}),
-  });
-  return toView(target.url, copy);
+export function createReader(deps: ReaderDeps) {
+  // Readers of the same page while it is being fetched wait for that one fetch.
+  const inFlight = new Map<string, Promise<Copy>>();
+
+  async function refresh(resourceId: string, canonicalUrl: string): Promise<Copy> {
+    const copy = await readPage(deps, canonicalUrl);
+    await storeCopy(deps.db, resourceId, copy, deps.now());
+    deps.logger.info("reader copy fetched", {
+      resourceId,
+      status: copy.status,
+      ...(copy.status === "unavailable" ? { reason: copy.reason } : {}),
+    });
+    return copy;
+  }
+
+  function sharedRefresh(resourceId: string, canonicalUrl: string, beforeFetch: () => void): Promise<Copy> {
+    const running = inFlight.get(resourceId);
+    if (running !== undefined) return running;
+    beforeFetch();
+    const started = refresh(resourceId, canonicalUrl).finally(() => inFlight.delete(resourceId));
+    inFlight.set(resourceId, started);
+    return started;
+  }
+
+  return async function getReader({ userId, linkId, beforeFetch }: GetReaderInput): Promise<ReaderView> {
+    const target = await findTarget(deps.db, userId, linkId);
+    if (target === undefined) throw new NotFoundError("Link not found");
+    if (!mayHaveArticle(target)) return { status: "unavailable", url: target.url };
+    const cached = freshCopy(target.cached, deps.now());
+    if (cached !== null) return toView(target.url, cached);
+    return toView(target.url, await sharedRefresh(target.resourceId, target.canonicalUrl, beforeFetch));
+  };
 }
 
 async function findTarget(db: Db, userId: string, linkId: string) {
@@ -78,14 +97,20 @@ function freshCopy(row: typeof resourceReader.$inferSelect | null, now: number):
 
 // The canonical URL is fetched, never the user's own: the copy is shared, and a
 // saved URL can carry one user's tokens.
-async function readPage(fetchPage: ReaderDeps["fetchPage"], canonicalUrl: string): Promise<Copy> {
+// A full queue is not the page's fault, so it is refused for now and never stored.
+async function readPage({ fetchPage, extract }: ReaderDeps, canonicalUrl: string): Promise<Copy> {
   try {
     const page = await fetchPage(canonicalUrl);
     if (page.html === null) return { status: "unavailable", reason: "not_html" };
-    const article = extractArticle(page.html, page.url);
-    return article === null ? { status: "unavailable", reason: "no_article" } : { status: "ok", article };
+    const extracted = await extract(page.html, page.url);
+    if (extracted === null) return { status: "unavailable", reason: "no_article" };
+    const article = readerArticleSchema.safeParse(extracted);
+    return article.success ? { status: "ok", article: article.data } : { status: "unavailable", reason: "extract_invalid" };
   } catch (error) {
-    if (error instanceof FetchError) return { status: "unavailable", reason: error.reason };
+    if (error instanceof ExtractError && error.reason === "extract_busy") {
+      throw new RateLimitError("The reader is busy, try again shortly");
+    }
+    if (error instanceof FetchError || error instanceof ExtractError) return { status: "unavailable", reason: error.reason };
     throw error;
   }
 }

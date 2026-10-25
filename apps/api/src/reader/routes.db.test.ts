@@ -6,7 +6,9 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { captureLogger, createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
 import { resource, resourceReader, savedLink } from "../db/schema";
+import type { AppDeps } from "../app";
 import { FetchError, type HtmlPage } from "../metadata/fetcher";
+import { ExtractError } from "./extract-pool";
 
 const { db, close } = connectTestDb();
 const { a, b } = await testUsers();
@@ -21,7 +23,9 @@ const NO_ARTICLE = readFileSync(new URL("./fixtures/no-article.html", import.met
 
 type Page = HtmlPage | FetchError;
 
-function setup(page: Page = { url: CANONICAL, contentType: "text/html", html: ARTICLE }) {
+type Extract = AppDeps["extract"];
+
+function setup(page: Page = { url: CANONICAL, contentType: "text/html", html: ARTICLE }, extract?: Extract) {
   const fetched: string[] = [];
   const clock = { at: Date.parse("2026-10-25T12:00:00Z") };
   const { logger, lines } = captureLogger();
@@ -30,6 +34,7 @@ function setup(page: Page = { url: CANONICAL, contentType: "text/html", html: AR
     db,
     logger,
     now: () => clock.at,
+    ...(extract === undefined ? {} : { extract }),
     fetchPage: (url) => {
       fetched.push(url);
       return next instanceof FetchError ? Promise.reject(next) : Promise.resolve(next);
@@ -123,6 +128,40 @@ describe("GET /links/:id/reader", () => {
     expect(await db.select({ status: resourceReader.status, reason: resourceReader.reason }).from(resourceReader)).toEqual([
       { status: "unavailable", reason },
     ]);
+  });
+
+  it.each([
+    ["runs past its time limit", () => Promise.reject(new ExtractError("extract_timeout")), "extract_timeout"],
+    ["fails in the worker", () => Promise.reject(new ExtractError("extract_failed")), "extract_failed"],
+    ["gives an article outside the contract", () => Promise.resolve({ title: "x", blocks: [{ type: "html", html: "<b>" }] }), "extract_invalid"],
+  ])("says a page whose extraction %s is unavailable and remembers why", async (_name, extract, reason) => {
+    const { app } = setup(undefined, extract);
+    const link = await saveFor(a);
+
+    expect(await view(await read(app, a, link.id))).toEqual({ status: "unavailable", url: link.originalUrl });
+    expect(await db.select({ reason: resourceReader.reason }).from(resourceReader)).toEqual([{ reason }]);
+  });
+
+  it("asks the reader to wait, without storing anything, when extraction is busy", async () => {
+    const { app } = setup(undefined, () => Promise.reject(new ExtractError("extract_busy")));
+    const link = await saveFor(a);
+
+    const res = await read(app, a, link.id);
+
+    expect(res.status).toBe(429);
+    expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("RATE_LIMIT");
+    expect(await db.$count(resourceReader)).toBe(0);
+  });
+
+  it("shares one fetch between readers of the same page at the same time", async () => {
+    const { app, fetched } = setup();
+    const linkA = await saveFor(a);
+    const linkB = await saveFor(b);
+
+    const [forA, forB] = await Promise.all([read(app, a, linkA.id), read(app, b, linkB.id)]);
+
+    expect([(await view(forA)).status, (await view(forB)).status]).toEqual(["ok", "ok"]);
+    expect(fetched).toHaveLength(1);
   });
 
   it("fetches an article again once its copy is a week old", async () => {
