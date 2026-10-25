@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -15,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { FETCH_STATUSES, RESOURCE_KINDS, type LinkSource } from "@linkables/shared/links";
+import { READER_STATUSES, type ReaderArticle } from "@linkables/shared/reader";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -88,6 +90,24 @@ export const collectionItem = pgTable(
     primaryKey({ columns: [table.collectionId, table.savedLinkId] }),
     index("collection_item_saved_link_id_idx").on(table.savedLinkId),
   ],
+).enableRLS();
+
+export const readerStatus = pgEnum("reader_status", READER_STATUSES);
+
+// One readable copy per resource: the page is the same for everyone who saved it.
+// reason is a short code for an unavailable copy, never a fetch error message.
+export const resourceReader = pgTable(
+  "resource_reader",
+  {
+    resourceId: uuid("resource_id")
+      .primaryKey()
+      .references(() => resource.id, { onDelete: "cascade" }),
+    status: readerStatus("status").notNull(),
+    article: jsonb("article").$type<ReaderArticle>(),
+    reason: text("reason"),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [check("resource_reader_article_when_ok", sql`(${table.status} = 'ok') = (${table.article} is not null)`)],
 ).enableRLS();
 
 export const job = pgTable("job", {
