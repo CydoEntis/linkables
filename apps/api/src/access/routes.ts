@@ -1,15 +1,15 @@
 import { accessRequestSchema } from "@linkables/shared/access";
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { validator } from "hono/validator";
 import type { Db } from "../db/client";
 import { ok } from "../http/envelope";
 import type { AppEnv } from "../http/env";
+import { clientKey } from "../http/client-ip";
 import { rateLimit } from "../http/rate-limit";
 import { parseWith } from "../http/validate";
 import { windowCounter } from "../http/window-counter";
 import type { Logger } from "../log/logger";
-import { addressKey } from "./client-ip";
 import type { NotifyOwner } from "./notify-owner";
 import { recordAccessRequest } from "./record-request";
 
@@ -23,23 +23,6 @@ const ADDRESSES_TRACKED = 10_000;
 const REQUESTS_PAUSED = "Requests are paused for a bit. Try again later.";
 const MAX_BODY_BYTES = 4 * 1024;
 const USER_AGENT_MAX_LENGTH = 512;
-
-// The web container's Caddy sets X-Real-IP from the host proxy's
-// X-Forwarded-For, overwriting anything the client sent, and the API has no
-// published port. Without it (dev, tests) every caller shares one window; in
-// production that means the proxy is misconfigured, which is logged once.
-function clientKey(logger: Logger, behindProxy: boolean) {
-  let warned = false;
-  return (c: Context<AppEnv>): string => {
-    const ip = c.req.header("X-Real-IP");
-    if (ip !== undefined) return addressKey(ip);
-    if (behindProxy && !warned) {
-      warned = true;
-      logger.warn("access request without X-Real-IP; every caller shares one rate limit");
-    }
-    return "unknown";
-  };
-}
 
 function withinBudget(notifyOwner: NotifyOwner, logger: Logger, now: () => number): NotifyOwner {
   const budget = windowCounter({ limit: NOTICES_PER_HOUR, windowMs: HOUR_MS, maxKeys: 1, now });
@@ -76,7 +59,7 @@ export function accessRequestRoutes({ db, logger, now, notifyOwner, behindProxy 
       windowMs: HOUR_MS,
       maxKeys: ADDRESSES_TRACKED,
       now,
-      key: clientKey(logger, behindProxy),
+      key: clientKey(logger, behindProxy, "access request"),
       message: "Too many requests, try again later",
       whenFull: { message: REQUESTS_PAUSED, logger, name: "access-requests" },
     }),

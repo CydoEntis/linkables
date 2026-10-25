@@ -1,4 +1,7 @@
 import { isIPv6 } from "node:net";
+import type { Context } from "hono";
+import type { Logger } from "../log/logger";
+import type { AppEnv } from "./env";
 
 const MAPPED_IPV4 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i;
 
@@ -20,4 +23,21 @@ export function addressKey(ip: string): string {
     .slice(0, 4)
     .map((part) => part.replace(/^0+(?=.)/, ""));
   return `${prefix.join(":")}::/64`;
+}
+
+// The web container's Caddy sets X-Real-IP from the host proxy's
+// X-Forwarded-For, overwriting anything the client sent, and the API has no
+// published port. Without it (dev, tests) every caller shares one window; in
+// production that means the proxy is misconfigured, which is logged once.
+export function clientKey(logger: Logger, behindProxy: boolean, what: string) {
+  let warned = false;
+  return (c: Context<AppEnv>): string => {
+    const ip = c.req.header("X-Real-IP");
+    if (ip !== undefined) return addressKey(ip);
+    if (behindProxy && !warned) {
+      warned = true;
+      logger.warn(`${what} without X-Real-IP; every caller shares one rate limit`);
+    }
+    return "unknown";
+  };
 }
