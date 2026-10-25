@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { SHARED_LINKS_MAX, type OwnSharedCollection, type OwnSharedCollectionsResponse, type SharedCollection, type ShareState } from "@linkables/shared/sharing";
-import { and, asc, count, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, max, sql } from "drizzle-orm";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import type { Db } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
@@ -78,14 +78,14 @@ async function sharedLinks(db: Db, collectionId: string) {
     .limit(SHARED_LINKS_MAX);
 }
 
-async function sharedLinkCount(db: Db, collectionId: string): Promise<number> {
+async function sharedLinkStats(db: Db, collectionId: string): Promise<{ linkCount: number; updatedAt: string | null }> {
   const [row] = await db
-    .select({ total: count() })
+    .select({ total: count(), newest: max(collectionItem.createdAt) })
     .from(collectionItem)
     .innerJoin(collection, eq(collection.id, collectionItem.collectionId))
     .innerJoin(savedLink, ownersFiling)
     .where(eq(collectionItem.collectionId, collectionId));
-  return row?.total ?? 0;
+  return { linkCount: row?.total ?? 0, updatedAt: row?.newest?.toISOString() ?? null };
 }
 
 // The URL as the owner saved it, which may carry a login; that never goes public.
@@ -116,6 +116,6 @@ export async function sharedCollection(db: Db, token: string): Promise<SharedCol
     db.select({ id: collection.id, name: collection.name }).from(collection).where(eq(collection.shareToken, token)),
   );
   if (found === undefined) throw new NotFoundError("Shared collection not found");
-  const [links, linkCount] = await Promise.all([sharedLinks(db, found.id), sharedLinkCount(db, found.id)]);
-  return { name: found.name, linkCount, links: links.map((link) => ({ ...link, url: withoutCredentials(link.url) })) };
+  const [links, stats] = await Promise.all([sharedLinks(db, found.id), sharedLinkStats(db, found.id)]);
+  return { name: found.name, ...stats, links: links.map((link) => ({ ...link, url: withoutCredentials(link.url) })) };
 }
