@@ -73,10 +73,11 @@ function Tile({ icon, name, detail, children }: TileProps) {
   );
 }
 
+// The web app installed from the browser: its own window on a computer, a Share target on Android.
 // The browser's own install dialog where it offers one; elsewhere, how to add it by hand.
 function InstallTile() {
   const install = useInstallPrompt();
-  const name = "Android and desktop app";
+  const name = "Install the app";
   if (window.matchMedia("(display-mode: standalone)").matches) {
     return <Tile icon={<MonitorSmartphone />} name={name} detail="You're using the installed app." />;
   }
@@ -85,12 +86,16 @@ function InstallTile() {
       <Tile
         icon={<MonitorSmartphone />}
         name={name}
-        detail="In Chrome on Android, tap ⋮, then Install app. On a computer, use Install in the address bar."
+        detail="In Chrome or Edge, use the install icon in the address bar. On Android, tap ⋮, then Install app. On iPhone or in Safari, use the Shortcut instead."
       />
     );
   }
   return (
-    <Tile icon={<MonitorSmartphone />} name={name} detail="Install linkables like an app. On Android it shows up in Share.">
+    <Tile
+      icon={<MonitorSmartphone />}
+      name={name}
+      detail="Add linkables to your computer (Chrome or Edge) or Android phone. It opens in its own window and shows up in Share on Android."
+    >
       <Button variant="ghost" className={TILE_ACTION} onClick={install}>
         Install
       </Button>
