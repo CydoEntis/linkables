@@ -129,7 +129,7 @@ describe("collection sharing", () => {
     for (const secret of ["secret note", a.id, col.id, older.id, newer.id]) expect(text).not.toContain(secret);
   });
 
-  it("dates the shared collection by its newest filing, or not at all when it is empty", async () => {
+  it("dates the shared collection by the UTC day of its newest filing, or not at all when it is empty", async () => {
     const app = createTestApp({ db });
     const col = await insertCollection(a.id, "Trip");
     const token = await turnOn(app, a, col.id);
@@ -142,7 +142,7 @@ describe("collection sharing", () => {
       { collectionId: col.id, savedLinkId: newer.id, createdAt: new Date("2026-10-24T09:30:00Z") },
     ]);
 
-    expect((await viewed(await view(app, token))).updatedAt).toBe("2026-10-24T09:30:00.000Z");
+    expect((await viewed(await view(app, token))).updatedAt).toBe("2026-10-24T00:00:00.000Z");
   });
 
   it("shows only that collection's links, and only the owner's", async () => {
