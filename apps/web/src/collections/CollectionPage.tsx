@@ -1,21 +1,19 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { Copy, Globe, Settings2, Share, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Globe, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { withoutLinkDetails } from "../link-details/details-search";
 import { useWideScreen } from "../link-details/use-wide-screen";
 import { LinksScreen } from "../links/LinksScreen";
 import type { FiltersChange } from "../search/list-filters";
-import { copyLink } from "../links/share-link";
-import { sharedUrl, useShareToken } from "../sharing/use-share";
+import { useShareToken } from "../sharing/use-share";
 import { AppShell } from "../shell/AppShell";
 import { CollectionTitle } from "./CollectionTitle";
 import { useCollectionsUi, type PendingDelete } from "./collections-ui-store";
 import { displayName } from "./display-name";
 import { MiniCover } from "./MiniCover";
 import { linkCountLabel } from "./link-count";
-import { ShareDialog } from "./ShareDialog";
+import { ShareControls } from "./ShareControls";
 import { useCollections } from "./use-collections";
 import { useDeleteCollection } from "./use-delete-collection";
 
@@ -45,12 +43,9 @@ export function CollectionPage() {
 }
 
 function CollectionHeader({ collection }: { collection: ListedCollection }) {
-  const [sharing, setSharing] = useState(false);
   const deleteCollection = useDeleteCollection();
-  const token = useShareToken(collection.id);
-  const shared = token !== undefined;
+  const shared = useShareToken(collection.id) !== undefined;
   const wide = useWideScreen();
-  const openSharing = () => { setSharing(true); };
 
   return (
     <div className="mt-2 mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-2 md:mt-[30px] md:mb-3.5 md:px-0">
@@ -70,15 +65,7 @@ function CollectionHeader({ collection }: { collection: ListedCollection }) {
         </div>
       </div>
       <div className="flex gap-2">
-        {wide && token !== undefined ? (
-          <CopyShareLink token={token} onOptions={openSharing} />
-        ) : (
-          // On phones the + button is the screen's lime action, so Share steps back.
-          <Button variant={wide ? "default" : "ghost"} size="touch" onClick={openSharing} className="px-4 font-bold md:h-10">
-            <Share aria-hidden className="size-[15px]" />
-            Share
-          </Button>
-        )}
+        <ShareControls collection={collection} wide={wide} />
         <button
           type="button"
           aria-label="Delete collection"
@@ -89,24 +76,7 @@ function CollectionHeader({ collection }: { collection: ListedCollection }) {
           <Trash2 aria-hidden strokeWidth={2} className="size-[15px]" />
         </button>
       </div>
-      <ShareDialog collection={collection} open={sharing} onOpenChange={setSharing} />
     </div>
-  );
-}
-
-// Once the link is on, copying it is the job, so it takes Share's place; the
-// dialog (what viewers see, turning it off) moves behind the icon beside it.
-function CopyShareLink({ token, onOptions }: { token: string; onOptions: () => void }) {
-  return (
-    <>
-      <Button size="touch" onClick={() => void copyLink(sharedUrl(token))} className="px-4 font-bold md:h-10">
-        <Copy aria-hidden className="size-[15px]" />
-        Copy link
-      </Button>
-      <Button variant="ghost" size="touch" aria-label="Sharing options" title="Sharing options" onClick={onOptions} className="w-11 px-0 md:h-10 md:w-10">
-        <Settings2 aria-hidden className="size-[15px]" />
-      </Button>
-    </>
   );
 }
 

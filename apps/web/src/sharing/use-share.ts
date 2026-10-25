@@ -3,7 +3,6 @@ import {
   sharedCollectionSchema,
   shareStateSchema,
   type OwnSharedCollectionsResponse,
-  type ShareState,
 } from "@linkables/shared/sharing";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/api";
@@ -11,7 +10,6 @@ import { SHARED_PATH_PREFIX } from "./path";
 
 const shareKeys = {
   own: ["share", "own"] as const,
-  state: (collectionId: string) => ["share", collectionId] as const,
   shared: (token: string) => ["shared", token] as const,
 };
 
@@ -19,17 +17,9 @@ export function sharedUrl(token: string): string {
   return `${window.location.origin}${SHARED_PATH_PREFIX}${token}`;
 }
 
-// The shared address without its scheme, as the Share dialog shows it.
+// The shared address without its scheme, as the sharing menu shows it.
 export function sharedPrefix(): string {
   return `${window.location.host}${SHARED_PATH_PREFIX}`;
-}
-
-export function useShareState(collectionId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: shareKeys.state(collectionId),
-    queryFn: ({ signal }) => api.request(`/collections/${collectionId}/share`, shareStateSchema, { signal }),
-    enabled,
-  });
 }
 
 function fetchOwnShared({ signal }: { signal: AbortSignal }) {
@@ -71,10 +61,9 @@ export function useSetSharing(collectionId: string) {
   return useMutation({
     mutationFn: (on: boolean) =>
       api.request(`/collections/${collectionId}/share`, shareStateSchema, { method: on ? "POST" : "DELETE" }),
-    onSuccess: (state: ShareState) => {
-      queryClient.setQueryData(shareKeys.state(collectionId), state);
-      void queryClient.invalidateQueries({ queryKey: shareKeys.own });
-    },
+    // Not awaited: the header swaps controls once the list refetches, and that
+    // must not unmount the caller before its own onSuccess runs.
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: shareKeys.own }); },
   });
 }
 
