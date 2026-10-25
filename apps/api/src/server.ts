@@ -1,5 +1,11 @@
 import { serve } from "@hono/node-server";
-import { resendDeletionNotifier, resendNotifier, skipNotifyOwner } from "./access/notify-owner";
+import {
+  resendDeletionNotifier,
+  resendNotifier,
+  skipNotifyAccountDeleted,
+  skipNotifyOwner,
+  type NotifyAccountDeleted,
+} from "./access/notify-owner";
 import { createApp } from "./app";
 import { parseEnv } from "./config/env";
 import { createDb } from "./db/client";
@@ -18,7 +24,14 @@ const logger = createLogger(env.config.logLevel);
 const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey } = env.config;
 const { db, close } = createDb(databaseUrl);
 const notifyOwner = resendApiKey === undefined ? skipNotifyOwner : resendNotifier({ apiKey: resendApiKey });
-const notifyAccountDeleted = resendApiKey === undefined ? undefined : resendDeletionNotifier({ apiKey: resendApiKey });
+// Without Resend no account can be deleted, except under NODE_ENV=test, where the
+// e2e suite deletes accounts and there is no owner to email.
+function deletionNotifier(): NotifyAccountDeleted | undefined {
+  if (resendApiKey !== undefined) return resendDeletionNotifier({ apiKey: resendApiKey });
+  return nodeEnv === "test" ? skipNotifyAccountDeleted : undefined;
+}
+
+const notifyAccountDeleted = deletionNotifier();
 const app = createApp({ logger, corsOrigins, auth: { ...auth, nodeEnv }, db, notifyOwner, notifyAccountDeleted });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {

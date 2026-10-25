@@ -131,12 +131,21 @@ describe("DELETE /me", () => {
     expect(notifyAccountDeleted).toHaveBeenCalledExactlyOnceWith({ userId: a.id, email: A_EMAIL, at: new Date(NOW) });
   });
 
-  it("warns without naming the user when Resend is not configured", async () => {
+  it.each<[string, NotifyAccountDeleted | undefined, string]>([
+    ["Resend is not configured", undefined, "Resend is not configured"],
+    ["the owner's email fails", () => Promise.reject(new Error("Resend answered 500")), "owner email failed"],
+  ])("answers UPSTREAM and deletes nothing when %s, logging without naming the user", async (_case, notifyAccountDeleted, logged) => {
+    await seedBoth();
+    const before = await rowsPerUserTable(a.id);
     const { logger, lines } = captureLogger();
 
-    await deleteAccount(createTestApp({ db, logger }), await withEmail(a, A_EMAIL));
+    const res = await deleteAccount(createTestApp({ db, logger, notifyAccountDeleted }), await withEmail(a, A_EMAIL));
 
-    expect(lines.join("\n")).toContain("owner not emailed");
+    expect(res.status).toBe(502);
+    expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("UPSTREAM");
+    expect(await rowsPerUserTable(a.id)).toEqual(before);
+    expect(await filingsOf(a.id)).toBe(1);
+    expect(lines.join("\n")).toContain(logged);
     for (const secret of [a.id, A_EMAIL]) expect(lines.join("\n")).not.toContain(secret);
   });
 
@@ -156,14 +165,17 @@ describe("DELETE /me", () => {
     expect((await deleteAccount(app, a.headers)).status).toBe(200);
   });
 
-  it("still answers 200, and logs without naming the user, when the owner's email fails", async () => {
-    const { logger, lines } = captureLogger();
-    const notifyAccountDeleted = vi.fn<NotifyAccountDeleted>().mockRejectedValue(new Error("Resend answered 500"));
+  it("lets the user try again once the owner's email goes through", async () => {
+    await seedBoth();
+    const notifyAccountDeleted = vi
+      .fn<NotifyAccountDeleted>()
+      .mockRejectedValueOnce(new Error("Resend answered 500"))
+      .mockResolvedValue();
+    const app = createTestApp({ db, notifyAccountDeleted });
 
-    const res = await deleteAccount(createTestApp({ db, logger, notifyAccountDeleted }), await withEmail(a, A_EMAIL));
+    expect((await deleteAccount(app, a.headers)).status).toBe(502);
+    expect((await deleteAccount(app, a.headers)).status).toBe(200);
 
-    expect(res.status).toBe(200);
-    await vi.waitFor(() => { expect(lines.join("\n")).toContain("owner email failed"); });
-    for (const secret of [a.id, A_EMAIL]) expect(lines.join("\n")).not.toContain(secret);
+    expect(Object.values(await rowsPerUserTable(a.id)).every((n) => n === 0)).toBe(true);
   });
 });
