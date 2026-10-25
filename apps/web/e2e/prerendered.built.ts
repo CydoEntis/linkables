@@ -1,0 +1,70 @@
+import { expect, test, type Page } from "@playwright/test";
+import { BUILT_URL } from "./built-env";
+import { SUPABASE_URL } from "./env";
+import { createTestUser, signedInState } from "./session";
+
+// Nothing behind this build answers for Supabase or the API; the app only has to start.
+test.beforeEach(async ({ context }) => {
+  await context.route(`${SUPABASE_URL}/**`, (route) => route.abort());
+});
+
+async function expectAppBooted(page: Page) {
+  await expect(page.locator("html")).toHaveAttribute("data-app-boot", "");
+  await expect(page.locator("#landing")).toBeHidden();
+  await expect(page.locator("#root > *").first()).toBeAttached();
+}
+
+test("a signed-out visitor gets the prerendered landing page without the app", async ({ page }) => {
+  const scripts: string[] = [];
+  page.on("request", (request) => { if (request.resourceType() === "script") scripts.push(request.url()); });
+  const response = await page.goto("/");
+  expect(await response?.text()).toContain("Never lose a");
+  await expect(page.getByRole("heading", { name: "Never lose a link again.", level: 1 })).toBeVisible();
+  expect(scripts).toEqual([]);
+});
+
+test("a stored session loads the app instead of the landing page", async ({ browser }) => {
+  const context = await browser.newContext({ storageState: signedInState(await createTestUser(), BUILT_URL) });
+  await context.route(`${SUPABASE_URL}/**`, (route) => route.abort());
+  const page = await context.newPage();
+  await page.goto("/");
+  await expectAppBooted(page);
+  await context.close();
+});
+
+test("an email sign-in link's tokens load the app", async ({ page }) => {
+  await page.goto("/#access_token=token&refresh_token=refresh&expires_in=3600&token_type=bearer&type=magiclink");
+  await expectAppBooted(page);
+});
+
+test("an expired email sign-in link loads the app, which explains the problem", async ({ page }) => {
+  await page.goto("/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired");
+  await expectAppBooted(page);
+  await expect(page.getByRole("heading", { name: "This link has expired" })).toBeVisible();
+});
+
+test.describe("prerendered pages", () => {
+  for (const [path, title] of [
+    ["/privacy", "Privacy policy · linkables"],
+    ["/terms", "Terms of use · linkables"],
+    ["/support", "Support · linkables"],
+  ] as const) {
+    test(`${path} is served as HTML with its own title and preview tags`, async ({ request }) => {
+      const html = await (await request.get(path)).text();
+      expect(html).toContain(`<title>${title}</title>`);
+      expect(html).toContain(`<link rel="canonical" href="https://linkables.app${path}">`);
+      expect(html).toContain(`<meta property="og:image" content="https://linkables.app/social/linkables.png">`);
+    });
+  }
+
+  test("robots.txt and sitemap.xml are served", async ({ request }) => {
+    expect(await (await request.get("/robots.txt")).text()).toContain("Sitemap: https://linkables.app/sitemap.xml");
+    expect(await (await request.get("/sitemap.xml")).text()).toContain("<loc>https://linkables.app/privacy</loc>");
+  });
+
+  test("app paths still get the app shell, kept out of search", async ({ request }) => {
+    const html = await (await request.get("/sign-in")).text();
+    expect(html).toContain(`<meta name="robots" content="noindex"`);
+    expect(html).toContain(`<div id="root">`);
+  });
+});
