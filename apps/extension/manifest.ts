@@ -23,7 +23,8 @@ export function buildManifest({ version, appUrl, supabaseUrl, store = false }: M
   return {
     manifest_version: 3,
     name: "linkables",
-    description: "Save the page you're on to linkables.",
+    // Also the Web Store listing's summary, which allows 132 characters.
+    description: "Save the page you're on to linkables in one click, then pin it or file it in a collection. Private beta, sign-in required.",
     version,
     ...(store ? {} : { key: MANIFEST_KEY }),
     // activeTab reads the current tab's address only when the toolbar button is clicked.
