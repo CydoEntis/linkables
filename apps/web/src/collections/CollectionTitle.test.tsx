@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError } from "../api/client";
+import { ApiError } from "@linkables/shared/api-client";
 import { CollectionTitle } from "./CollectionTitle";
 import { listedCollection } from "./test-collections";
 

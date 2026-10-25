@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "../api/api";
-import { isApiError } from "../api/client";
+import { isApiError } from "@linkables/shared/api-client";
 import { linksKeys } from "../links/use-links";
 import { useCollectionsUi } from "./collections-ui-store";
 import { displayName } from "./display-name";

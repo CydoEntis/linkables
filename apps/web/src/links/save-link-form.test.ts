@@ -1,6 +1,6 @@
 import { URL_MAX_LENGTH } from "@linkables/shared/links";
 import { describe, expect, it } from "vitest";
-import { ApiError, NETWORK_ERROR } from "../api/client";
+import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { saveLinkFormSchema, saveProblem } from "./save-link-form";
 
 function parse(url: string) {

@@ -1,7 +1,7 @@
 import { COLLECTION_NAME_MAX_LENGTH, collectionRequestSchema, type ListedCollection } from "@linkables/shared/collections";
 import { ERROR_CODES } from "@linkables/shared/http";
 import { z } from "zod";
-import { isApiError } from "../api/client";
+import { isApiError } from "@linkables/shared/api-client";
 import { displayName } from "./display-name";
 
 const NO_NAME = "Give it a name";

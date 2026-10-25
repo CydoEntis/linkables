@@ -2,7 +2,7 @@ import { ERROR_CODES } from "@linkables/shared/http";
 import { saveLinkRequestSchema, URL_MAX_LENGTH } from "@linkables/shared/links";
 import { canonicalize } from "@linkables/shared/url";
 import { z } from "zod";
-import { ApiError, NETWORK_ERROR } from "../api/client";
+import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 
 const NOT_A_LINK = "Links must start with http:// or https://";
 const TOO_LONG = "That link is too long.";

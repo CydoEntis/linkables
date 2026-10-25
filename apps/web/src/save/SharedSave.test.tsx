@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
-import { ApiError } from "../api/client";
+import { ApiError } from "@linkables/shared/api-client";
 import { savedLink } from "../links/test-links";
 import { SharedSave } from "./SavePage";
 

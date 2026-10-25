@@ -3,7 +3,7 @@ import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } fr
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError } from "../api/client";
+import { ApiError } from "@linkables/shared/api-client";
 import { SidebarCollections } from "./SidebarCollections";
 import { listedCollection } from "./test-collections";
 

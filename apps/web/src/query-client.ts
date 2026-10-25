@@ -1,6 +1,6 @@
 import { ERROR_CODES } from "@linkables/shared/http";
 import { QueryClient } from "@tanstack/react-query";
-import { isApiError } from "./api/client";
+import { isApiError } from "@linkables/shared/api-client";
 import { supabase } from "./auth/supabase";
 
 const MAX_RETRIES = 3;

@@ -3,7 +3,7 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "../api/api";
-import { isApiError } from "../api/client";
+import { isApiError } from "@linkables/shared/api-client";
 import { DELETE_UNDO_MS } from "../collections/use-delete-collection";
 import { collectionsKeys } from "../collections/use-collections";
 import { useLinksUi } from "./links-ui-store";

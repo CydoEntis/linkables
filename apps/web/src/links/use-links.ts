@@ -3,7 +3,7 @@ import { listLinksResponseSchema, type ListLinksResponse, type SavedLink } from 
 import { useInfiniteQuery, useQueryClient, type InfiniteData, type QueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { api } from "../api/api";
-import { isApiError } from "../api/client";
+import { isApiError } from "@linkables/shared/api-client";
 import { useCollectionsUi } from "../collections/collections-ui-store";
 import { shouldRetry } from "../query-client";
 import { localDayEnd, localDayStart } from "../search/date-bounds";
