@@ -2,6 +2,7 @@ import type { SavedLink } from "@linkables/shared/links";
 import type { Ref } from "react";
 import { Button } from "@/components/ui/button";
 import { domainOf, savedOnLabel } from "../links/link-display";
+import { isEditable } from "../links/use-paste-to-save";
 import { OpenOriginal } from "../reader/OpenOriginal";
 import { CollectionTags } from "./CollectionTags";
 import { LinkMedia } from "./LinkMedia";
@@ -14,13 +15,19 @@ type LinkPreviewProps = {
   noteRef: Ref<HTMLTextAreaElement>;
   // Set when the article could not be fetched (not when the page has none).
   onRetryReader?: (() => void) | undefined;
+  // Whether the title or note field has focus, so the page can hold off replacing the preview.
+  onEditingChange: (editing: boolean) => void;
 };
 
 // What the page shows when there is no article to read: a video, a paywall, a
 // file, or a page with nothing to pull out.
-export function LinkPreview({ link, titleRef, noteRef, onRetryReader }: LinkPreviewProps) {
+export function LinkPreview({ link, titleRef, noteRef, onRetryReader, onEditingChange }: LinkPreviewProps) {
   return (
-    <div className="mx-auto flex max-w-[700px] animate-fade-up flex-col gap-5 px-[18px] pt-5 pb-16 md:px-8 md:pt-12 md:pb-[120px]">
+    <div
+      onFocus={(event) => { onEditingChange(isEditable(event.target)); }}
+      // Moving from the title to the note is still editing; leaving both is not.
+      onBlur={(event) => { onEditingChange(event.currentTarget.contains(event.relatedTarget) && isEditable(event.relatedTarget)); }}
+      className="mx-auto flex max-w-[700px] animate-fade-up flex-col gap-5 px-[18px] pt-5 pb-16 md:px-8 md:pt-12 md:pb-[120px]">
       <LinkMedia link={link} />
       <div className="flex flex-col gap-2">
         <LinkTitle link={link} titleRef={titleRef} />

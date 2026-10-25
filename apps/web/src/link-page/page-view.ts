@@ -25,11 +25,19 @@ export function mayHaveArticle(link: SavedLink): boolean {
   return link.resource.kind !== "video" && link.resource.kind !== "other" && !isPending(link);
 }
 
-export function pageView(link: LinkState, reader: ReaderState): PageView {
+// previewShown: the preview is already on screen, so a reader that only now
+// starts (a link whose details just landed) does not blank it with a skeleton.
+// editing: a field in that preview has focus; the article waits until it is left,
+// so a rename or note being typed is never torn away.
+export type PreviewHold = { previewShown: boolean; editing: boolean };
+
+export function pageView(link: LinkState, reader: ReaderState, { previewShown, editing }: PreviewHold): PageView {
   if (link.status === "loading") return { kind: "loading", label: "Loading…" };
   if (link.status !== "found") return link.status === "failed" ? { kind: "failed", retry: link.retry } : { kind: link.status };
-  if (reader.isLoading) return { kind: "loading", label: "Getting the article…" };
-  if (reader.data?.status === "ok") return { kind: "article", link: link.link, article: reader.data.article, url: reader.data.url };
+  if (reader.data?.status === "ok" && !(previewShown && editing)) {
+    return { kind: "article", link: link.link, article: reader.data.article, url: reader.data.url };
+  }
+  if (reader.isLoading && !previewShown) return { kind: "loading", label: "Getting the article…" };
   const readerFailed = reader.isError && !isApiError(reader.error, ERROR_CODES.NOT_FOUND);
   return { kind: "preview", link: link.link, readerFailed };
 }
