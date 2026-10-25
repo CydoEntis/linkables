@@ -9,7 +9,7 @@ import { listedCollection } from "../collections/test-collections";
 import { LinkRow } from "../links/LinkRow";
 import { useLinksUi } from "../links/links-ui-store";
 import { savedLink } from "../links/test-links";
-import { linksKeys, type LinksPages } from "../links/use-links";
+import { linksKeys, updateCachedLink, type LinksPages } from "../links/use-links";
 import { renderWithRouter, testQueryClient } from "../test/render-with-router";
 import { LinkDetails } from "./LinkDetails";
 import { NOTE_SAVE_DELAY_MS } from "./use-note-autosave";
@@ -341,6 +341,24 @@ describe("a link saved moments ago", () => {
     queryClient.setQueryData(linksKeys.list("inbox"), listOf(fetched), { updatedAt: 2000 });
     await renderWithRouter(<LinkDetails />, { path: `/?link=${fetched.id}`, queryClient });
     expect(within(details()).getByRole("heading", { name: /Metadata landed/ })).toBeInTheDocument();
+  });
+
+  it("keeps the fetched copy when a change to another link re-stamps every list", async () => {
+    const other = savedLink();
+    const queryClient = testQueryClient();
+    queryClient.setQueryData(linksKeys.list("all"), listOf(waiting), { updatedAt: 1000 });
+    queryClient.setQueryData(linksKeys.list("inbox"), { pages: [{ items: [fetched, other], cursor: null }], pageParams: [undefined] }, { updatedAt: 2000 });
+    await renderWithRouter(<LinkDetails />, { path: `/?link=${fetched.id}`, queryClient });
+    // A pin, then a delete, of the other link; the cache notifies on the next tick.
+    await act(async () => {
+      updateCachedLink(queryClient, other.id, (link) => ({ ...link, pinned: true }));
+      queryClient.setQueriesData<LinksPages>({ queryKey: linksKeys.lists }, (data) =>
+        data && { ...data, pages: data.pages.map((page) => ({ ...page, items: page.items.filter((item) => item.id !== other.id) })) },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(within(details()).getByRole("heading", { name: /Metadata landed/ })).toBeInTheDocument();
+    expect(request.mock.calls.filter(([path]) => path === `/links/${fetched.id}`)).toEqual([]);
   });
 
   it("fetches the link itself while every cached copy is still pending", async () => {
