@@ -263,7 +263,20 @@ function withoutCredentials(url: URL): string {
   return clean.href;
 }
 
-async function getHtml(rawUrl: string, guard: Guard, signal: AbortSignal): Promise<HtmlPage> {
+// The reader needs the article, so it reads the whole body; the agent's
+// maxResponseSize still hard-aborts it at MAX_BODY_BYTES.
+type Body = Dispatcher.ResponseData["body"];
+
+async function readAll(body: Body): Promise<Buffer> {
+  return Buffer.from(await body.arrayBuffer());
+}
+
+async function getHtml(
+  rawUrl: string,
+  guard: Guard,
+  signal: AbortSignal,
+  read: (body: Body) => Promise<Buffer>,
+): Promise<HtmlPage> {
   const { url, response } = await requestFollowingRedirects(parseUrl(rawUrl), "text/html", guard, signal);
   assertSuccess(response);
   const { mediaType, charset } = contentTypeOf(response);
@@ -271,8 +284,8 @@ async function getHtml(rawUrl: string, guard: Guard, signal: AbortSignal): Promi
     discard(response.body);
     return { url: withoutCredentials(url), contentType: mediaType, html: null };
   }
-  const head = await readHead(response.body);
-  return { url: withoutCredentials(url), contentType: mediaType, html: decode(head, charset) };
+  const bytes = await read(response.body);
+  return { url: withoutCredentials(url), contentType: mediaType, html: decode(bytes, charset) };
 }
 
 async function getJson(rawUrl: string, guard: Guard, signal: AbortSignal): Promise<unknown> {
@@ -319,9 +332,10 @@ export function createFetcher(options: FetcherOptions = {}) {
     }),
   };
   return {
-    fetchHtml: (url: string) => withTotalTimeout((signal) => getHtml(url, guard, signal)),
+    fetchHtml: (url: string) => withTotalTimeout((signal) => getHtml(url, guard, signal, readHead)),
+    fetchPage: (url: string) => withTotalTimeout((signal) => getHtml(url, guard, signal, readAll)),
     fetchJson: (url: string) => withTotalTimeout((signal) => getJson(url, guard, signal)),
   };
 }
 
-export const { fetchHtml, fetchJson } = createFetcher();
+export const { fetchHtml, fetchJson, fetchPage } = createFetcher();

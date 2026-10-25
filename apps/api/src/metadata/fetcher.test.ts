@@ -320,6 +320,10 @@ describe("fetcher against a local server", () => {
           res.writeHead(200, { "content-type": "text/plain" });
           res.end(JSON.stringify({ title: "A video" }));
           return;
+        case "/html-huge":
+          res.writeHead(200, { "content-type": "text/html" });
+          res.end(`<html><head></head><body>${"a".repeat(3 * MB)}</body></html>`);
+          return;
         case "/json-huge":
           res.writeHead(200, { "content-type": "application/json" });
           res.end(`"${"a".repeat(3 * MB)}"`);
@@ -444,6 +448,23 @@ describe("fetcher against a local server", () => {
 
   it("hard-aborts a body over 2 MB", async () => {
     await expect(fetcher.fetchJson(`${server.origin}/json-huge`)).rejects.toMatchObject({ reason: "too_large" });
+  });
+
+  it("reads a whole page, past </head>, for the reader", async () => {
+    await expect(fetcher.fetchPage(`${server.origin}/html`)).resolves.toEqual({
+      url: `${server.origin}/html`,
+      contentType: "text/html",
+      html: PAGE,
+    });
+  });
+
+  it("hard-aborts a whole page over 2 MB", async () => {
+    await expect(fetcher.fetchPage(`${server.origin}/html-huge`)).rejects.toMatchObject({ reason: "too_large" });
+  });
+
+  it("refuses a redirect to a private address from fetchPage", async () => {
+    const target = encodeURIComponent("http://10.0.0.1/");
+    await expect(fetcher.fetchPage(`${server.origin}/redirect?to=${target}`)).rejects.toBeInstanceOf(BlockedAddressError);
   });
 
   it("records a non-html response's type with no html", async () => {
