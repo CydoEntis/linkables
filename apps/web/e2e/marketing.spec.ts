@@ -9,10 +9,21 @@ const PUBLIC_PAGES = [
 test.describe("signed out", () => {
   test.use({ signedIn: false });
 
-  test("Get started on the landing page leads to sign-in", async ({ page }) => {
+  test("the landing page asks for access by email during the private beta", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: "Get started, it's free" }).first().click();
+    await expect(page.getByText("Private beta").first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Request access" }).first()).toHaveAttribute(
+      "href",
+      "mailto:support@linkables.app?subject=linkables%20beta%20access",
+    );
+    await expect(page.getByRole("link", { name: /Get started/ })).toHaveCount(0);
+  });
+
+  test("Sign in on the landing page leads invited users to sign-in", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: "Sign in", exact: true }).first().click();
     await expect(page.getByRole("heading", { name: "Sign in to linkables" })).toBeVisible();
+    await expect(page.getByText("linkables is invite-only for now")).toBeVisible();
   });
 
   test("the landing page shows the Chrome extension as coming soon, with no action", async ({ page }) => {

@@ -5,6 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { INVITE_ONLY, REQUEST_ACCESS_HREF, SUPPORT_EMAIL } from "../config/access";
 import { pendingSaveHref } from "../save/pending-save";
 import { useAuthState } from "./auth-state";
 import { CodeStep } from "./CodeStep";
@@ -78,7 +79,19 @@ export function SignInScreen({ linkProblem, focusHeading, title = "Sign in to li
             }}
           />
           <p className="text-[13.5px] leading-normal text-subtle-foreground">
-            No password needed. New here? Signing in creates your free account. By continuing you agree to the{" "}
+            No password needed.{" "}
+            {INVITE_ONLY ? (
+              <>
+                linkables is invite-only for now; ask for access at{" "}
+                <a href={REQUEST_ACCESS_HREF} className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+                  {SUPPORT_EMAIL}
+                </a>
+                .
+              </>
+            ) : (
+              "New here? Signing in creates your free account."
+            )}{" "}
+            By continuing you agree to the{" "}
             <a href="/terms" className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
               Terms
             </a>{" "}

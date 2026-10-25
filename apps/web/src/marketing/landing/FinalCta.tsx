@@ -1,4 +1,5 @@
-import { GetStarted } from "./cta";
+import { INVITE_ONLY } from "../../config/access";
+import { PrimaryCta } from "../cta";
 
 export function FinalCta() {
   return (
@@ -10,7 +11,18 @@ export function FinalCta() {
             <br />
             <span className="text-primary">Keep the links.</span>
           </h2>
-          <GetStarted className="self-start" />
+          <div className="flex flex-col gap-3">
+            <PrimaryCta className="self-start" />
+            {INVITE_ONLY ? (
+              <p className="text-base text-muted-foreground">
+                linkables is in private beta. Already invited?{" "}
+                <a href="/sign-in" className="font-semibold text-primary hover:text-foreground">
+                  Sign in
+                </a>
+                .
+              </p>
+            ) : null}
+          </div>
         </div>
         <div aria-hidden className="relative hidden h-[260px] w-[300px] shrink-0 min-[1120px]:block">
           <span className="absolute top-0 right-0 size-[180px] rotate-[9deg] rounded-[48px] bg-primary" />
