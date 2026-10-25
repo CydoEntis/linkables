@@ -4,7 +4,7 @@ import type { ReaderArticle } from "@linkables/shared/reader";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { domainOf, safeHref } from "../links/link-display";
 import { ReaderBlocks } from "./ReaderBlocks";
 import { useReader } from "./use-reader";
@@ -66,7 +66,7 @@ function OpenOriginal({ url, label = "Open original" }: { url: string; label?: s
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex min-h-11 items-center rounded-md bg-primary px-4 text-[13.5px] font-bold text-primary-foreground md:min-h-9"
+      className={buttonVariants({ size: "touch", className: "px-4 text-[13.5px] md:h-9" })}
     >
       {label} ↗<span className="sr-only"> (opens in a new tab)</span>
     </a>
