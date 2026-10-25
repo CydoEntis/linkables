@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { resendNotifier } from "./notify-owner";
+import { resendDeletionNotifier, resendNotifier } from "./notify-owner";
 
 const NOTICE = { email: "sam@example.com", name: "Sam", useCase: "Recipes", at: new Date("2026-10-24T12:00:00Z") };
 
@@ -59,6 +59,38 @@ describe("resendNotifier", () => {
   it("fails naming only the status when Resend refuses", async () => {
     await expect(resendNotifier({ apiKey: "re_test", fetch: fakeFetch(422) })(NOTICE)).rejects.toThrow(
       "Resend answered 422",
+    );
+  });
+});
+
+describe("resendDeletionNotifier", () => {
+  const DELETION = { userId: "0b6e2f3a-5c1d-4e8f-9a2b-3c4d5e6f7a81", email: "sam@example.com", at: NOTICE.at };
+
+  it("asks support to delete the sign-in account, naming the user id and email", async () => {
+    const fetch = fakeFetch();
+
+    await resendDeletionNotifier({ apiKey: "re_test", fetch })(DELETION);
+
+    expect(sentRequest(fetch).body).toMatchObject({
+      from: "linkables <noreply@linkables.app>",
+      to: ["support@linkables.app"],
+      subject: "Delete sign-in account sam@example.com in Supabase",
+      text: `User id: ${DELETION.userId}\nEmail: sam@example.com\nData deleted: 2026-10-24T12:00:00.000Z\n`,
+    });
+  });
+
+  it("names the user id when the token carried no email", async () => {
+    const fetch = fakeFetch();
+
+    await resendDeletionNotifier({ apiKey: "re_test", fetch })({ ...DELETION, email: undefined });
+
+    expect(sentRequest(fetch).body.subject).toBe(`Delete sign-in account ${DELETION.userId} in Supabase`);
+    expect(sentRequest(fetch).body.text).toContain("Email: (none)\n");
+  });
+
+  it("fails naming only the status when Resend refuses", async () => {
+    await expect(resendDeletionNotifier({ apiKey: "re_test", fetch: fakeFetch(500) })(DELETION)).rejects.toThrow(
+      "Resend answered 500",
     );
   });
 });
