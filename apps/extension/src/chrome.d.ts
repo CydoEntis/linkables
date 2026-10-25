@@ -7,6 +7,8 @@ declare namespace chrome {
       remove(keys: string): Promise<void>;
     }
     const local: StorageArea;
+    // Kept in memory until the browser closes.
+    const session: StorageArea;
   }
 
   namespace tabs {

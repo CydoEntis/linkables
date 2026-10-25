@@ -87,6 +87,28 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
     .toMatchObject([{ originalUrl: ARTICLE_URL, pinned: true, collections: [{ name: "Recipes" }] }]);
 });
 
+test("the code step survives the pop-up closing while the user reads the email", async ({ context, openPopup, request, user }) => {
+  const article = await openArticle(context);
+  const first = await openPopup();
+  await first.getByLabel("Email").fill(user.email);
+  await first.getByRole("button", { name: "Email me a code" }).click();
+  await expect(first.getByRole("heading", { name: "Check your email" })).toBeVisible();
+  // Switching to the inbox closes Chrome's pop-up.
+  await first.close();
+
+  await article.bringToFront();
+  const reopened = await openPopup();
+  await expect(reopened.getByRole("heading", { name: "Check your email" })).toBeVisible();
+  await expect(reopened.getByText(user.email)).toBeVisible();
+  await expect(reopened.getByRole("button", { name: /Resend in \d+s/ })).toBeDisabled();
+  await reopened.getByLabel("6-digit code").fill("123456");
+  await expect(reopened.getByRole("heading", { name: "This page can't be saved" })).toBeVisible();
+
+  await saveFromPopup(reopened, article);
+  await expect(reopened.getByRole("heading", { name: "Saved", exact: true })).toBeVisible();
+  expect(await savedLinks(request, user)).toMatchObject([{ originalUrl: ARTICLE_URL, savedFrom: "extension" }]);
+});
+
 test("an email with no invite is told so, without asking for an account", async ({ openPopup }, testInfo) => {
   const popup = await openPopup();
   const sent: unknown[] = [];
