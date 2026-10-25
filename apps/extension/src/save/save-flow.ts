@@ -1,9 +1,11 @@
 import type { SaveLinkResponse } from "@linkables/shared/links";
-import { ApiError, NETWORK_ERROR } from "../api/client";
+import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
+import { NO_SESSION } from "../api/client";
 import { savablePage } from "./savable";
 
 export const SAVE_MESSAGES = {
   offline: "You're offline. Check your connection and try again.",
+  noSession: "Couldn't check your sign-in. Try again in a moment.",
   rateLimited: "You're saving very fast. Wait a minute, then try again.",
   refused: "linkables can't save this page's address.",
   failed: "Something went wrong. Try again.",
@@ -36,6 +38,7 @@ export async function saveCurrentTab({ readTab, save }: SaveDeps): Promise<SaveO
 
 function saveErrorMessage(error: ApiError): string {
   if (error.code === NETWORK_ERROR) return SAVE_MESSAGES.offline;
+  if (error.code === NO_SESSION) return SAVE_MESSAGES.noSession;
   if (error.code === "RATE_LIMIT") return SAVE_MESSAGES.rateLimited;
   if (error.code === "VALIDATION") return SAVE_MESSAGES.refused;
   return SAVE_MESSAGES.failed;
