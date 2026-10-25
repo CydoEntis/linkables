@@ -1,6 +1,7 @@
 import type { OwnSharedCollection } from "@linkables/shared/sharing";
 import { Link } from "@tanstack/react-router";
 import { Copy, Globe } from "lucide-react";
+import { useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { displayName } from "../collections/display-name";
@@ -55,7 +56,15 @@ function displayUrl(url: string): string {
   return url.replace(/^https?:\/\//, "");
 }
 
+// The row is about to go: focus moves to a neighbour's Copy link, or else to the heading.
+function moveFocusOffRow(row: HTMLLIElement | null) {
+  const neighbour = row?.nextElementSibling ?? row?.previousElementSibling;
+  const target = neighbour?.querySelector("button") ?? row?.closest("section")?.querySelector("h2");
+  if (target instanceof HTMLElement) target.focus();
+}
+
 function SharedRow({ collection }: { collection: OwnSharedCollection }) {
+  const rowRef = useRef<HTMLLIElement>(null);
   const setSharing = useSetSharing(collection.id);
   const cover = useCollections().data?.find((listed) => listed.id === collection.id)?.cover ?? [];
   const name = displayName(collection.name);
@@ -63,13 +72,16 @@ function SharedRow({ collection }: { collection: OwnSharedCollection }) {
 
   function turnOff() {
     setSharing.mutate(false, {
-      onSuccess: () => { toast(`${name} is private again`); },
+      onSuccess: () => {
+        moveFocusOffRow(rowRef.current);
+        toast(`${name} is private again`);
+      },
       onError: () => { toast.error("Couldn't turn the link off. Try again."); },
     });
   }
 
   return (
-    <li aria-label={name} className="flex flex-wrap items-center gap-3.5 border-t border-border px-[18px] py-3.5 first:border-t-0">
+    <li ref={rowRef} aria-label={name} className="flex flex-wrap items-center gap-3.5 border-t border-border px-[18px] py-3.5 first:border-t-0">
       <MiniCover name={collection.name} cover={cover} className="size-10 rounded-[10px]" />
       <div className="flex min-w-[150px] flex-1 flex-col gap-0.5">
         <Link

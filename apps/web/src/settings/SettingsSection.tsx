@@ -4,11 +4,12 @@ import { cn } from "cn";
 type SettingsSectionProps = { title: string; children: ReactNode; className?: string };
 
 // The title sits above the card, as in the round 2 handoff; rows inside are split by 1 px lines.
+// The heading takes focus when the row that had it goes away.
 export function SettingsSection({ title, children, className }: SettingsSectionProps) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2.5">
-      <h2 id={headingId} className="px-1 text-[13px] font-semibold text-muted-foreground">
+      <h2 id={headingId} tabIndex={-1} className="px-1 text-[13px] font-semibold text-muted-foreground">
         {title}
       </h2>
       <div className={cn("overflow-hidden rounded-2xl border border-border bg-card", className)}>{children}</div>
