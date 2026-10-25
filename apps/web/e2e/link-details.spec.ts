@@ -212,7 +212,7 @@ test.describe("at 1280 px", () => {
     await page.mouse.move(640, 100);
     expect((await deleted).status()).toBe(200);
     await page.reload();
-    await expect(page.getByText("No links yet")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Save your first link/ })).toBeVisible();
   });
 });
 

@@ -62,8 +62,12 @@ describe("LinkList", () => {
   it("teaches a new user how to save", async () => {
     request.mockResolvedValue(page([]));
     renderList();
-    expect(await screen.findByText("No links yet")).toBeInTheDocument();
-    expect(screen.getByText(/Paste a link above/)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Save your first link/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual([
+      "Paste a link",
+      "Share from your phone",
+      "Chrome extension",
+    ]);
   });
 
   it("restarts from the first page when the API rejects the cursor", async () => {
@@ -109,7 +113,7 @@ describe("LinkList", () => {
     request.mockResolvedValue(page([]));
     const { onFiltersChange } = renderList("all", { q: "zebra" });
     expect(await screen.findByText("No links match “zebra”")).toBeInTheDocument();
-    expect(screen.queryByText("No links yet")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Save your first link/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(onFiltersChange).toHaveBeenCalledWith({ q: undefined });
   });
