@@ -38,12 +38,8 @@ function useCopy(url: string): { copied: boolean; copy: () => void } {
 export function ShareOn({ token, title, wide, turningOff, onTurnOff }: ShareOnProps) {
   const url = sharedUrl(token);
   const { copied, copy } = useCopy(url);
-  const copyContent = (
-    <>
-      {copied ? <Check aria-hidden strokeWidth={2.6} /> : <Copy aria-hidden />}
-      {copied ? "Copied" : "Copy link"}
-    </>
-  );
+  const copiedMark = copied ? <Check aria-hidden strokeWidth={2.6} /> : null;
+  const copyLabel = copied ? "Copied" : "Copy link";
 
   return (
     <>
@@ -58,7 +54,8 @@ export function ShareOn({ token, title, wide, turningOff, onTurnOff }: ShareOnPr
         </p>
         {wide ? (
           <Button onClick={copy} className="h-[50px] min-w-32 px-[18px] text-[14.5px]">
-            {copyContent}
+            {copiedMark ?? <Copy aria-hidden />}
+            {copyLabel}
           </Button>
         ) : null}
       </div>
@@ -69,7 +66,8 @@ export function ShareOn({ token, title, wide, turningOff, onTurnOff }: ShareOnPr
             Send link…
           </Button>
           <Button variant="ghost" onClick={copy} className="h-[52px] min-w-[118px] px-4 text-[15px] font-bold">
-            {copyContent}
+            {copiedMark}
+            {copyLabel}
           </Button>
         </div>
       )}
@@ -78,7 +76,7 @@ export function ShareOn({ token, title, wide, turningOff, onTurnOff }: ShareOnPr
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className={buttonVariants({ variant: "ghost", className: "h-9 gap-2 bg-transparent px-2.5 text-[13.5px] font-bold hover:bg-muted" })}
+          className={buttonVariants({ variant: "ghost", className: "h-9 gap-2 bg-transparent px-2.5 text-[13.5px] font-bold inset-shadow-none hover:bg-muted" })}
         >
           See what viewers see
           <ExternalLink aria-hidden className="size-[13px]" />
