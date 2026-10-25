@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { INVITE_ONLY } from "../../config/access";
 import { BetaPill, PrimaryCta } from "../cta";
 import { HeroPicture } from "./HeroPicture";
@@ -47,7 +48,7 @@ export function Hero() {
         </p>
         <div className="lp-in mt-[clamp(28px,3vw,36px)] flex flex-wrap justify-center gap-3" style={delay(0.55)}>
           <PrimaryCta />
-          <a href="#how" className="lp-btn lp-btn-ghost h-[60px] rounded-2xl bg-[#262626] hover:bg-accent px-6 text-[16.5px] font-semibold">
+          <a href="#how" className={buttonVariants({ variant: "ghost", size: "xl", className: "h-[60px] bg-[#262626] text-[16.5px]" })}>
             How it works
           </a>
         </div>

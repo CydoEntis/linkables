@@ -1,4 +1,5 @@
 import { Menu } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { BetaPill, CTA } from "./cta";
 import { MarkWordmark } from "./Mark";
 
@@ -26,10 +27,10 @@ export function MarketingHeader() {
           ))}
         </nav>
         <span className="flex-1" />
-        <a href="/sign-in" className="lp-btn lp-btn-ghost hidden h-[42px] rounded-xl bg-muted hover:bg-accent px-4 text-[15px] font-semibold min-[860px]:inline-flex">
+        <a href="/sign-in" className={buttonVariants({ variant: "ghost", className: "hidden h-[42px] px-4 text-[15px] min-[860px]:inline-flex" })}>
           Sign in
         </a>
-        <a href={CTA.href} className="lp-btn lp-btn-primary h-[42px] shrink-0 rounded-xl bg-primary px-[18px] text-[15px] font-bold text-primary-foreground">
+        <a href={CTA.href} className={buttonVariants({ className: "h-[42px] px-[18px] text-[15px]" })}>
           {CTA.label}
         </a>
         <PhoneMenu />
@@ -51,7 +52,7 @@ function PhoneMenu() {
             {item.label}
           </a>
         ))}
-        <a href="/sign-in" className="mt-1.5 flex h-12 items-center justify-center rounded-xl bg-muted text-base font-semibold">
+        <a href="/sign-in" className={buttonVariants({ variant: "ghost", className: "mt-1.5 h-12 text-base" })}>
           Sign in
         </a>
       </nav>

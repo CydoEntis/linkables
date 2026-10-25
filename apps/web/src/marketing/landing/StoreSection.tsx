@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { buttonVariants } from "@/components/ui/button";
 import type { StoreCard } from "./stores";
 
 export function StoreSection({ cards }: { cards: StoreCard[] }) {
@@ -43,7 +44,7 @@ function StoreRow({ card }: { card: StoreCard }) {
           {available ? "Available now" : "Coming soon"}
         </span>
         {card.cta ? (
-          <a href={card.cta.href} className="lp-btn flex h-11 items-center rounded-xl bg-background px-[18px] text-[15px] font-bold text-foreground hover:brightness-125">
+          <a href={card.cta.href} className={buttonVariants({ variant: "ghost", size: "touch", className: "bg-background px-[18px] font-bold hover:bg-background hover:brightness-125" })}>
             {card.cta.label}
           </a>
         ) : null}
