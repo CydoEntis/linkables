@@ -7,7 +7,8 @@ import { endSessions } from "./use-delete-account";
 
 export function AccountDeletedPage() {
   const [deleted] = useState(wasAccountDeleted);
-  const signedIn = useAuthState().status === "signed-in";
+  const status = useAuthState().status;
+  const signedIn = status === "signed-in";
 
   // A reload during the revoke would cancel it and keep the session; this finishes the job.
   useEffect(() => {
@@ -25,7 +26,7 @@ export function AccountDeletedPage() {
         </p>
         {/* Offered only once no session is left, so the reload can't land signed in. A plain
             link: the fresh load leaves the signed-out state behind, so / shows the landing page. */}
-        {signedIn ? null : (
+        {status !== "signed-out" ? null : (
           <a
             href="/"
             onClick={forgetAccountDeleted}
