@@ -42,6 +42,9 @@ Option 3.
   creation and moves to now, in the same transaction, whenever a link is filed
   into or out of the collection; a request that changes no filing leaves it.
   Collections list by `pinned` desc, `last_used_at` desc, `id`.
+  `share_token` (nullable, unique) is the collection's view-only link: 24 random
+  bytes as base64url, null while the link is off. Turning it off clears it, so
+  turning it on again issues a new one.
 - `collection_item`: (`collection_id`, `saved_link_id`) as the primary key, both
   foreign keys `on delete cascade`; `created_at` is the filing time, which orders
   a collection's cover (newest filings first). Rows filed before it existed took

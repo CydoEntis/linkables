@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
+import { sharedCollectionSchema, shareStateSchema } from "@linkables/shared/sharing";
 import { asc, eq, or } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -91,15 +92,30 @@ const cases: Record<string, Case> = {
     idFields: ["collectionId", "linkId"],
   },
   "GET /api/v1/export": { request: () => ({ path: "/api/v1/export" }) },
+  "GET /api/v1/collections/:id/share": {
+    request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/share` }),
+    idFields: ["collectionId"],
+  },
+  "POST /api/v1/collections/:id/share": {
+    request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/share` }),
+    idFields: ["collectionId"],
+  },
+  "DELETE /api/v1/collections/:id/share": {
+    request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/share` }),
+    idFields: ["collectionId"],
+  },
 };
 
-// Public on purpose (Rule 3): the health check, and the request-access form,
-// which only inserts. Each public API route is probed below for what it gives back.
-const PUBLIC_ROUTES = new Set(["GET /health", "POST /api/v1/access-requests"]);
+// Public on purpose (Rule 3): the health check, the request-access form, which
+// only inserts, and a shared collection, which reads only the one collection its
+// owner turned a link on for. Each public API route is probed below for what it gives back.
+const PUBLIC_ROUTES = new Set(["GET /health", "POST /api/v1/access-requests", "GET /api/v1/shared/:token"]);
 
 const INSERT_ONLY_ROUTES: Record<string, Probe> = {
   "POST /api/v1/access-requests": { path: "/api/v1/access-requests", body: { email: "b@example.com", name: "B" } },
 };
+
+const SHARED_READ_ROUTES = ["GET /api/v1/shared/:token"];
 
 // app.routes, not hono/dev's inspectRoutes: inspectRoutes treats any handler
 // declared as (c, next) as middleware, so a route whose last handler takes next
@@ -307,10 +323,23 @@ describe("authz", () => {
     }
   });
 
+  it("GET /api/v1/shared/:token takes no token and shows B's shared collection with none of A's rows", async () => {
+    const app = createTestApp({ db });
+    const ids = await seed();
+    const turnedOn = await send(app, "POST", { path: `/api/v1/collections/${ids.b.collectionId}/share` }, b);
+    const { token } = successEnvelopeSchema(shareStateSchema).parse(await turnedOn.json()).data;
+
+    const res = await send(app, "GET", { path: `/api/v1/shared/${String(token)}` });
+    const text = await res.text();
+
+    expect(successEnvelopeSchema(sharedCollectionSchema).parse(JSON.parse(text)).data.links).toHaveLength(1);
+    for (const secret of [...ids.secrets, b.id, ids.b.collectionId, ids.b.linkId]) expect(text).not.toContain(secret);
+  });
+
   it("knows what every public API route gives back", () => {
     const publicApiRoutes = [...PUBLIC_ROUTES].filter((route) => route.includes("/api/"));
 
-    expect(publicApiRoutes).toEqual(Object.keys(INSERT_ONLY_ROUTES));
+    expect(publicApiRoutes).toEqual([...Object.keys(INSERT_ONLY_ROUTES), ...SHARED_READ_ROUTES]);
   });
 
   it("has a case for every registered route", () => {

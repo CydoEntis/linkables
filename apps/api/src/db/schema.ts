@@ -67,6 +67,8 @@ export const collection = pgTable(
     pinned: boolean("pinned").notNull().default(false),
     createdAt: createdAt(),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
+    // Null while the view-only link is off; turning it on again issues a new one.
+    shareToken: text("share_token").unique(),
   },
   (table) => [uniqueIndex("collection_user_id_lower_name_unique").on(table.userId, sql`lower(${table.name})`)],
 ).enableRLS();

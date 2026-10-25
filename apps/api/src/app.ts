@@ -17,6 +17,7 @@ import { notFound, onError } from "./http/error-handler";
 import { REQUEST_ID_HEADER, requestId } from "./http/request-id";
 import { requestLog } from "./http/request-log";
 import { linkRoutes } from "./links/routes";
+import { sharedRoutes, shareRoutes } from "./sharing/routes";
 
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -32,6 +33,7 @@ export type AppDeps = {
 const PREFLIGHT_MAX_AGE_SECONDS = 2 * 60 * 60;
 
 export function createApp({ logger, corsOrigins, auth, db, now = Date.now, notifyOwner = skipNotifyOwner }: AppDeps) {
+  const behindProxy = auth.nodeEnv === "production";
   const v1 = new Hono<AuthEnv>()
     // Over the cap, bodyLimit throws a 413 HTTPException, which onError maps to VALIDATION.
     .use(bodyLimit({ maxSize: MAX_BODY_BYTES }))
@@ -39,7 +41,8 @@ export function createApp({ logger, corsOrigins, auth, db, now = Date.now, notif
     .route("/", me)
     .route("/", linkRoutes({ db, now }))
     .route("/", collectionRoutes({ db }))
-    .route("/", exportRoutes({ db, now }));
+    .route("/", exportRoutes({ db, now }))
+    .route("/", shareRoutes({ db }));
 
   const app = new Hono<AppEnv>()
     .use(requestLog(logger))
@@ -50,7 +53,8 @@ export function createApp({ logger, corsOrigins, auth, db, now = Date.now, notif
     .use(cors({ origin: corsOrigins, exposeHeaders: [REQUEST_ID_HEADER], maxAge: PREFLIGHT_MAX_AGE_SECONDS }))
     .get("/health", (c) => ok(c, { status: "ok" as const }))
     // Mounted before v1, so a request it answers never reaches v1's auth middleware.
-    .route(API_V1_PREFIX, accessRequestRoutes({ db, logger, now, notifyOwner, behindProxy: auth.nodeEnv === "production" }))
+    .route(API_V1_PREFIX, accessRequestRoutes({ db, logger, now, notifyOwner, behindProxy }))
+    .route(API_V1_PREFIX, sharedRoutes({ db, logger, now, behindProxy }))
     .route(API_V1_PREFIX, v1);
 
   app.onError(onError(logger));

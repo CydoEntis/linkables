@@ -114,3 +114,24 @@ describe("saved from migration", () => {
     expect(rows).toEqual([{ original_url: "https://example.com/", saved_from: null }]);
   });
 });
+
+describe("collection share token migration", () => {
+  it("leaves existing collections unshared and still accepts the previous image's inserts", async () => {
+    for (const file of [
+      "0000_init.sql",
+      "0001_collection_name_ignores_case.sql",
+      "0002_collection_pin_and_last_use.sql",
+      "0003_saved_link_saved_from.sql",
+      "0004_access_request.sql",
+    ]) {
+      await apply(file);
+    }
+    await insertCollection(userA, "Rust");
+
+    await apply("0005_collection_share_token.sql");
+    await insertCollection(userB, "Books");
+
+    const rows = await scratch<{ share_token: string | null }[]>`select share_token from collection`;
+    expect(rows).toEqual([{ share_token: null }, { share_token: null }]);
+  });
+});
