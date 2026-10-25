@@ -1,0 +1,50 @@
+<!doctype html>
+<!-- The 1200×630 link preview for shared collections (/s/…). Rendered to public/social/shared-collection.png by render-brand-assets.ts.
+     The three cards stand in for link images; text stays inside the 1080×560 centre area. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @font-face { font-family: "Unbounded"; font-weight: 600; src: url("../../../node_modules/@fontsource/unbounded/files/unbounded-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Familjen Grotesk"; font-weight: 400 700; src: url("../../../node_modules/@fontsource-variable/familjen-grotesk/files/familjen-grotesk-latin-wght-normal.woff2") format("woff2"); }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; background: #121212; color: #ecebe8; font-family: "Familjen Grotesk", sans-serif; -webkit-font-smoothing: antialiased; }
+  .stage { width: 1200px; height: 630px; display: grid; grid-template-columns: minmax(0, 1fr) 500px; }
+  .text { padding: 64px 0 60px 72px; display: flex; flex-direction: column; justify-content: space-between; position: relative; z-index: 1; }
+  .brand { display: flex; align-items: center; gap: 12px; font-family: "Unbounded"; font-weight: 600; font-size: 32px; letter-spacing: -0.035em; }
+  .copy { display: flex; flex-direction: column; gap: 18px; }
+  .eyebrow { font-size: 24px; font-weight: 600; color: #8d8d88; }
+  h1 { font-size: 86px; font-weight: 700; letter-spacing: -0.045em; line-height: 0.98; text-wrap: balance; }
+  .count { display: flex; align-items: center; gap: 12px; font-size: 26px; color: #c9c8c3; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: oklch(0.89 0.19 125); }
+  .cards { position: relative; }
+  .card { position: absolute; width: 330px; height: 220px; border-radius: 22px; overflow: hidden; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 40px 70px -20px rgb(0 0 0 / 0.9); }
+  .peaks { left: 150px; top: 40px; transform: rotate(6deg); background: linear-gradient(180deg, #8fb7c9 0%, #cfe0e3 46%, #5d7f86 47%, #2f4a4f 100%); }
+  .peaks::before { content: ""; position: absolute; inset: 0; background: #e9f0f0; clip-path: polygon(0 62%, 18% 40%, 30% 52%, 48% 22%, 66% 50%, 80% 36%, 100% 58%, 100% 70%, 0 70%); }
+  .peaks::after { content: ""; position: absolute; inset: 0; background: #3c5a5f; clip-path: polygon(0 68%, 22% 56%, 40% 64%, 60% 52%, 82% 62%, 100% 56%, 100% 100%, 0 100%); }
+  .plate { left: 40px; top: 200px; transform: rotate(-5deg); background: radial-gradient(circle at 50% 55%, #f3d58a 0 22%, #e8c36a 23% 30%, #f6f1e7 31% 47%, #d9d2c4 48% 50%, #5a3a26 51%); }
+  .night { left: 110px; top: 360px; transform: rotate(3deg); background: linear-gradient(180deg, #2a1f4d 0%, #6b2f6b 55%, #e0567a 100%); }
+  .night::after { content: ""; position: absolute; inset: 0; background: #17122a; clip-path: polygon(0 100%, 0 58%, 10% 58%, 10% 40%, 18% 40%, 18% 66%, 28% 66%, 28% 30%, 36% 22%, 44% 30%, 44% 60%, 56% 60%, 56% 44%, 66% 44%, 66% 70%, 76% 70%, 76% 36%, 86% 36%, 86% 62%, 100% 62%, 100% 100%); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="text">
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 32 32"><rect x="12.5" y="3.5" width="16" height="16" rx="4.5" fill="oklch(0.89 0.19 125)" transform="rotate(7 20.5 11.5)"/><rect x="3.5" y="10" width="17.5" height="17.5" rx="5" fill="#ecebe8"/></svg>
+      linkables
+    </div>
+    <div class="copy">
+      <span class="eyebrow">A shared collection</span>
+      <h1>Links worth keeping</h1>
+      <span class="count"><span class="dot"></span>Save it once. Find it anywhere.</span>
+    </div>
+  </div>
+  <div class="cards">
+    <span class="card peaks"></span>
+    <span class="card plate"></span>
+    <span class="card night"></span>
+  </div>
+</div>
+</body>
+</html>
