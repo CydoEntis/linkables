@@ -1,6 +1,8 @@
 // Draws the Chrome Web Store images into store/ (see STORE.md): the store icon,
 // the promo tile and screenshots of the real pop-up, built from this source and
-// fed canned API answers. Run with `pnpm --filter extension store:images`.
+// fed canned API answers. Also draws the extension's own icons into public/.
+// Run with `pnpm --filter extension store:images`.
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { ListedCollection } from "@linkables/shared/collections";
@@ -11,6 +13,7 @@ import { EXTENSION_ID } from "../manifest.ts";
 
 const storeDir = import.meta.dirname;
 const buildDir = join(storeDir, "dist");
+const publicDir = join(storeDir, "..", "public");
 const APP_URL = "http://app.test";
 const SUPABASE_URL = "http://dummy.test";
 // A page on an origin the build may read, standing in for the article in the screenshots.
@@ -111,9 +114,29 @@ async function renderShot(page: Page, shot: Shot) {
   await page.locator("#shot").screenshot({ path: join(storeDir, shot.file) });
 }
 
-async function renderPlain(page: Page, view: "promo" | "icon", file: string) {
-  await page.evaluate((name) => { document.body.dataset.view = name; }, view);
-  await page.locator(`#${view}`).screenshot({ path: join(storeDir, file), omitBackground: view === "icon" });
+async function renderPromo(page: Page) {
+  await page.evaluate(() => { document.body.dataset.view = "promo"; });
+  await page.locator("#promo").screenshot({ path: join(storeDir, "promo-small-440x280.png") });
+}
+
+// Chrome's guideline for the 128 icon: 96x96 artwork centred, the rest transparent.
+// The toolbar sizes are drawn edge to edge, since a pixel of padding shows at 16.
+const ICONS = [
+  { size: 128, art: 96 },
+  { size: 48, art: 44 },
+  { size: 32, art: 32 },
+  { size: 16, art: 16 },
+];
+
+async function renderIcons(page: Page) {
+  await page.evaluate(() => { document.body.dataset.view = "icon"; });
+  for (const { size, art } of ICONS) {
+    await page.locator("#icon").evaluate((box: HTMLElement, px) => { box.style.width = box.style.height = `${String(px)}px`; }, size);
+    await page.locator("[data-icon-art]").evaluate((mark: HTMLElement, px) => { mark.style.width = mark.style.height = `${String(px)}px`; }, art);
+    const png = await page.locator("#icon").screenshot({ omitBackground: true });
+    writeFileSync(join(publicDir, `icon-${String(size)}.png`), png);
+    if (size === 128) writeFileSync(join(storeDir, "icon-128.png"), png);
+  }
 }
 
 async function capturePopups(): Promise<Shot[]> {
@@ -144,21 +167,21 @@ async function capturePopups(): Promise<Shot[]> {
   }
 }
 
+// The icons go first: the pop-up build copies them from public/.
 async function main() {
-  await buildPopup();
-  const shots = await capturePopups();
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     await page.goto(pathToFileURL(join(storeDir, "template.html")).href);
     await page.evaluate(() => document.fonts.ready);
-    for (const shot of shots) await renderShot(page, shot);
-    await renderPlain(page, "promo", "promo-small-440x280.png");
-    await renderPlain(page, "icon", "icon-128.png");
+    await renderIcons(page);
+    await renderPromo(page);
+    await buildPopup();
+    for (const shot of await capturePopups()) await renderShot(page, shot);
   } finally {
     await browser.close();
   }
-  console.log("Wrote the store images to store/");
+  console.log("Wrote the store images to store/ and the extension icons to public/");
 }
 
 await main();

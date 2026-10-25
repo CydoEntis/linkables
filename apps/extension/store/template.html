@@ -138,8 +138,6 @@
       }
 
       #icon {
-        width: 128px;
-        height: 128px;
         align-items: center;
         justify-content: center;
       }
@@ -168,9 +166,9 @@
       <p>Save the page you're on.<br /><strong>Find it later.</strong></p>
     </section>
 
-    <!-- Chrome's icon guideline: 96×96 artwork centred in 128×128, the rest transparent. -->
+    <!-- render.ts sizes the box and the artwork for each icon; the rest stays transparent. -->
     <section id="icon">
-      <span class="mark" style="width: 96px; height: 96px"></span>
+      <span class="mark" data-icon-art></span>
     </section>
 
     <script>

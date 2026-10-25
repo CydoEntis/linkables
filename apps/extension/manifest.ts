@@ -33,8 +33,9 @@ export function buildManifest({ version, appUrl, supabaseUrl, store = false }: M
     action: {
       default_title: "Save to linkables",
       default_popup: "popup.html",
-      default_icon: { "16": "logo-96.png", "32": "logo-96.png" },
+      default_icon: { "16": "icon-16.png", "32": "icon-32.png" },
     },
-    icons: { "48": "icon-192.png", "128": "icon-192.png" },
+    // Drawn at each size by store/render.ts, so Chrome never scales one.
+    icons: { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" },
   };
 }
