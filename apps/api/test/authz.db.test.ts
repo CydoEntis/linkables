@@ -43,6 +43,8 @@ const A_PINNED = true;
 // two-user test beside its source.
 const cases: Record<string, Case> = {
   "GET /api/v1/me": { request: () => ({ path: "/api/v1/me" }) },
+  // B deleting B's own account must leave every row of A's in place.
+  "DELETE /api/v1/me": { request: () => ({ path: "/api/v1/me" }) },
   "GET /api/v1/links": {
     request: ({ collectionId }) => ({ path: `/api/v1/links?collectionId=${collectionId}` }),
     idFields: ["collectionId"],
