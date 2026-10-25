@@ -35,6 +35,8 @@
     --color-line-strong: var(--line-strong);
     --color-subtle-foreground: var(--subtle-foreground);
     --color-soft-foreground: var(--soft-foreground);
+    --color-description-foreground: var(--description-foreground);
+    --color-accent-hover: var(--accent-hover);
     --color-primary-soft: var(--primary-soft);
     --color-scrim: var(--scrim);
 
@@ -97,6 +99,9 @@
     /* The handoff has #6f6f69 (3.3:1); this reaches 4.5:1 on rows and inputs. See docs/design/DEVIATIONS.md. */
     --subtle-foreground: #88887f;
     --accent: #2a2a2a;
+    --accent-hover: #343434;
+    /* A page's own description under a title (round 2 big screens). */
+    --description-foreground: #b3b2ad;
     --accent-foreground: #ecebe8;
     --row-hover: #1b1b1b;
     --destructive: oklch(0.72 0.16 25);
