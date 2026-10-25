@@ -71,6 +71,9 @@ test.describe("at 1280 px", () => {
     await page.goto(`/l/${id}/read`);
     await expect(page).toHaveURL(new RegExp(`/l/${id}$`));
     await expect(page.getByRole("heading", { level: 1, name: /Tokyo night walk/ })).toBeVisible();
+
+    await page.goto("/l/not-a-link");
+    await expect(page.getByText("Couldn't find this link")).toBeVisible();
   });
 
   test("a page opened directly goes Back to All links", async ({ page, seedLinks }) => {
@@ -96,7 +99,7 @@ test.describe("at 1280 px", () => {
     const pinned = linkRequest(page, "PATCH");
     await bar(page).getByRole("button", { name: "Pin" }).click();
     expect((await pinned).status()).toBe(200);
-    await expect(bar(page).getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
+    await expect(bar(page).getByRole("button", { name: "Pin" })).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("banner").getByRole("button", { name: "Back" }).click();
     await expect(page.getByRole("heading", { name: "Pinned" })).toBeVisible();
   });
@@ -159,8 +162,10 @@ test.describe("at 1280 px", () => {
     await bar(page).getByRole("button", { name: "Delete" }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(row).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "All links" })).toBeFocused();
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(row).toBeVisible();
+    await expect(row).toBeFocused();
 
     await row.click();
     const deleted = page.waitForResponse(

@@ -65,6 +65,15 @@ describe("LinkList", () => {
     expect(useLinksUi.getState().returnFocusId).toBeNull();
   });
 
+  it("gives focus to the next row when the link was deleted on its page", async () => {
+    const deleted = savedLink({ resource: { title: "Deleted there" } });
+    request.mockResolvedValue({ items: [deleted, savedLink({ resource: { title: "Next one" } })], cursor: null });
+    useLinksUi.setState({ returnFocusId: deleted.id, deletingIds: [deleted.id] });
+    renderList();
+    await waitFor(() => { expect(screen.getByRole("link", { name: /^Next one/ })).toHaveFocus(); });
+    useLinksUi.setState({ deletingIds: [] });
+  });
+
   it("asks the API for the New view as view=inbox", async () => {
     request.mockResolvedValue(page([]));
     renderList("inbox");
