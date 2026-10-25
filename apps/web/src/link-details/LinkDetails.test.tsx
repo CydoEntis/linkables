@@ -320,6 +320,28 @@ describe("a link no loaded list holds", () => {
   });
 });
 
+describe("a link saved moments ago", () => {
+  const fetched = savedLink({ originalUrl: "https://example.com/new", resource: { title: "Metadata landed", fetchStatus: "fetched" } });
+  const waiting = { ...fetched, resource: { ...fetched.resource, title: null, fetchStatus: "pending" as const } };
+  const listOf = (link: SavedLink): LinksPages => ({ pages: [{ items: [link], cursor: null }], pageParams: [undefined] });
+
+  it("shows the freshest copy when a list off screen still holds it as pending", async () => {
+    const queryClient = testQueryClient();
+    queryClient.setQueryData(linksKeys.list("all"), listOf(waiting), { updatedAt: 1000 });
+    queryClient.setQueryData(linksKeys.list("inbox"), listOf(fetched), { updatedAt: 2000 });
+    await renderWithRouter(<LinkDetails />, { path: `/?link=${fetched.id}`, queryClient });
+    expect(within(details()).getByRole("heading", { name: /Metadata landed/ })).toBeInTheDocument();
+  });
+
+  it("fetches the link itself while every cached copy is still pending", async () => {
+    request.mockImplementation((path) => Promise.resolve(path === `/links/${fetched.id}` ? fetched : path === "/collections" ? { items: [] } : null));
+    const queryClient = testQueryClient();
+    queryClient.setQueryData(linksKeys.list("all"), listOf(waiting));
+    await renderWithRouter(<LinkDetails />, { path: `/?link=${fetched.id}`, queryClient });
+    expect(await within(details()).findByRole("heading", { name: /Metadata landed/ })).toBeInTheDocument();
+  });
+});
+
 describe("link details on the web", () => {
   beforeEach(() => {
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: true, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() }));

@@ -86,18 +86,27 @@ function listPath(scope: ListScope, filters: ListFilters, cursor: string | undef
   return query ? `/links?${query}` : "/links";
 }
 
-export function findListedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
-  for (const [, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.lists })) {
-    const found = data?.pages.flatMap((page) => page.items).find((item) => item.id === linkId);
-    if (found) return found;
+export type CachedCopy = { link: SavedLink; updatedAt: number };
+
+// Only lists on screen poll for metadata, so a list visited earlier can still
+// hold a link as pending; the copy fetched most recently is the truth.
+export function findListedCopy(queryClient: QueryClient, linkId: string): CachedCopy | undefined {
+  let freshest: CachedCopy | undefined;
+  for (const [queryKey, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.lists })) {
+    const link = data?.pages.flatMap((page) => page.items).find((item) => item.id === linkId);
+    const updatedAt = queryClient.getQueryState(queryKey)?.dataUpdatedAt ?? 0;
+    if (link && (freshest === undefined || updatedAt > freshest.updatedAt)) freshest = { link, updatedAt };
   }
-  return undefined;
+  return freshest;
 }
 
-// The link as the cache has it, for UI that holds only an id: from a loaded
-// list, or else as details fetched it on its own.
+// The link as the cache has it, for UI that holds only an id: the freshest of
+// the loaded lists' copies and the one details fetched on its own.
 export function findCachedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
-  return findListedLink(queryClient, linkId) ?? queryClient.getQueryData<SavedLink>(linksKeys.detail(linkId));
+  const listed = findListedCopy(queryClient, linkId);
+  const own = queryClient.getQueryState<SavedLink>(linksKeys.detail(linkId));
+  if (own?.data && (listed === undefined || own.dataUpdatedAt > listed.updatedAt)) return own.data;
+  return listed?.link;
 }
 
 // Applies a change made on this device to every cached copy of the link.
@@ -124,8 +133,8 @@ export function isPending(link: SavedLink): boolean {
 // savedAt, so a device clock ahead of the server cannot stop polling early.
 export function pendingPoller() {
   const firstSeen = new Map<string, number>();
-  return (data: LinksPages | undefined, now: number): number | false => {
-    const pendingIds = (data?.pages ?? []).flatMap((page) => page.items.filter(isPending).map((link) => link.id));
+  return (links: readonly SavedLink[], now: number): number | false => {
+    const pendingIds = links.filter(isPending).map((link) => link.id);
     for (const id of firstSeen.keys()) if (!pendingIds.includes(id)) firstSeen.delete(id);
     if (pendingIds.length === 0) return false;
     for (const id of pendingIds) if (!firstSeen.has(id)) firstSeen.set(id, now);
@@ -163,7 +172,7 @@ export function useLinks(scope: ListScope, filters: ListFilters = {}) {
     // While a search, filter or sort changes, the same list's last results stay up instead of a skeleton.
     placeholderData: (previous, previousQuery) =>
       filtered && ownKey.every((part, index) => previousQuery?.queryKey[index] === part) ? previous : undefined,
-    refetchInterval: (current) => pendingInterval(current.state.data, Date.now()),
+    refetchInterval: (current) => pendingInterval(current.state.data?.pages.flatMap((page) => page.items) ?? [], Date.now()),
     retry: (failures, error) => !isApiError(error, ERROR_CODES.VALIDATION) && shouldRetry(failures, error),
   });
 
