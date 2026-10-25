@@ -1,4 +1,4 @@
-import { INVITE_ONLY } from "../../config/access";
+import { INVITE_ONLY, REQUEST_ACCESS_PATH } from "../../config/access";
 import { SUPPORT_PAGE } from "../pages";
 
 const QUESTIONS = [
@@ -13,7 +13,15 @@ const QUESTIONS = [
   {
     q: "Do I need an account?",
     a: INVITE_ONLY
-      ? "Yes. linkables is in private beta, so accounts are invite-only for now. Ask for access at support@linkables.app."
+      ? (
+          <>
+            Yes. linkables is in private beta, so accounts are invite-only for now.{" "}
+            <a href={REQUEST_ACCESS_PATH} className="font-semibold text-primary hover:text-foreground">
+              Request access
+            </a>{" "}
+            and we'll email you an invite.
+          </>
+        )
       : "Yes, a free one, so your links follow you from your phone to your laptop. Sign in with Google or with a code we email you. There's no password.",
   },
   {

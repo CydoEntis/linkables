@@ -1,3 +1,4 @@
+import { REQUEST_ACCESS_PATH } from "../config/access";
 import { EXTENSION_GUIDE_PATH } from "../extension-guide/path";
 
 export const SITE_ORIGIN = "https://linkables.app";
@@ -35,8 +36,15 @@ export const SUPPORT_PAGE = {
   description: "Get help with linkables: contact support, export your links, delete your account, and save from iPhone or Android.",
 } as const satisfies MarketingPage;
 
-// The extension guide is linked to friends who may not have signed in on the web yet.
-const PUBLIC_PATHS: ReadonlySet<string> = new Set([PRIVACY_PAGE.path, TERMS_PAGE.path, SUPPORT_PAGE.path, EXTENSION_GUIDE_PATH]);
+// The extension guide is linked to friends who may not have signed in on the web yet,
+// and the request access form is for people with no account at all.
+const PUBLIC_PATHS: ReadonlySet<string> = new Set([
+  PRIVACY_PAGE.path,
+  TERMS_PAGE.path,
+  SUPPORT_PAGE.path,
+  EXTENSION_GUIDE_PATH,
+  REQUEST_ACCESS_PATH,
+]);
 
 // Pages anyone can read, signed in or not, without waiting for the session.
 export function isPublicPage(pathname: string): boolean {

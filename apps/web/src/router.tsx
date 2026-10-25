@@ -1,6 +1,8 @@
 import { createRootRoute, createRoute, createRouter, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
+import { RequestAccessPage } from "./access/RequestAccessPage";
 import { AuthGate } from "./auth/AuthGate";
+import { REQUEST_ACCESS_PATH } from "./config/access";
 import { linkDetailsSearchShape } from "./link-details/details-search";
 import { CollectionPage } from "./collections/CollectionPage";
 import { ExtensionGuidePage } from "./extension-guide/ExtensionGuidePage";
@@ -62,6 +64,13 @@ const legalRoutes = [
   createRoute({ getParentRoute: () => rootRoute, path: SUPPORT_PAGE.path, component: SupportPage }),
 ];
 
+// Not prerendered: the form needs the app to submit, so Caddy serves the SPA shell here.
+const requestAccessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: REQUEST_ACCESS_PATH,
+  component: RequestAccessPage,
+});
+
 const extensionGuideRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: EXTENSION_GUIDE_PATH,
@@ -69,7 +78,7 @@ const extensionGuideRoute = createRoute({
 });
 
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, extensionGuideRoute, ...legalRoutes]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, extensionGuideRoute, requestAccessRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {
