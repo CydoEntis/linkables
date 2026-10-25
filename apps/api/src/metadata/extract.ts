@@ -115,7 +115,7 @@ function firstUrl(candidates: string[], baseUrl: string): string | null {
 
 const UNSAFE_CHARS = new RegExp(UNSAFE_TEXT_CHARS.source, "gu");
 
-function cleanText(value: string, max: number): string | null {
+export function cleanText(value: string, max: number): string | null {
   const text = value.replace(UNSAFE_CHARS, "").replace(/\s+/g, " ").trim();
   if (text === "") return null;
   if (text.length <= max) return text;
