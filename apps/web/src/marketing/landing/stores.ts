@@ -1,3 +1,5 @@
+import { EXTENSION_GUIDE_PATH } from "../../extension-guide/path";
+
 // SAVE_ANYWHERE_PATH, spelled out: SaveAnywherePage touches window on import,
 // which breaks the prerender. StoreSection.test.tsx checks the two match.
 const SAVE_ANYWHERE_GUIDE = "/save-from-anywhere";
@@ -25,8 +27,8 @@ export function storeCards(shortcutUrl: string | undefined, inviteOnly: boolean)
     {
       key: "chrome",
       name: "Chrome extension",
-      body: "Save a tab in one click, pin it, share it, or drop it in a collection.",
-      cta: null,
+      body: "Save a tab in one click, pin it, or drop it in a collection. In beta, installed by hand for now.",
+      cta: { label: "Get the extension", href: EXTENSION_GUIDE_PATH },
     },
     {
       key: "web",

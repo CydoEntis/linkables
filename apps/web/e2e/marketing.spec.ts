@@ -26,11 +26,12 @@ test.describe("signed out", () => {
     await expect(page.getByText("linkables is invite-only for now")).toBeVisible();
   });
 
-  test("the landing page shows the Chrome extension as coming soon, with no action", async ({ page }) => {
+  test("the landing page's Chrome extension card leads to the install guide", async ({ page }) => {
     await page.goto("/");
     const chrome = page.locator("article", { has: page.getByRole("heading", { name: "Chrome extension" }) });
-    await expect(chrome.getByText("Coming soon")).toBeVisible();
-    await expect(chrome.getByRole("link")).toHaveCount(0);
+    await expect(chrome.getByText("Available now")).toBeVisible();
+    await chrome.getByRole("link", { name: "Get the extension" }).click();
+    await expect(page.getByRole("heading", { name: "linkables for Chrome" })).toBeVisible();
   });
 
   test("the landing page has no horizontal scroll on a 360 px phone", async ({ page }) => {

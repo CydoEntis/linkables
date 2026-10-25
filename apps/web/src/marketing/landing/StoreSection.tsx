@@ -9,7 +9,7 @@ export function StoreSection({ cards }: { cards: StoreCard[] }) {
           <h2 id="dl-h" className="max-w-[760px] font-display text-[clamp(34px,5.4vw,72px)] leading-none font-semibold tracking-[-0.05em]">
             Save from whatever's in your hand.
           </h2>
-          <p className="max-w-[340px] text-[17px] leading-normal text-[#2b3a12]">iPhone, Android and the web today, Chrome soon. They all land in the same place.</p>
+          <p className="max-w-[340px] text-[17px] leading-normal text-[#2b3a12]">iPhone, Android, Chrome and the web. They all land in the same place.</p>
         </div>
         <div className="flex flex-col border-t-2 border-primary-foreground">
           {cards.map((card) => (

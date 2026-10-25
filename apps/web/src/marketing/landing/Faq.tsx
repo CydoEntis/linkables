@@ -8,7 +8,7 @@ const QUESTIONS = [
   },
   {
     q: "Which devices does it work on?",
-    a: "iPhone, iPad, Android, and linkables.app in any browser on any computer. Your links are the same on all of them. A Chrome extension is coming soon.",
+    a: "iPhone, iPad, Android, and linkables.app in any browser on any computer. Your links are the same on all of them. A Chrome extension is in beta for invited users.",
   },
   {
     q: "Do I need an account?",
@@ -26,7 +26,7 @@ const QUESTIONS = [
   },
   {
     q: "Is there a Chrome extension or an iPhone app?",
-    a: "Not yet. The Chrome extension is coming soon. On iPhone, the Save to linkables shortcut puts linkables in your Share menu today, and an App Store app is on the way.",
+    a: "The Chrome extension is in beta for invited users, installed by hand for now; the guide is at linkables.app/extension. On iPhone, the Save to linkables shortcut puts linkables in your Share menu today, and an App Store app is on the way.",
   },
 ];
 
