@@ -135,8 +135,10 @@ function PinButton({ link }: { link: SavedLink }) {
     pin.toggle();
   }
   return (
+    // The name stays Pin and aria-pressed says whether it is; only the visible word changes.
     <Button
       variant="ghost"
+      aria-label="Pin"
       aria-pressed={pin.pinned}
       onClick={toggle}
       className={cn(ACTION, pin.pinned && "bg-foreground text-background hover:bg-foreground hover:text-background")}
