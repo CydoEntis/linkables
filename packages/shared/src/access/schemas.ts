@@ -8,7 +8,9 @@ import {
 
 // These answers end up in a plain-text email, so a name stays on one line and a
 // use case keeps only its line breaks and tabs: neither can forge another field.
-const singleLine = (text: string) => text.replace(/\p{Cc}+/gu, " ");
+// Zl and Zp are Unicode line and paragraph separators; Cf covers invisible
+// format characters such as bidi overrides that can disguise what follows.
+const singleLine = (text: string) => text.replace(/[\p{Cc}\p{Zl}\p{Zp}\p{Cf}]+/gu, " ");
 const multiLine = (text: string) => text.replace(/\r\n?/g, "\n").replace(/(?![\n\t])\p{Cc}/gu, "");
 
 // An empty field is no answer, so the form can send its inputs as they are.
