@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>How We Cut Build Times in Half | Example Engineering</title>
+  <meta property="og:site_name" content="Example Engineering">
+  <meta name="author" content="Ada Lovelace">
+  <script>window.track = true;</script>
+  <style>body { color: red; }</style>
+</head>
+<body>
+  <nav><a href="/">Home</a> <a href="/blog">Blog</a> <a href="/about">About</a></nav>
+  <main>
+    <article>
+      <h1>How We Cut Build Times in Half</h1>
+      <p>Our continuous integration pipeline had grown slow. Every pull request waited twenty minutes for a green check, and the team had started to batch changes to avoid the wait, which made each review harder. We set out to <strong>halve the build time</strong> without dropping a single test, and this post explains what worked.</p>
+      <p>The first thing we did was measure. We added timing to every step and found that <em>dependency installation</em> took a third of the run, while the tests themselves were spread unevenly across machines. Read the <a href="/docs/timing?ref=post#steps">timing guide</a> for the details, or skip the <a href="javascript:alert(1)">tracking link</a> entirely.</p>
+      <h2>Caching dependencies</h2>
+      <p>We cached the package store between runs, keyed on the lockfile. A cold install still takes as long as before, but nine runs in ten now restore the cache in seconds. The command we run is <code>pnpm install --frozen-lockfile</code>, and it never touches the network on a warm cache.</p>
+      <script>document.write("injected");</script>
+      <iframe src="https://ads.example.net/frame"></iframe>
+      <figure>
+        <img src="/img/build-chart.png" alt="Build time before and after" onerror="alert(1)">
+        <figcaption>Median build time over twelve weeks.</figcaption>
+      </figure>
+      <h3>What we cached</h3>
+      <ul>
+        <li>The package store, keyed on the lockfile.</li>
+        <li>Compiled test fixtures, keyed on their sources.</li>
+        <li>Browser binaries for the end-to-end suite.</li>
+      </ul>
+      <h2>Splitting the tests</h2>
+      <p>The second change was to split the test suite by recorded duration instead of by file count. Slow files no longer pile up on one machine, so every shard finishes within a minute of the others. Here is the shape of the config we ended up with, which any reader can adapt to their own runner without much trouble at all.</p>
+      <pre><code>shards: 4
+split: duration
+</code></pre>
+      <blockquote><p>The fastest build is the one you never run.</p></blockquote>
+      <ol>
+        <li>Measure every step.</li>
+        <li>Cache what does not change.</li>
+        <li>Split by duration.</li>
+      </ol>
+      <p>Together these changes took the median build from twenty minutes to under nine. The work took two engineers about a week, and it paid for itself within the first month in time the whole team got back every single day.</p>
+    </article>
+  </main>
+  <footer><a href="/privacy">Privacy</a></footer>
+</body>
+</html>
