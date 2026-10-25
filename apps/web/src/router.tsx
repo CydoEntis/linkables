@@ -6,6 +6,8 @@ import { CollectionPage } from "./collections/CollectionPage";
 import { SignInPage } from "./auth/SignInScreen";
 import { LinksPage } from "./links/LinksPage";
 import { DEFAULT_LINKS_SEARCH, linksSearchSchema } from "./links/links-search";
+import { PrivacyPage, SupportPage, TermsPage } from "./marketing/legal/LegalPages";
+import { PRIVACY_PAGE, SUPPORT_PAGE, TERMS_PAGE } from "./marketing/pages";
 import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
@@ -51,8 +53,15 @@ const saveAnywhereRoute = createRoute({
   component: SaveAnywherePage,
 });
 
+// Served as prerendered HTML in production; these routes render them in dev and on in-app navigation.
+const legalRoutes = [
+  createRoute({ getParentRoute: () => rootRoute, path: PRIVACY_PAGE.path, component: PrivacyPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: TERMS_PAGE.path, component: TermsPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: SUPPORT_PAGE.path, component: SupportPage }),
+];
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {
