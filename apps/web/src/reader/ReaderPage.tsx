@@ -1,12 +1,20 @@
 import { isApiError } from "@linkables/shared/api-client";
 import { ERROR_CODES } from "@linkables/shared/http";
+import type { SavedLink } from "@linkables/shared/links";
 import type { ReaderArticle } from "@linkables/shared/reader";
-import { getRouteApi, useRouter } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { getRouteApi, Link } from "@tanstack/react-router";
+import { Pin, Share } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { cn } from "cn";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { domainOf, safeHref } from "../links/link-display";
+import { useDetailsLink } from "../link-details/use-details-link";
+import { domainOf } from "../links/link-display";
+import { copyLink } from "../links/share-link";
+import { usePinLink } from "../links/use-pin-link";
+import { QUIET, ReaderBar } from "./ReaderBar";
+import { ArticleSkeleton, Problem, Unavailable } from "./ReaderStates";
 import { ReaderBlocks } from "./ReaderBlocks";
+import { readTextSize, storeTextSize, type TextSize } from "./text-size";
 import { useReader } from "./use-reader";
 
 const route = getRouteApi("/l/$linkId/read");
@@ -14,83 +22,68 @@ const route = getRouteApi("/l/$linkId/read");
 export function ReaderPage() {
   const { linkId } = route.useParams();
   const reader = useReader(linkId);
-  // The unavailable state has its own Open button, so the bar's would repeat it.
-  const url = reader.data?.status === "ok" ? reader.data.url : undefined;
+  const [textSize, setTextSize] = useState(readTextSize);
+  const changeTextSize = (size: TextSize) => {
+    setTextSize(size);
+    storeTextSize(size);
+  };
+  const view = reader.data?.status === "ok" ? reader.data : null;
 
   let body: ReactNode;
   if (reader.isPending) body = <ArticleSkeleton />;
-  else if (reader.data?.status === "ok") body = <Article article={reader.data.article} url={reader.data.url} />;
+  else if (view) body = <Article linkId={linkId} article={view.article} url={view.url} textSize={textSize} />;
   else if (reader.data?.status === "unavailable") body = <Unavailable url={reader.data.url} />;
   else if (isApiError(reader.error, ERROR_CODES.NOT_FOUND)) body = <Problem title="Couldn't find this link" detail="It may have been deleted." />;
   else body = <Problem title="Couldn't load the reader view" onRetry={() => void reader.refetch()} />;
 
   return (
     <div className="min-h-svh">
-      <ReaderBar linkId={linkId} url={url} />
-      <main className="mx-auto w-full max-w-[680px] px-4 pt-6 pb-[calc(64px+env(safe-area-inset-bottom))] md:pt-12">{body}</main>
+      <ReaderBar
+        linkId={linkId}
+        loading={reader.isPending}
+        article={view ? { site: siteOf(view.article, view.url), minutes: view.article.minutes, url: view.url } : null}
+        textSize={textSize}
+        onTextSize={changeTextSize}
+      />
+      <main className="pb-[env(safe-area-inset-bottom)]">{body}</main>
     </div>
   );
 }
 
-// Back returns to wherever the reader was opened from; an address opened
-// directly has nowhere to go back to, so it lands on the link's details.
-function ReaderBar({ linkId, url }: { linkId: string; url: string | undefined }) {
-  const router = useRouter();
-  const back = () => {
-    if (router.history.canGoBack()) router.history.back();
-    else void router.navigate({ to: "/", search: { link: linkId } });
-  };
-  return (
-    <header className="sticky top-0 z-10 border-b border-border bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur">
-      <div className="mx-auto flex w-full max-w-[680px] items-center gap-2 px-2 py-1.5 md:py-2.5">
-        <button
-          type="button"
-          onClick={back}
-          className="flex min-h-11 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground md:min-h-9"
-        >
-          <ArrowLeft aria-hidden strokeWidth={2.2} className="size-4" />
-          Back
-        </button>
-        <span className="flex-1" />
-        {url ? <OpenOriginal url={url} /> : null}
-      </div>
-    </header>
-  );
+function siteOf(article: ReaderArticle, url: string): string {
+  return article.siteName ?? domainOf(url);
 }
 
-function OpenOriginal({ url, label = "Open original" }: { url: string; label?: string }) {
-  const href = safeHref(url);
-  if (href === undefined) return null;
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={buttonVariants({ size: "touch", className: "px-4 text-[13.5px] md:h-9" })}
-    >
-      {label} ↗<span className="sr-only"> (opens in a new tab)</span>
-    </a>
-  );
-}
+// Phone sizes first, then desktop; the measure widens with the largest size.
+const BODY_SIZE = ["text-[16px] md:text-[17px]", "text-[18px] md:text-[19px]", "text-[20px] md:text-[22px]"] as const;
 
-function Article({ article, url }: { article: ReaderArticle; url: string }) {
+type ArticleProps = { linkId: string; article: ReaderArticle; url: string; textSize: TextSize };
+
+function Article({ linkId, article, url, textSize }: ArticleProps) {
   useDocumentTitle(article.title);
-  const meta = [article.siteName ?? domainOf(url), `${String(article.minutes)} min read`].join(" · ");
+  const byline = [article.byline, `${String(article.minutes)} min read`].filter(Boolean).join(" · ");
   return (
-    <article className="text-[17px] leading-[1.7] text-foreground/90 wrap-break-word md:text-[18px]">
-      <header className="mb-8 flex flex-col gap-2">
-        <p className="text-[13px] font-semibold text-muted-foreground">{meta}</p>
+    <article
+      className={cn(
+        "mx-auto animate-[fade-in_0.45s_ease-out_both] px-[22px] pt-[26px] pb-16 font-reader leading-[1.7] text-reader-foreground wrap-break-word transition-[font-size] duration-200 md:px-8 md:pt-14 md:pb-[120px]",
+        BODY_SIZE[textSize],
+        textSize === 2 ? "max-w-[760px]" : "max-w-[700px]",
+      )}
+    >
+      <header className="mb-7 font-sans">
+        <p className="mb-3.5 text-[13px] font-semibold text-muted-foreground">{siteOf(article, url)}</p>
         {article.title ? (
-          <h1 className="text-[28px] leading-[1.2] font-bold tracking-[-0.02em] text-foreground md:text-[34px]">{article.title}</h1>
+          <h1 className="mb-3.5 text-[30px] leading-[1.1] font-bold tracking-[-0.028em] text-balance text-foreground md:text-[44px]">{article.title}</h1>
         ) : null}
-        {article.byline ? <p className="text-[14px] text-muted-foreground">{article.byline}</p> : null}
+        <p className="text-[14px] text-muted-foreground">{byline}</p>
       </header>
       <ReaderBlocks blocks={article.blocks} />
       {article.truncated ? (
-        <p className="mt-8 border-t border-border pt-6 text-[15px] text-muted-foreground">
+        <p className="mt-8 font-sans text-[15px] text-muted-foreground">
           This article is too long to show in full here. The rest is on the original page.
         </p>
       ) : null}
+      <ArticleEnd linkId={linkId} />
     </article>
   );
 }
@@ -104,41 +97,32 @@ function useDocumentTitle(title: string | null) {
   }, [title]);
 }
 
-function Unavailable({ url }: { url: string }) {
+const END_ACTION = "h-[42px] gap-2 px-4 text-[14px] font-bold";
+
+function ArticleEnd({ linkId }: { linkId: string }) {
+  const details = useDetailsLink(linkId);
   return (
-    <div className="flex flex-col items-start gap-3 py-10">
-      <p className="text-[19px] font-bold">Reader view isn't available for this page</p>
-      <p className="text-[15px] text-muted-foreground">It may be a video, a file, or a page without an article.</p>
-      <div className="mt-2">
-        <OpenOriginal url={url} label="Open" />
-      </div>
-    </div>
+    <footer className="mt-11 flex flex-wrap gap-2 border-t border-border pt-6 font-sans">
+      {details.status === "found" ? <LinkActions link={details.link} /> : null}
+      <Link to="/" className={buttonVariants({ variant: "ghost", className: cn(QUIET, END_ACTION) })}>
+        Back to my links
+      </Link>
+    </footer>
   );
 }
 
-function Problem({ title, detail, onRetry }: { title: string; detail?: string; onRetry?: () => void }) {
+function LinkActions({ link }: { link: SavedLink }) {
+  const pin = usePinLink(link);
   return (
-    <div role="alert" className="flex flex-col items-start gap-3 py-10">
-      <p className="text-[19px] font-bold">{title}</p>
-      {detail ? <p className="text-[15px] text-muted-foreground">{detail}</p> : null}
-      {onRetry ? (
-        <Button variant="ghost" size="touch" onClick={onRetry}>
-          Try again
-        </Button>
-      ) : null}
-    </div>
-  );
-}
-
-function ArticleSkeleton() {
-  return (
-    <div role="status" aria-label="Loading the article" className="flex animate-pulse flex-col gap-3">
-      <div className="h-3.5 w-40 rounded bg-muted" />
-      <div className="h-8 w-11/12 rounded bg-muted" />
-      <div className="mb-6 h-8 w-2/3 rounded bg-muted" />
-      {[100, 96, 98, 90, 60].map((width, index) => (
-        <div key={index} className="h-4 rounded bg-muted" style={{ width: `${String(width)}%` }} />
-      ))}
-    </div>
+    <>
+      <Button variant="ghost" aria-pressed={pin.pinned} onClick={pin.toggle} className={END_ACTION}>
+        <Pin aria-hidden strokeWidth={2} className={cn("size-[15px]", pin.pinned && "fill-current")} />
+        {pin.pinned ? "Pinned" : "Pin"}
+      </Button>
+      <Button variant="ghost" onClick={() => void copyLink(link.originalUrl)} className={END_ACTION}>
+        <Share aria-hidden strokeWidth={2} className="size-[15px]" />
+        Share
+      </Button>
+    </>
   );
 }
