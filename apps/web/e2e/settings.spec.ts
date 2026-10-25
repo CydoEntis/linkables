@@ -56,11 +56,21 @@ test.describe("at 1280 px", () => {
 
     await expect(page.getByRole("heading", { level: 1, name: "Your account is deleted" })).toBeVisible();
     await expect(page).toHaveURL(/\/account-deleted$/);
-    await page.getByRole("link", { name: "Back to linkables.app" }).click();
+    const back = page.getByRole("link", { name: "Back to linkables.app" });
+    await expect(back).toBeVisible();
+    expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.endsWith("-auth-token")))).toEqual([]);
+    await back.click();
     await expect(page).toHaveURL(/\/$/);
-    expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.includes("auth-token")))).toEqual([]);
+    await expect(page.getByRole("button", { name: "Account" })).toHaveCount(0);
     expect(await db.query.savedLink.findMany({ where: (row, { eq }) => eq(row.userId, user.id) })).toEqual([]);
     expect(await db.query.collection.findMany({ where: (row, { eq }) => eq(row.userId, user.id) })).toEqual([]);
+  });
+
+  test("sends a direct visit to the goodbye page home", async ({ page }) => {
+    await page.goto("/account-deleted");
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { name: "Your account is deleted" })).toHaveCount(0);
   });
 });
 
