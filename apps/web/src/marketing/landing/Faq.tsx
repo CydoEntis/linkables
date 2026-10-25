@@ -11,7 +11,7 @@ const QUESTIONS = [
   },
   {
     q: "Do I need an account?",
-    a: "Yes, a free one, so your links follow you from your phone to your laptop. Sign in with Google or with a link we email you. There's no password.",
+    a: "Yes, a free one, so your links follow you from your phone to your laptop. Sign in with Google or with a code we email you. There's no password.",
   },
   {
     q: "Is my data private?",

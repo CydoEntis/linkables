@@ -25,7 +25,7 @@ export const TERMS_DOC: LongTextDoc = {
       heading: "Your account",
       body: (
         <p>
-          You need a free account, signed in with Google or an email link. Keep access to that email account safe, because it's how you get into
+          You need a free account, signed in with Google or with a code we email you. Keep access to that email account safe, because it's how you get into
           linkables. One account is for one person. You must be at least 13 to use linkables.
         </p>
       ),
