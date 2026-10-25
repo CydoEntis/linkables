@@ -1,5 +1,6 @@
 import { UNSAFE_TEXT_CHARS, URL_MAX_LENGTH } from "@linkables/shared/links";
 import { READER_BLOCKS_MAX, READER_TEXT_MAX, type ReaderBlock, type ReaderInline } from "@linkables/shared/reader";
+import { exceedsLimits } from "./tree-limits";
 
 // The slice of the DOM the converter reads; linkedom's nodes satisfy it.
 export interface PageNode {
@@ -19,6 +20,8 @@ type Sink = { pageUrl: string; push: (block: ReaderBlock | null) => void; full: 
 const TEXT_NODE = 3;
 const ELEMENT_NODE = 1;
 const ALT_MAX = 500;
+// Above the page limits in extract-article.ts, which Readability's few wrappers stay within.
+const CONVERT_LIMITS = { elements: 40_000, depth: 200 };
 
 // Never read: active content, embeds and form controls carry nothing a reader shows.
 const SKIPPED = new Set([
@@ -53,6 +56,8 @@ export function toBlocks(root: PageNode, pageUrl: string): Converted {
       }
     },
   };
+  // The walk recurses once per level, so a deeper tree is refused, not read.
+  if (exceedsLimits(root, CONVERT_LIMITS)) return { blocks, truncated };
   walkBlocks(root, sink);
   return { blocks, truncated };
 }
