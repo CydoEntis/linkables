@@ -31,4 +31,17 @@ describe("request logging", () => {
     expect(output).not.toContain("secret");
     expect(output).not.toContain("frag");
   });
+
+  // The test app has no database, so the lookup fails and its error is logged too.
+  it("never puts a shared collection's token in any log line, even when the lookup fails", async () => {
+    const { logger, lines } = captureLogger();
+    const token = "Secret_Share_Token-0123456789abc";
+
+    await createTestApp({ logger }).request(`/api/v1/shared/${token}`);
+    await createTestApp({ logger }).request(`/api/v1/shared/${token}/extra`);
+
+    const output = lines.join("\n");
+    expect(output).toContain('"path":"/api/v1/shared/:token"');
+    expect(output).not.toContain(token);
+  });
 });
