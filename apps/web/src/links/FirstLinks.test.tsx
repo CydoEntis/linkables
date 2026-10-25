@@ -1,23 +1,15 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { renderWithRouter } from "../test/render-with-router";
+import { resetViewport, stubViewport } from "../test/viewport";
 import { FirstLinks } from "./FirstLinks";
 import { useLinksUi } from "./links-ui-store";
 
-const plainMatchMedia = window.matchMedia.bind(window);
-
-function onDesktop() {
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: query === "(min-width: 48rem)",
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  }));
-}
+const onDesktop = () => { stubViewport(1440); };
 
 afterEach(() => {
-  vi.stubGlobal("matchMedia", plainMatchMedia);
+  resetViewport();
   useLinksUi.getState().setSaveSheetOpen(false);
 });
 

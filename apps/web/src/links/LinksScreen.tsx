@@ -9,6 +9,7 @@ import { PhoneSearchField } from "../search/PhoneSearchField";
 import { ShortcutSheet } from "../search/ShortcutSheet";
 import { useListShortcuts } from "../search/use-list-shortcuts";
 import { AppShell } from "../shell/AppShell";
+import { LayoutToggle } from "./LayoutToggle";
 import { LinkList } from "./LinkList";
 import { SaveBar } from "./SaveBar";
 import { SaveFab, SaveSheet } from "./SaveSheet";
@@ -38,7 +39,7 @@ export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksS
     <AppShell scope={effectiveScope(scope, filters)} search={<PhoneSearchField query={filters.q} onQueryChange={onQueryChange} />}>
       <SaveBar className="hidden md:block" query={filters.q} onQueryChange={onQueryChange} />
       {heading}
-      <FilterBar scope={scope} filters={filters} onFiltersChange={onFiltersChange} />
+      <FilterBar scope={scope} filters={filters} onFiltersChange={onFiltersChange} trailing={<LayoutToggle />} />
       <LinkList scope={scope} filters={filters} onFiltersChange={onFiltersChange} />
       <SaveStatus />
       <SaveFab />

@@ -23,9 +23,11 @@ export const LINK_DRAG_TYPE = "application/x-linkables-link";
 const TILES_WIDTH = 4 * 60 + 3 * 6 + 2 * 6;
 const TEXT_FADE_PX = 120;
 
-type LinkRowProps = {
+export type LinkRowProps = {
   link: SavedLink;
   now: number;
+  // Whether the details panel shows this link.
+  selected?: boolean;
   // On a collection's page every row is in that collection, so the meta skips where it is filed.
   inCollection?: boolean;
   highlight?: RowHighlight | undefined;
@@ -37,7 +39,7 @@ type LinkRowProps = {
 };
 
 // The row opens the link's details; Open ↗ in the details goes to the saved URL.
-export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
+export function LinkRow({ link, now, selected = false, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
   const details = useLinkDetails();
   const deleteLink = useDeleteLink();
@@ -56,7 +58,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
       <Link
         to="."
         search={(prev) => ({ ...prev, link: link.id })}
-        aria-current={details.linkId === link.id ? "true" : undefined}
+        aria-current={selected ? "true" : undefined}
         onClick={(event) => { openDetails(event, () => { details.open(link.id); }); }}
         draggable
         onDragStart={(event) => { startDrag(event, link); }}
@@ -106,14 +108,14 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
 
 // A plain click opens the details in place; a modified click is left to the
 // browser (a new tab with the same details), and a swipe has already cancelled it.
-function openDetails(event: MouseEvent<HTMLAnchorElement>, open: () => void) {
+export function openDetails(event: MouseEvent<HTMLAnchorElement>, open: () => void) {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
   open();
 }
 
 // Dragged out of the app, the row carries the saved URL, not the details address.
-function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
+export function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
   event.dataTransfer.setData("text/uri-list", link.originalUrl);
   event.dataTransfer.setData("text/plain", link.originalUrl);
   event.dataTransfer.setData(LINK_DRAG_TYPE, link.id);
@@ -171,10 +173,16 @@ function RowText({ link, now, inCollection, pinned, opacity, query }: RowTextPro
 
 const ACTION = "flex h-[34px] items-center justify-center rounded-md bg-accent text-[13px] font-semibold hover:bg-[#333]";
 
-type RowActionsProps = { link: SavedLink; belongs: boolean; pinned: boolean; onPin: () => void };
+// A row's actions sit at its end over a fade; a card's over its image's top corner.
+const ACTIONS_PLACEMENT = {
+  row: "top-1/2 right-3 -translate-y-1/2 bg-[linear-gradient(90deg,transparent,var(--row-hover)_44px)] pl-11",
+  card: "top-2.5 right-2.5 drop-shadow-[0_4px_12px_rgb(0_0_0/0.6)]",
+} as const;
+
+type RowActionsProps = { link: SavedLink; belongs: boolean; pinned: boolean; onPin: () => void; placement?: keyof typeof ACTIONS_PLACEMENT };
 
 // Float over the row's end on hover or keyboard focus, so nothing shifts (handoff global rules).
-function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
+export function RowActions({ link, belongs, pinned, onPin, placement = "row" }: RowActionsProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const dragging = useLinksUi((state) => state.draggingId !== null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -198,7 +206,8 @@ function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
       data-open={pickerOpen || undefined}
       className={cn(
         // Hidden by opacity, not visibility, so the buttons stay focusable and the popover can return focus to its trigger.
-        "pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 gap-1.5 bg-[linear-gradient(90deg,transparent,var(--row-hover)_44px)] pl-11 opacity-0 md:flex",
+        "pointer-events-none absolute hidden gap-1.5 opacity-0 md:flex",
+        ACTIONS_PLACEMENT[placement],
         !dragging &&
           "group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 data-open:pointer-events-auto data-open:opacity-100",
       )}

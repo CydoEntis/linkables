@@ -9,7 +9,8 @@ import { useCollections } from "../collections/use-collections";
 import type { ListScope } from "../links/use-links";
 import { CLEARED_FILTERS, EARLIEST_DAY, filterChips, KIND_LABELS, SORT_LABELS, type FiltersChange, type ListFilters } from "./list-filters";
 
-type FilterBarProps = { scope: ListScope; filters: ListFilters; onFiltersChange: FiltersChange };
+// trailing: controls at the bar's far end, such as the layout toggle.
+type FilterBarProps = { scope: ListScope; filters: ListFilters; onFiltersChange: FiltersChange; trailing?: ReactNode };
 
 const CONTROL =
   "flex h-11 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-soft-foreground hover:bg-muted hover:text-foreground data-popup-open:bg-muted md:h-9";
@@ -21,7 +22,7 @@ function offers(scope: ListScope, filters: ListFilters) {
   return { pinned: view !== "pinned", collection: "view" in scope && view !== "inbox" };
 }
 
-export function FilterBar({ scope, filters, onFiltersChange }: FilterBarProps) {
+export function FilterBar({ scope, filters, onFiltersChange, trailing }: FilterBarProps) {
   const collections = useCollections();
   const nameOf = (id: string) => {
     const found = collections.data?.find((collection) => collection.id === id);
@@ -57,6 +58,7 @@ export function FilterBar({ scope, filters, onFiltersChange }: FilterBarProps) {
           Clear all
         </button>
       ) : null}
+      {trailing}
     </div>
   );
 }

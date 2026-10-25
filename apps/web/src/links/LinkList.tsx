@@ -6,7 +6,10 @@ import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { isNarrowed, type FiltersChange, type ListFilters } from "../search/list-filters";
 import { NoMatches } from "../search/NoMatches";
 import { groupLinks, type LinkGroup } from "./link-groups";
-import { LinkRow, type RowHighlight } from "./LinkRow";
+import { useLinkDetails } from "../link-details/details-search";
+import { LinkCard } from "./LinkCard";
+import { LinkRow, type LinkRowProps, type RowHighlight } from "./LinkRow";
+import { useListLayout } from "./list-layout";
 import { useLinksUi } from "./links-ui-store";
 import { LinksEmpty } from "./LinksEmpty";
 import { belongsIn, useLinks, type ListScope } from "./use-links";
@@ -24,6 +27,8 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const heldId = useLinksUi((state) => state.heldId);
   const deletingIds = useLinksUi((state) => state.deletingIds);
   const loaded = useHeldRow(query.data?.pages.flatMap((page) => page.items) ?? []);
+  const layout = useListLayout();
+  const selectedId = useLinkDetails().linkId;
 
   const narrowed = isNarrowed(filters);
   // One status region in every state, so a change to "0 matches" is announced too.
@@ -49,35 +54,23 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
     return withStatus(narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : <LinksEmpty scope={scope} />, count);
   }
 
-  const renderRow = (link: SavedLink) => (
-    <li key={link.id}>
-      <LinkRow
-        link={link}
-        now={now}
-        inCollection={"collectionId" in scope}
-        highlight={highlightFor(link.id)}
-        belongs={belongs(link)}
-        leaving={!stays(link)}
-        query={filters.q}
-      />
-    </li>
-  );
+  const itemProps = (link: SavedLink): LinkRowProps => ({
+    link,
+    now,
+    selected: link.id === selectedId,
+    inCollection: "collectionId" in scope,
+    highlight: highlightFor(link.id),
+    belongs: belongs(link),
+    leaving: !stays(link),
+    query: filters.q,
+  });
+  const groups = listGroups(links, now, scope, filters);
   return withStatus(
     <div className="flex flex-col gap-2 md:gap-[22px]">
-      {listGroups(links, now, scope, filters).map((group) =>
-        group.label === null ? (
-          <ul key="results">{group.links.map(renderRow)}</ul>
-        ) : (
-          <section key={group.label} aria-labelledby={`group-${group.label}`}>
-            <h2
-              id={`group-${group.label}`}
-              className="px-3 pb-1 text-xs font-semibold tracking-[0.02em] text-subtle-foreground md:px-3.5 md:pb-1.5 md:text-[12.5px]"
-            >
-              {group.label}
-            </h2>
-            <ul>{group.links.map(renderRow)}</ul>
-          </section>
-        ),
+      {layout === "grid" ? (
+        <LinkGrid links={groups.flatMap((group) => group.links)} itemProps={itemProps} />
+      ) : (
+        <LinkGroups groups={groups} itemProps={itemProps} />
       )}
       {query.hasNextPage ? (
         <Button
@@ -95,9 +88,48 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   );
 }
 
+type ListGroup = LinkGroup | { label: null; links: SavedLink[] };
+type ItemProps = (link: SavedLink) => LinkRowProps;
+
+function LinkGroups({ groups, itemProps }: { groups: ListGroup[]; itemProps: ItemProps }) {
+  const renderRow = (link: SavedLink) => (
+    <li key={link.id}>
+      <LinkRow {...itemProps(link)} />
+    </li>
+  );
+  return groups.map((group) =>
+    group.label === null ? (
+      <ul key="results">{group.links.map(renderRow)}</ul>
+    ) : (
+      <section key={group.label} aria-labelledby={`group-${group.label}`}>
+        <h2
+          id={`group-${group.label}`}
+          className="px-3 pb-1 text-xs font-semibold tracking-[0.02em] text-subtle-foreground md:px-3.5 md:pb-1.5 md:text-[12.5px]"
+        >
+          {group.label}
+        </h2>
+        <ul>{group.links.map(renderRow)}</ul>
+      </section>
+    ),
+  );
+}
+
+// One grid in the list's order; pinned cards carry a tag instead of a group heading.
+function LinkGrid({ links, itemProps }: { links: SavedLink[]; itemProps: ItemProps }) {
+  return (
+    <ul aria-label="Links" className="grid animate-fade-in grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[22px] pt-3.5">
+      {links.map((link) => (
+        <li key={link.id}>
+          <LinkCard {...itemProps(link)} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // Day groups follow the newest-first order; search results and other sorts are
 // one list in the API's order (pinned still first), as in the handoff's search.
-function listGroups(links: SavedLink[], now: number, scope: ListScope, filters: ListFilters): (LinkGroup | { label: null; links: SavedLink[] })[] {
+function listGroups(links: SavedLink[], now: number, scope: ListScope, filters: ListFilters): ListGroup[] {
   if (filters.q !== undefined || (filters.sort ?? "newest") !== "newest") return [{ label: null, links }];
   const pinnedView = "view" in scope && scope.view === "pinned";
   return groupLinks(links, now, { pinnedGroup: !pinnedView });
