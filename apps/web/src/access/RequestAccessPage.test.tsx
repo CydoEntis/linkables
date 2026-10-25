@@ -92,7 +92,7 @@ describe("request access", () => {
 
   it.each([
     ["VALIDATION", "Enter a valid email address"],
-    ["RATE_LIMIT", "Too many requests from here. Try again in an hour."],
+    ["RATE_LIMIT", "Requests are paused for a bit. Try again later."],
     [NETWORK_ERROR, "You're offline. Check your connection and try again."],
     ["INTERNAL", "Something went wrong on our side. Try again in a moment."],
   ])("explains a %s failure and keeps the form", async (code, message) => {

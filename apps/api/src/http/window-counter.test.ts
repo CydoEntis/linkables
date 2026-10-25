@@ -22,7 +22,7 @@ describe("windowCounter", () => {
     windows.hit("a");
     at(HOUR - 1000);
 
-    expect(windows.hit("a")).toEqual({ ok: false, retryAfterMs: 1000 });
+    expect(windows.hit("a")).toEqual({ ok: false, retryAfterMs: 1000, full: false });
   });
 
   it("starts a fresh window once the old one ends", () => {
@@ -72,7 +72,7 @@ describe("windowCounter", () => {
     windows.hit("a");
     windows.hit("b");
 
-    expect(windows.hit("c")).toEqual({ ok: false, retryAfterMs: HOUR });
+    expect(windows.hit("c")).toEqual({ ok: false, retryAfterMs: HOUR, full: true });
     expect(windows.hit("a").ok).toBe(true);
   });
 

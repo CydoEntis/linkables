@@ -21,7 +21,7 @@ export function requestProblem(error: Error): RequestProblem {
     case ERROR_CODES.VALIDATION:
       return { field: "email", message: ACCESS_INVALID_EMAIL };
     case ERROR_CODES.RATE_LIMIT:
-      return { field: null, message: "Too many requests from here. Try again in an hour." };
+      return { field: null, message: "Requests are paused for a bit. Try again later." };
     case NETWORK_ERROR:
       return { field: null, message: "You're offline. Check your connection and try again." };
     default:

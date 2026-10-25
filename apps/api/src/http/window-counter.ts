@@ -2,7 +2,8 @@ type Window = { startedAt: number; count: number };
 
 export type WindowCounterOptions = { limit: number; windowMs: number; maxKeys: number; now: () => number };
 
-export type Hit = { ok: true } | { ok: false; retryAfterMs: number };
+// full: refused only because the map holds maxKeys open windows, not for this key's own count.
+export type Hit = { ok: true } | { ok: false; retryAfterMs: number; full: boolean };
 
 // Fixed windows per key, held in process memory. A key that starts a new window
 // is moved to the end, so the map stays ordered by start time and ended windows
@@ -28,14 +29,14 @@ export function windowCounter({ limit, windowMs, maxKeys, now }: WindowCounterOp
     const at = now();
     const current = windows.get(key);
     if (current !== undefined && at - current.startedAt < windowMs) {
-      if (current.count >= limit) return { ok: false, retryAfterMs: untilEnd(current, at) };
+      if (current.count >= limit) return { ok: false, retryAfterMs: untilEnd(current, at), full: false };
       current.count += 1;
       return { ok: true };
     }
     windows.delete(key);
     dropEnded(at);
     const oldest = windows.values().next().value;
-    if (oldest !== undefined && windows.size >= maxKeys) return { ok: false, retryAfterMs: untilEnd(oldest, at) };
+    if (oldest !== undefined && windows.size >= maxKeys) return { ok: false, retryAfterMs: untilEnd(oldest, at), full: true };
     windows.set(key, { startedAt: at, count: 1 });
     return { ok: true };
   }
