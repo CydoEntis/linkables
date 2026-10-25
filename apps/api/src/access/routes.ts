@@ -20,6 +20,7 @@ const REQUESTS_PER_HOUR = 5;
 const NOTICES_PER_HOUR = 10;
 // Each entry is a few dozen bytes, so this caps the limiter near a megabyte.
 const ADDRESSES_TRACKED = 10_000;
+const REQUESTS_PAUSED = "Requests are paused for a bit. Try again later.";
 const MAX_BODY_BYTES = 4 * 1024;
 const USER_AGENT_MAX_LENGTH = 512;
 
@@ -77,6 +78,7 @@ export function accessRequestRoutes({ db, logger, now, notifyOwner, behindProxy 
       now,
       key: clientKey(logger, behindProxy),
       message: "Too many requests, try again later",
+      whenFull: { message: REQUESTS_PAUSED, logger, name: "access-requests" },
     }),
     validator("json", parseWith(accessRequestSchema, "Invalid request body")),
     async (c) => {
