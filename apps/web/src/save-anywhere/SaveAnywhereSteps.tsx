@@ -1,5 +1,6 @@
 import { Download, ExternalLink, Share } from "lucide-react";
 import { useId, type ReactNode } from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { EXTENSION_GUIDE_PATH } from "../extension-guide/path";
 import { BookmarkletPanel } from "../save/BookmarkletDialog";
 import { useInstallPrompt } from "./install-prompt";
@@ -76,10 +77,10 @@ function AndroidSteps({ onThisDevice }: { onThisDevice: boolean }) {
       <Step>Add linkables to your home screen</Step>
       <Note>Sharing to linkables works once it is on your home screen. In Chrome, tap ⋮ at the top right, then Install app or Add to home screen.</Note>
       {install ? (
-        <button type="button" onClick={install} className="flex h-[54px] items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground">
+        <Button size="xl" onClick={install} className="gap-2">
           <Download aria-hidden className="size-5" />
           Install linkables
-        </button>
+        </Button>
       ) : null}
       <Note>
         Then in any app, tap Share <Share aria-hidden className="inline size-4 align-[-2px]" />, then linkables.
@@ -104,7 +105,7 @@ function IphoneSteps({ shortcutUrl }: { shortcutUrl: string | undefined }) {
         href={shortcutUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex h-[54px] items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground"
+        className={buttonVariants({ size: "xl", className: "gap-2" })}
       >
         Add the shortcut
         <ExternalLink aria-hidden className="size-[18px]" />

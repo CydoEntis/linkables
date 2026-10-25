@@ -5,6 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import { INVITE_ONLY, REQUEST_ACCESS_PATH } from "../config/access";
 import { pendingSaveHref } from "../save/pending-save";
 import { useAuthState } from "./auth-state";
@@ -119,15 +120,16 @@ function GoogleSignIn({ offline, initialProblem }: { offline: boolean; initialPr
           {PROBLEM_MESSAGES[problem]}
         </p>
       ) : null}
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="xl"
         disabled={offline || start.isPending}
         onClick={() => { start.mutate(); }}
-        className="flex h-[54px] items-center justify-center gap-3 rounded-xl bg-foreground text-base font-bold text-background transition hover:brightness-95 disabled:cursor-default disabled:opacity-50"
+        className="gap-3 bg-foreground font-bold text-background hover:bg-foreground hover:brightness-95"
       >
         {start.isPending ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <GoogleMark />}
         Continue with Google
-      </button>
+      </Button>
     </div>
   );
 }

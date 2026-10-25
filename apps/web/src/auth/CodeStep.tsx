@@ -5,6 +5,7 @@ import { Mail } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { useController, useForm } from "react-hook-form";
 import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import { CODE_LENGTH, toCodeDigits, verifyEmailCode, type VerifyCodeProblem } from "./email-code";
 import { sendMagicLink } from "./magic-link";
 import { PROBLEM_MESSAGES } from "./sign-in-messages";
@@ -140,14 +141,15 @@ function Resend({ email, offline }: { email: string; offline: boolean }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="touch"
         disabled={offline || waiting || resend.isPending}
         onClick={() => { resend.mutate(email); }}
-        className="h-[52px] rounded-xl bg-muted text-[15px] font-semibold transition-colors hover:bg-accent disabled:cursor-default disabled:text-subtle-foreground disabled:hover:bg-muted"
+        className="h-[52px] disabled:text-subtle-foreground disabled:opacity-100"
       >
         {resend.isPending ? "Sending…" : waiting ? `Resend in ${String(countdown.secondsLeft)}s` : "Resend"}
-      </button>
+      </Button>
       <p role="status" className="text-sm text-muted-foreground empty:hidden">
         {result?.ok ? "Sent another email." : null}
       </p>

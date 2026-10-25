@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { Wordmark } from "../shell/Wordmark";
 
 // The legal and help pages arrive later; until then these are plain links.
@@ -8,8 +9,7 @@ const FOOTER_LINKS = [
   { href: "/support", label: "Help" },
 ];
 
-export const PRIMARY_BUTTON =
-  "flex h-[54px] w-full items-center justify-center gap-2.5 rounded-xl bg-primary text-base font-bold text-primary-foreground transition hover:brightness-105 disabled:cursor-default disabled:opacity-50";
+export const PRIMARY_BUTTON = buttonVariants({ size: "xl", className: "w-full" });
 
 export const FILLED_FIELD =
   "w-full rounded-xl bg-muted text-foreground outline-none aria-invalid:shadow-[0_0_0_2px_var(--destructive)] data-shaking:animate-shake";

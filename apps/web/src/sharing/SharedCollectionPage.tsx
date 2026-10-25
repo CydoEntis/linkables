@@ -4,7 +4,7 @@ import type { SharedCollection, SharedLink } from "@linkables/shared/sharing";
 import { getRouteApi } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { displayName } from "../collections/display-name";
 import { linkCountLabel } from "../collections/ShareDialog";
 import { domainOf, safeHref, urlWithoutScheme } from "../links/link-display";
@@ -96,7 +96,6 @@ function OpenAll({ links }: { links: SharedLink[] }) {
       <Button
         size="touch"
         onClick={() => { setBlocked(openAll(links.map((link) => link.url)).blocked); }}
-        className="font-semibold active:scale-[.96]"
       >
         <ExternalLink aria-hidden />
         Open all
@@ -147,7 +146,7 @@ function Unavailable() {
         This shared collection isn't available
       </h1>
       <p className="text-[15px] text-muted-foreground">The link may have been turned off, or the address has a typo.</p>
-      <a href="/" className="mt-2 flex h-11 items-center rounded-md bg-primary px-5 font-semibold text-primary-foreground hover:brightness-105">
+      <a href="/" className={buttonVariants({ size: "touch", className: "mt-2" })}>
         Go to linkables
       </a>
     </div>

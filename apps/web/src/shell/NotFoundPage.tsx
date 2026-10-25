@@ -1,3 +1,5 @@
+import { buttonVariants } from "@/components/ui/button";
+
 export function NotFoundPage() {
   return (
     <main className="flex min-h-svh items-center justify-center px-5 py-16 text-center">
@@ -9,7 +11,7 @@ export function NotFoundPage() {
         <span className="font-mono text-[13px] text-muted-foreground">404</span>
         <h1 className="font-display text-[clamp(32px,5vw,48px)] leading-[1.08] font-semibold tracking-[-0.04em]">This link didn't save.</h1>
         <p className="text-[17px] leading-[1.55] text-muted-foreground">The page you're looking for isn't here. It may have moved, or the address has a typo.</p>
-        <a href="/" className="mt-1.5 flex h-[52px] items-center rounded-[14px] bg-primary px-6 text-base font-bold text-primary-foreground hover:brightness-105">
+        <a href="/" className={buttonVariants({ size: "xl", className: "mt-1.5" })}>
           Back to linkables
         </a>
       </div>
