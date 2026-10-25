@@ -9,13 +9,12 @@ const PUBLIC_PAGES = [
 test.describe("signed out", () => {
   test.use({ signedIn: false });
 
-  test("the landing page asks for access by email during the private beta", async ({ page }) => {
+  test("every Request access link on the landing page leads to the form during the private beta", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("Private beta").first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Request access" }).first()).toHaveAttribute(
-      "href",
-      "mailto:support@linkables.app?subject=linkables%20beta%20access",
-    );
+    const links = page.getByRole("link", { name: "Request access", includeHidden: true });
+    await expect(links).toHaveCount(4);
+    for (const link of await links.all()) await expect(link).toHaveAttribute("href", "/request-access");
     await expect(page.getByRole("link", { name: /Get started/ })).toHaveCount(0);
   });
 

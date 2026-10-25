@@ -5,7 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { INVITE_ONLY, REQUEST_ACCESS_HREF, SUPPORT_EMAIL } from "../config/access";
+import { INVITE_ONLY, REQUEST_ACCESS_PATH } from "../config/access";
 import { pendingSaveHref } from "../save/pending-save";
 import { useAuthState } from "./auth-state";
 import { CodeStep } from "./CodeStep";
@@ -82,9 +82,9 @@ export function SignInScreen({ linkProblem, focusHeading, title = "Sign in to li
             No password needed.{" "}
             {INVITE_ONLY ? (
               <>
-                linkables is invite-only for now; ask for access at{" "}
-                <a href={REQUEST_ACCESS_HREF} className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
-                  {SUPPORT_EMAIL}
+                linkables is invite-only for now;{" "}
+                <a href={REQUEST_ACCESS_PATH} className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+                  request access
                 </a>
                 .
               </>

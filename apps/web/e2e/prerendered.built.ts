@@ -22,7 +22,7 @@ test("a signed-out visitor gets the prerendered landing page without the app", a
   const response = await page.goto("/");
   expect(await response?.text()).toContain("Never lose a");
   await expect(page.getByRole("heading", { name: "Never lose a link again.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Request access" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Request access" }).first()).toHaveAttribute("href", "/request-access");
   expect(scripts).toEqual([]);
 });
 
@@ -44,6 +44,12 @@ test("an expired email sign-in link loads the app, which explains the problem", 
   await page.goto("/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired");
   await expectAppBooted(page);
   await expect(page.getByRole("heading", { name: "This link has expired" })).toBeVisible();
+});
+
+test("the request access form loads the app for a visitor who is not signed in", async ({ page }) => {
+  await page.goto("/request-access");
+  await expect(page.getByRole("heading", { name: "Request access", level: 1 })).toBeVisible();
+  await expect(page.getByLabel("Email")).toBeVisible();
 });
 
 test("the extension install guide is open to a visitor who is not signed in", async ({ page }) => {
