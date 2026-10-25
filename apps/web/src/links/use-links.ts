@@ -89,13 +89,21 @@ function listPath(scope: ListScope, filters: ListFilters, cursor: string | undef
 export type CachedCopy = { link: SavedLink; updatedAt: number };
 
 // Only lists on screen poll for metadata, so a list visited earlier can still
-// hold a link as pending; the copy fetched most recently is the truth.
+// hold a link as pending. A fetched copy always beats a pending one, since
+// metadata never goes back to pending; the timestamp only breaks ties, because
+// any change to one link re-stamps every list, holding it or not.
+function isFresher(candidate: CachedCopy, current: CachedCopy | undefined): boolean {
+  if (current === undefined) return true;
+  if (isPending(candidate.link) !== isPending(current.link)) return isPending(current.link);
+  return candidate.updatedAt > current.updatedAt;
+}
+
 export function findListedCopy(queryClient: QueryClient, linkId: string): CachedCopy | undefined {
   let freshest: CachedCopy | undefined;
   for (const [queryKey, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.lists })) {
     const link = data?.pages.flatMap((page) => page.items).find((item) => item.id === linkId);
-    const updatedAt = queryClient.getQueryState(queryKey)?.dataUpdatedAt ?? 0;
-    if (link && (freshest === undefined || updatedAt > freshest.updatedAt)) freshest = { link, updatedAt };
+    const copy = link && { link, updatedAt: queryClient.getQueryState(queryKey)?.dataUpdatedAt ?? 0 };
+    if (copy && isFresher(copy, freshest)) freshest = copy;
   }
   return freshest;
 }
@@ -105,7 +113,7 @@ export function findListedCopy(queryClient: QueryClient, linkId: string): Cached
 export function findCachedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
   const listed = findListedCopy(queryClient, linkId);
   const own = queryClient.getQueryState<SavedLink>(linksKeys.detail(linkId));
-  if (own?.data && (listed === undefined || own.dataUpdatedAt > listed.updatedAt)) return own.data;
+  if (own?.data && isFresher({ link: own.data, updatedAt: own.dataUpdatedAt }, listed)) return own.data;
   return listed?.link;
 }
 
