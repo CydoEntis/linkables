@@ -54,7 +54,9 @@ the resource.
   `text/html`; any other content type records the type with no title. `fetchJson`
   accepts only a 2xx response whose media type is `application/json` (oEmbed
   errors are plain text labelled as JSON) and is used only for the YouTube oEmbed
-  endpoint.
+  endpoint. `fetchPage` (the reader view, amended 2026-10-25) takes the same
+  path as `fetchHtml` but reads the whole `text/html` body, still under the
+  2 MB hard abort and the 10 s total timeout.
 - Tests may inject a DNS lookup, allowed ports, and an exact-IP allow list (for the
   local test server only) to run size, timeout, redirect and content-type tests.
   The blocked-address check always runs; production builds the fetcher with no
