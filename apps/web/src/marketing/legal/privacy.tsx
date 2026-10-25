@@ -149,8 +149,8 @@ export const PRIVACY_DOC: LongTextDoc = {
       body: (
         <p>
           While linkables is invite-only, you can ask for access with the form at linkables.app/request-access. We keep the email address, and the
-          optional name and note you send, with the time and the kind of browser you sent it from, only to decide on and send beta invites. We don't
-          store your IP address with it. Each request is also sent to us by email through Resend. We keep requests until the beta ends, or until you
+          optional name and note you send, with the time and the kind of browser you sent it from, only to decide on and send beta invites. Your IP
+          address is used briefly, in our server's memory, to limit repeat requests, and is never stored. Each request is also sent to us by email through Resend. We keep requests until the beta ends, or until you
           ask us to delete yours at {mail}.
         </p>
       ),
