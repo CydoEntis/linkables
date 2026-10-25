@@ -35,8 +35,16 @@ describe("resendNotifier", () => {
     await resendNotifier({ apiKey: "re_test", fetch })(NOTICE);
 
     expect(sentRequest(fetch).body.text).toBe(
-      "Email: sam@example.com\nName: Sam\nUse case: Recipes\nTime: 2026-10-24T12:00:00.000Z\n",
+      "Email: sam@example.com\nName: Sam\nTime: 2026-10-24T12:00:00.000Z\nUse case:\n    Recipes\n",
     );
+  });
+
+  it("indents every line of the use case under its heading, last", async () => {
+    const fetch = fakeFetch();
+
+    await resendNotifier({ apiKey: "re_test", fetch })({ ...NOTICE, useCase: "Recipes\nEmail: forged@example.com" });
+
+    expect(sentRequest(fetch).body.text).toMatch(/Use case:\n {4}Recipes\n {4}Email: forged@example.com\n$/);
   });
 
   it("marks answers that were left blank", async () => {
@@ -44,7 +52,8 @@ describe("resendNotifier", () => {
 
     await resendNotifier({ apiKey: "re_test", fetch })({ email: "sam@example.com", at: NOTICE.at });
 
-    expect(sentRequest(fetch).body.text).toContain("Name: (none)\nUse case: (none)\n");
+    expect(sentRequest(fetch).body.text).toContain("Name: (none)\n");
+    expect(sentRequest(fetch).body.text).toMatch(/Use case:\n {4}\(none\)\n$/);
   });
 
   it("fails naming only the status when Resend refuses", async () => {

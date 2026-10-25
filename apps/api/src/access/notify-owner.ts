@@ -11,8 +11,11 @@ export type NotifyOwner = (notice: OwnerNotice) => Promise<void>;
 
 export type ResendNotifierOptions = { apiKey: string; fetch?: typeof fetch };
 
+// The use case is the one answer that may span lines, so it comes last with
+// every line indented: no line of it can pass for another field.
 function noticeText({ email, name, useCase, at }: OwnerNotice): string {
-  return `Email: ${email}\nName: ${name ?? "(none)"}\nUse case: ${useCase ?? "(none)"}\nTime: ${at.toISOString()}\n`;
+  const indented = (useCase ?? "(none)").split("\n").map((line) => `    ${line}`).join("\n");
+  return `Email: ${email}\nName: ${name ?? "(none)"}\nTime: ${at.toISOString()}\nUse case:\n${indented}\n`;
 }
 
 export function resendNotifier({ apiKey, fetch: send = fetch }: ResendNotifierOptions): NotifyOwner {

@@ -50,7 +50,7 @@ export function createApp({ logger, corsOrigins, auth, db, now = Date.now, notif
     .use(cors({ origin: corsOrigins, exposeHeaders: [REQUEST_ID_HEADER], maxAge: PREFLIGHT_MAX_AGE_SECONDS }))
     .get("/health", (c) => ok(c, { status: "ok" as const }))
     // Mounted before v1, so a request it answers never reaches v1's auth middleware.
-    .route(API_V1_PREFIX, accessRequestRoutes({ db, logger, now, notifyOwner }))
+    .route(API_V1_PREFIX, accessRequestRoutes({ db, logger, now, notifyOwner, behindProxy: auth.nodeEnv === "production" }))
     .route(API_V1_PREFIX, v1);
 
   app.onError(onError(logger));

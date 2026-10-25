@@ -58,7 +58,7 @@ describe("request access", () => {
     await submit(user);
 
     expect(request).toHaveBeenCalledWith("/access-requests", expect.anything(), expect.objectContaining({ method: "POST" }));
-    expect(sentBody()).toEqual({ email: "sam@example.com", name: "Sam", useCase: "Recipes", website: "" });
+    expect(sentBody()).toEqual({ email: "sam@example.com", name: "Sam", useCase: "Recipes", hp_confirm_field: "" });
   });
 
   it("asks for a valid email without sending anything", async () => {
@@ -84,7 +84,7 @@ describe("request access", () => {
   it("hides the honeypot from people and screen readers", () => {
     renderPage();
 
-    const trap = document.querySelector("input[name=website]");
+    const trap = document.querySelector("input[name=hp_confirm_field]");
 
     expect(trap?.closest("[aria-hidden=true]")).not.toBeNull();
     expect(trap).toHaveAttribute("tabindex", "-1");

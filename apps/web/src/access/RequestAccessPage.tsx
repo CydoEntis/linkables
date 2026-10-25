@@ -12,7 +12,7 @@ import { requestProblem, sendAccessRequest } from "./request-access";
 
 type Form = UseFormReturn<AccessRequestInput, unknown, AccessRequest>;
 
-const EMPTY: AccessRequestInput = { email: "", name: "", useCase: "", website: "" };
+const EMPTY: AccessRequestInput = { email: "", name: "", useCase: "", hp_confirm_field: "" };
 
 export function RequestAccessPage() {
   const offline = !useOnline();
@@ -123,7 +123,7 @@ function TextField({ form, name, label, multiline = false, ...input }: TextField
 function Honeypot({ form }: { form: Form }) {
   return (
     <div aria-hidden className="absolute -left-[9999px] size-px overflow-hidden">
-      <input type="text" tabIndex={-1} autoComplete="off" {...form.register("website")} />
+      <input type="text" tabIndex={-1} autoComplete="off" {...form.register("hp_confirm_field")} />
     </div>
   );
 }
