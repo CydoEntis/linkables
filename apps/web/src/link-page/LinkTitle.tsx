@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { SavedLink } from "@linkables/shared/links";
-import { useId, useState, type Ref } from "react";
+import { useId, useRef, useState, type Ref } from "react";
 import { useForm } from "react-hook-form";
 import { cn } from "cn";
 import { displayTitle } from "../links/link-display";
@@ -13,11 +13,24 @@ const TITLE = "text-[26px] leading-[1.15] font-bold tracking-[-0.02em] wrap-anyw
 // cancels, and a blank title brings back the fetched one.
 export function LinkTitle({ link, titleRef }: { link: SavedLink; titleRef: Ref<HTMLHeadingElement> }) {
   const [editing, setEditing] = useState(false);
+  const refocus = useRef(false);
   const title = displayTitle(link);
-  if (editing) return <TitleForm link={link} onDone={() => { setEditing(false); }} />;
+  const done = () => {
+    refocus.current = true;
+    setEditing(false);
+  };
+  // Enter or Esc removes the field with focus in it; focus goes back to the
+  // title, unless leaving the field already took it somewhere else.
+  const returnFocus = (button: HTMLButtonElement | null) => {
+    if (button === null || !refocus.current) return;
+    refocus.current = false;
+    if (document.activeElement === null || document.activeElement === document.body) button.focus();
+  };
+  if (editing) return <TitleForm link={link} onDone={done} />;
   return (
     <h1 ref={titleRef} tabIndex={-1} className={cn(TITLE, "outline-none")}>
       <button
+        ref={returnFocus}
         type="button"
         title="Rename"
         onClick={() => { setEditing(true); }}

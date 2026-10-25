@@ -1,5 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type Ref } from "react";
+import { z } from "zod";
 import { AddToSheet } from "../collections/AddToSheet";
 import { displayTitle, domainOf } from "../links/link-display";
 import { useLinksUi } from "../links/links-ui-store";
@@ -21,15 +22,33 @@ const route = getRouteApi("/l/$linkId");
 // under a bar that keeps the link's actions in reach.
 export function LinkPage() {
   const { linkId } = route.useParams();
+  // A malformed id is no link of anyone's; it is never sent to the API.
+  if (!z.uuid().safeParse(linkId).success) return <NoSuchLink />;
   // Keyed, so another link's page starts afresh: title focus, note, open editors.
   return <LinkPageFor key={linkId} linkId={linkId} />;
+}
+
+function NoSuchLink() {
+  const goBack = useGoBack();
+  useEscapeGoesBack(goBack);
+  return (
+    <div className="min-h-svh">
+      <LinkBar meta={null} loading={false} onBack={goBack} actions={null} />
+      <main>
+        <Problem title="Couldn't find this link" detail="It may have been deleted." />
+      </main>
+    </div>
+  );
 }
 
 function LinkPageFor({ linkId }: { linkId: string }) {
   const state = useLink(linkId);
   const found = state.status === "found" ? state.link : null;
   const reader = useReader(linkId, found !== null && mayHaveArticle(found));
-  const view = pageView(state, reader);
+  const [previewShown, setPreviewShown] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const view = pageView(state, reader, { previewShown, editing });
+  if (view.kind === "preview" && !previewShown) setPreviewShown(true);
   const [textSize, setTextSize] = useState(readTextSize);
   const goBack = useGoBack();
   const deleteLink = useDeleteLink();
@@ -51,9 +70,16 @@ function LinkPageFor({ linkId }: { linkId: string }) {
 
   return (
     <div className="min-h-svh">
-      <LinkBar meta={barMeta(view, found)} loading={view.kind === "loading"} onBack={goBack} actions={actions} />
+      <LinkBar meta={barMeta(view, found)} loading={view.kind === "loading" || reader.isLoading} onBack={goBack} actions={actions} />
       <main className="pb-[env(safe-area-inset-bottom)]">
-        <PageBody view={view} textSize={textSize} titleRef={titleRef} noteRef={noteRef} onRetryReader={() => void reader.refetch()} />
+        <PageBody
+          view={view}
+          textSize={textSize}
+          titleRef={titleRef}
+          noteRef={noteRef}
+          onRetryReader={() => void reader.refetch()}
+          onEditingChange={setEditing}
+        />
       </main>
       <AddToSheet />
     </div>
@@ -66,9 +92,10 @@ type PageBodyProps = {
   titleRef: Ref<HTMLHeadingElement>;
   noteRef: Ref<HTMLTextAreaElement>;
   onRetryReader: () => void;
+  onEditingChange: (editing: boolean) => void;
 };
 
-function PageBody({ view, textSize, titleRef, noteRef, onRetryReader }: PageBodyProps) {
+function PageBody({ view, textSize, titleRef, noteRef, onRetryReader, onEditingChange }: PageBodyProps) {
   switch (view.kind) {
     case "loading":
       return <ArticleSkeleton label={view.label} />;
@@ -81,7 +108,15 @@ function PageBody({ view, textSize, titleRef, noteRef, onRetryReader }: PageBody
     case "article":
       return <ReaderArticle article={view.article} url={view.url} fallbackTitle={displayTitle(view.link).text} textSize={textSize} titleRef={titleRef} />;
     case "preview":
-      return <LinkPreview link={view.link} titleRef={titleRef} noteRef={noteRef} onRetryReader={view.readerFailed ? onRetryReader : undefined} />;
+      return (
+        <LinkPreview
+          link={view.link}
+          titleRef={titleRef}
+          noteRef={noteRef}
+          onRetryReader={view.readerFailed ? onRetryReader : undefined}
+          onEditingChange={onEditingChange}
+        />
+      );
   }
 }
 

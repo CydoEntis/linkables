@@ -227,7 +227,8 @@ describe("the link page's bar", () => {
     await renderPage(savedLink({ resource: { kind: "video" } }));
     await userEvent.click(within(actions()).getByRole("button", { name: "Pin" }));
     expect(patches()).toEqual([{ pinned: true }]);
-    expect(within(actions()).getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(actions()).getByRole("button", { name: "Pin" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(actions()).getByRole("button", { name: "Pin" })).toHaveTextContent("Pinned");
   });
 
   it("goes back to the list it came from, and the list gets focus back on the row", async () => {
@@ -555,5 +556,40 @@ describe("a link saved moments ago", () => {
     queryClient.setQueryData(linksKeys.list("all"), listOf(waiting));
     await renderWith(queryClient);
     expect(await screen.findByRole("heading", { level: 1, name: /Metadata landed/ })).toBeInTheDocument();
+  });
+});
+
+describe("a page whose link's details land while it is open", () => {
+  it("keeps the preview, and a rename being typed, until the field is left; then shows the article", async () => {
+    const pending = savedLink({ originalUrl: "https://example.com/new", resource: { title: null, kind: "page", fetchStatus: "pending" } });
+    const landed = { ...pending, resource: { ...pending.resource, title: "Landed title", fetchStatus: "fetched" as const } };
+    request.mockImplementation((path) => {
+      if (path === `/links/${pending.id}`) return Promise.resolve(pending);
+      if (path === `/links/${pending.id}/reader`) return Promise.resolve(ARTICLE);
+      return Promise.resolve(answer(path));
+    });
+    const { queryClient } = await renderPage(pending);
+    await userEvent.click(screen.getByRole("button", { name: /example\.com\/new/ }));
+    const input = screen.getByRole("textbox", { name: "Title" });
+    await userEvent.clear(input);
+    await userEvent.type(input, "My own na");
+
+    act(() => { queryClient.setQueryData<LinksPages>(linksKeys.list("all"), listOf(landed)); });
+    await waitFor(() => { expect(calls(`/links/${pending.id}/reader`)).toHaveLength(1); });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(screen.getByRole("textbox", { name: "Title" })).toBe(input);
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue("My own na");
+
+    await userEvent.keyboard("{Escape}");
+    expect(await screen.findByRole("heading", { level: 1, name: "How we cut build times" })).toBeInTheDocument();
+  });
+});
+
+describe("a malformed link address", () => {
+  it("reads as not found without asking the API", async () => {
+    await renderWithRouter(<LinkPage />, { path: "/l/not-a-link" });
+    expect(screen.getByText("Couldn't find this link")).toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
   });
 });
