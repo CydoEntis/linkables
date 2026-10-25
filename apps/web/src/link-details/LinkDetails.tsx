@@ -7,18 +7,28 @@ import { useDeleteLink } from "../links/use-delete-link";
 import { isEditable } from "../links/use-paste-to-save";
 import { DetailsBody } from "./DetailsBody";
 import { useLinkDetails } from "./details-search";
+import { useDockedDetails, useShownLinkId } from "./docked-details";
 import { clampWidth, maxPanelWidth, readStoredWidth, storeWidth } from "./panel-width";
 import { ResizeGrip } from "./ResizeGrip";
 import { useDetailsLink } from "./use-details-link";
 import { useViewportWidth, useWideScreen } from "./use-wide-screen";
 
 // The open link's details: a resizable side panel beside the list on the web,
-// a full-screen sheet on phones.
-export function LinkDetails() {
+// a full-screen sheet on phones, and a docked column on huge screens.
+export function LinkDetails({ newestLinkId }: { newestLinkId?: string | undefined }) {
   const { linkId, close } = useLinkDetails();
+  const { shownId, docked } = useShownLinkId(newestLinkId);
+  const dismiss = useDockedDetails((state) => state.dismiss);
   const wide = useWideScreen();
-  if (linkId === undefined) return null;
-  return wide ? <DetailsPanel linkId={linkId} onClose={close} /> : <DetailsSheet linkId={linkId} onClose={close} />;
+  if (shownId === undefined) return null;
+  if (docked) {
+    const closeDocked = () => {
+      dismiss();
+      close();
+    };
+    return <DockedPanel linkId={shownId} opened={linkId !== undefined} onClose={closeDocked} />;
+  }
+  return wide ? <DetailsPanel linkId={shownId} onClose={close} /> : <DetailsSheet linkId={shownId} onClose={close} />;
 }
 
 type DetailsProps = { linkId: string; onClose: () => void };
@@ -35,6 +45,18 @@ function useDetails({ linkId, onClose }: DetailsProps) {
   };
 }
 
+// Takes keyboard users to each link they open, hands focus back to its row on
+// close, and closes on Esc. A docked panel showing the newest link by itself
+// leaves focus where it is.
+function usePanelFocus(linkId: string, onClose: () => void, takeFocus = true) {
+  const panelRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (takeFocus) panelRef.current?.focus({ preventScroll: true });
+  }, [linkId, takeFocus]);
+  useReturnFocusToRow(panelRef, linkId);
+  return { panelRef, onKeyDown: panelKeyHandler(onClose) };
+}
+
 // No scrim: the list stays usable, and clicking another row swaps the content.
 function DetailsPanel({ linkId, onClose }: DetailsProps) {
   const { details, onDelete } = useDetails({ linkId, onClose });
@@ -42,25 +64,36 @@ function DetailsPanel({ linkId, onClose }: DetailsProps) {
   // A narrower window shrinks the panel without forgetting the width the user chose.
   const maxWidth = maxPanelWidth(useViewportWidth());
   const width = clampWidth(storedWidth, maxWidth);
-  const panelRef = useRef<HTMLElement | null>(null);
-
-  // Opening a link, or swapping to another, takes keyboard users to it.
-  useEffect(() => {
-    panelRef.current?.focus({ preventScroll: true });
-  }, [linkId]);
-  useReturnFocusToRow(panelRef, linkId);
-  const onPanelKeyDown = panelKeyHandler(onClose);
+  const { panelRef, onKeyDown } = usePanelFocus(linkId, onClose);
 
   return (
     <section
       ref={panelRef}
       tabIndex={-1}
       aria-label="Link details"
-      onKeyDown={onPanelKeyDown}
+      onKeyDown={onKeyDown}
       style={{ width }}
       className="fixed inset-y-0 right-0 z-40 flex animate-panel-in flex-col bg-card shadow-[-1px_0_0_var(--line-strong),-30px_0_80px_-30px_rgb(0_0_0/0.8)] outline-none"
     >
       <ResizeGrip width={width} maxWidth={maxWidth} onResize={setWidth} onResizeEnd={storeWidth} />
+      <DetailsBody details={details} onClose={onClose} onDelete={onDelete} />
+    </section>
+  );
+}
+
+// A fixed third column; data-docked-details makes the shell leave room for it.
+function DockedPanel({ linkId, opened, onClose }: DetailsProps & { opened: boolean }) {
+  const { details, onDelete } = useDetails({ linkId, onClose });
+  const { panelRef, onKeyDown } = usePanelFocus(linkId, onClose, opened);
+  return (
+    <section
+      ref={panelRef}
+      tabIndex={-1}
+      aria-label="Link details"
+      data-docked-details
+      onKeyDown={onKeyDown}
+      className="fixed inset-y-0 right-0 z-30 flex w-[480px] animate-fade-in flex-col border-l border-border bg-background outline-none"
+    >
       <DetailsBody details={details} onClose={onClose} onDelete={onDelete} />
     </section>
   );

@@ -6,7 +6,8 @@ import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { isNarrowed, type FiltersChange, type ListFilters } from "../search/list-filters";
 import { NoMatches } from "../search/NoMatches";
 import { groupLinks, type LinkGroup } from "./link-groups";
-import { useLinkDetails } from "../link-details/details-search";
+import { useShownLinkId } from "../link-details/docked-details";
+import { LinkDetails } from "../link-details/LinkDetails";
 import { LinkCard } from "./LinkCard";
 import { LinkRow, type LinkRowProps, type RowHighlight } from "./LinkRow";
 import { useListLayout } from "./list-layout";
@@ -28,20 +29,6 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const deletingIds = useLinksUi((state) => state.deletingIds);
   const loaded = useHeldRow(query.data?.pages.flatMap((page) => page.items) ?? []);
   const layout = useListLayout();
-  const selectedId = useLinkDetails().linkId;
-
-  const narrowed = isNarrowed(filters);
-  // One status region in every state, so a change to "0 matches" is announced too.
-  const withStatus = (body: ReactNode, count: string | null = null) => (
-    <>
-      <ResultCount text={count} />
-      {body}
-    </>
-  );
-  if (query.isPending) return withStatus(<LinkListSkeleton />);
-  if (query.isError && query.data === undefined) {
-    return withStatus(<LoadProblem error={query.error} onRetry={() => void query.refetch()} />);
-  }
 
   // A link filed out of this list on this device goes at once (after its leave
   // animation), without waiting for the refetch; a held row waits for its popover.
@@ -49,6 +36,24 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const belongs = (link: SavedLink) => belongsIn(scope, link, filters);
   const stays = (link: SavedLink) => !deletingIds.includes(link.id) && (belongs(link) || link.id === heldId);
   const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
+  const newestId = newestLinkId(links.filter(stays));
+  const selectedId = useShownLinkId(newestId).shownId;
+
+  const narrowed = isNarrowed(filters);
+  // One status region in every state, so a change to "0 matches" is announced too.
+  // The details panel sits here too: on huge screens it opens on this list's newest link.
+  const withStatus = (body: ReactNode, count: string | null = null) => (
+    <>
+      <ResultCount text={count} />
+      {body}
+      <LinkDetails newestLinkId={newestId} />
+    </>
+  );
+  if (query.isPending) return withStatus(<LinkListSkeleton />);
+  if (query.isError && query.data === undefined) {
+    return withStatus(<LoadProblem error={query.error} onRetry={() => void query.refetch()} />);
+  }
+
   const count = narrowed ? countLabel(links.length, query.hasNextPage, query.isPlaceholderData) : null;
   if (links.length === 0) {
     return withStatus(narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : <LinksEmpty scope={scope} />, count);
@@ -125,6 +130,12 @@ function LinkGrid({ links, itemProps }: { links: SavedLink[]; itemProps: ItemPro
       ))}
     </ul>
   );
+}
+
+function newestLinkId(links: readonly SavedLink[]): string | undefined {
+  let newest: SavedLink | undefined;
+  for (const link of links) if (newest === undefined || link.savedAt > newest.savedAt) newest = link;
+  return newest?.id;
 }
 
 // Day groups follow the newest-first order; search results and other sorts are
