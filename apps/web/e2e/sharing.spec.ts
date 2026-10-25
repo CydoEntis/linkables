@@ -22,10 +22,6 @@ const LINKS = [
   { url: "https://example.org/tokyo", resource: { title: "Tokyo food", fetchStatus: "fetched" as const } },
 ];
 
-function shareDialog(page: Page) {
-  return page.getByRole("dialog", { name: /^Share/ });
-}
-
 // Answers the linked pages so the tabs Open all makes have somewhere to land.
 async function stubLinkedPages(context: BrowserContext) {
   await context.route(/https:\/\/example\.(com|org)\/.*/, (route) => route.fulfill({ body: "<title>stub</title>", contentType: "text/html" }));
@@ -44,37 +40,36 @@ async function blockPopUpsAfterTheFirst(page: Page) {
 test.describe("the owner", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("gets and copies a share link in one click, opens it, and turns it off with two taps so it stops working", async ({ page, context, db, user, seedLinks }) => {
+  test("shares and copies the link in one click, opens it, and turns it off with two taps so it stops working", async ({ page, context, db, user, seedLinks }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const col = await fileInto(db, user.id, await seedLinks(LINKS));
     await page.goto(`/c/${col.id}`);
 
     await page.getByRole("button", { name: "Share", exact: true }).first().click();
-    await expect(shareDialog(page).getByText("2 links · only you can see it")).toBeVisible();
-    await shareDialog(page).getByRole("button", { name: "Get share link" }).click();
-    await expect(shareDialog(page).getByText("Link is on")).toBeVisible();
-    await expect(shareDialog(page).getByRole("button", { name: "Copied" })).toBeVisible();
-    await expect(page.getByText("Link copied")).toBeVisible();
-    await expect(shareDialog(page).getByText("2 links · anyone with the link can view")).toBeVisible();
-    const url = await shareDialog(page).getByRole("link", { name: "See what viewers see" }).getAttribute("href");
-    expect(url).toMatch(/\/s\/[A-Za-z0-9_-]{32}$/);
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
-    await page.keyboard.press("Escape");
+    await expect(page.getByText("Link copied · anyone with it can view")).toBeVisible();
     await expect(page.getByText("Shared", { exact: true })).toBeVisible();
     await expect(page.getByRole("complementary").getByRole("link", { name: /^Trip to Japan\W+shared/ })).toBeVisible();
+    const url = await page.evaluate(() => navigator.clipboard.readText());
+    expect(url).toMatch(/\/s\/[A-Za-z0-9_-]{32}$/);
+    await page.getByRole("button", { name: "Sharing options" }).click();
+    await expect(page.getByRole("menuitem", { name: "Open shared page" })).toHaveAttribute("href", url);
+    await page.keyboard.press("Escape");
 
-    await page.goto(url ?? "");
+    await page.goto(url);
     await expect(page.getByRole("heading", { level: 1, name: "Trip to Japan" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Kyoto, my pick/ })).toHaveAttribute("href", "https://example.com/kyoto");
+    await expect(page.getByText("private note")).toHaveCount(0);
 
     await page.goto(`/c/${col.id}`);
     await page.getByRole("button", { name: "Sharing options" }).click();
-    await shareDialog(page).getByRole("button", { name: "Turn off link" }).click();
-    await expect(shareDialog(page).getByText("The link stops working right away.", { exact: false })).toBeVisible();
-    await shareDialog(page).getByRole("button", { name: "Tap again to turn off" }).click();
-    await expect(shareDialog(page).getByRole("button", { name: "Get share link" })).toBeVisible();
+    await page.getByRole("menuitem", { name: "Turn off link" }).click();
+    await expect(page.getByRole("menuitem", { name: "Tap again to turn off" })).toBeVisible();
+    await page.getByRole("menuitem", { name: "Tap again to turn off" }).click();
+    await expect(page.getByText("Link turned off. It no longer works.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Share", exact: true }).first()).toBeFocused();
+    await expect(page.getByText("Shared", { exact: true })).toHaveCount(0);
 
-    await page.goto(url ?? "");
+    await page.goto(url);
     await expect(page.getByRole("heading", { name: "This shared collection isn't available" })).toBeVisible();
   });
 
@@ -85,21 +80,39 @@ test.describe("the owner", () => {
 
     await page.getByRole("button", { name: "Copy link" }).click();
 
-    await expect(page.getByText("Link copied")).toBeVisible();
+    await expect(page.getByText("Link copied", { exact: true })).toBeVisible();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(new RegExp(`/s/${TOKEN}$`));
-    await page.getByRole("button", { name: "Sharing options" }).click();
-    await expect(shareDialog(page).getByText("Link is on")).toBeVisible();
   });
 
-  test("on a phone, still opens the share sheet from a ghost Share once the link is on", async ({ page, db, user, seedLinks }) => {
+  test("works the sharing menu from the keyboard", async ({ page, db, user, seedLinks }) => {
+    const col = await fileInto(db, user.id, await seedLinks(LINKS), TOKEN);
+    await page.goto(`/c/${col.id}`);
+
+    await page.getByRole("button", { name: "Sharing options" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("menu")).toContainText(TOKEN);
+    await page.keyboard.press("End");
+    await expect(page.getByRole("menuitem", { name: "Turn off link" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("menuitem", { name: "Tap again to turn off" })).toBeFocused();
+    await page.keyboard.press("Escape");
+
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Sharing options" })).toBeFocused();
+    await expect(page.getByText("Shared", { exact: true })).toBeVisible();
+  });
+
+  test("on a phone, opens the sharing menu without scrolling sideways", async ({ page, db, user, seedLinks }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const col = await fileInto(db, user.id, await seedLinks(LINKS), TOKEN);
     await page.goto(`/c/${col.id}`);
 
-    await page.getByRole("button", { name: "Share", exact: true }).first().click();
+    await page.getByRole("button", { name: "Sharing options" }).click();
 
-    await expect(shareDialog(page).getByRole("button", { name: "Send link…" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sharing options" })).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Turn off link" })).toBeInViewport();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBe(0);
   });
 });
 

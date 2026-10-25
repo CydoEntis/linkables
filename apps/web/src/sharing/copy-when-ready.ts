@@ -1,5 +1,3 @@
-import { toast } from "sonner";
-
 // Safari forgets the click once an await has passed, so the clipboard write
 // starts inside the click, holding a promise of the text, where ClipboardItem allows it.
 function startWrite(text: Promise<string>): Promise<boolean> {
@@ -36,7 +34,5 @@ async function writeText(text: string): Promise<boolean> {
 export async function copyWhenReady(url: Promise<string>): Promise<boolean> {
   const early = startWrite(url);
   const text = await url;
-  const copied = (await early) || (await writeText(text));
-  if (copied) toast("Link copied");
-  return copied;
+  return (await early) || (await writeText(text));
 }
