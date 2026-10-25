@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link2Off, LoaderCircle, Trash2, UserRound, X } from "lucide-react";
-import { useId, type ReactNode } from "react";
+import { useId, useRef, type ReactNode, type RefObject } from "react";
 import { useForm } from "react-hook-form";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,12 @@ type DeleteAccountDialogProps = { open: boolean; onOpenChange: (open: boolean) =
 // A dialog on a wide screen, a bottom sheet on a phone; the same confirm in both.
 export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogProps) {
   const wide = useWideScreen();
-  const body = open ? <DeleteAccountBody onCancel={() => { onOpenChange(false); }} /> : null;
+  const confirmRef = useRef<HTMLInputElement>(null);
+  const body = open ? <DeleteAccountBody confirmRef={confirmRef} onCancel={() => { onOpenChange(false); }} /> : null;
   if (wide) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[480px] p-[26px] duration-240 ease-out-soft data-ending-style:translate-y-[calc(-50%+8px)] data-ending-style:scale-98 data-starting-style:translate-y-[calc(-50%+8px)] data-starting-style:scale-98">
+        <DialogContent initialFocus={confirmRef} className="max-w-[480px] p-[26px] duration-240 ease-out-soft data-ending-style:translate-y-[calc(-50%+8px)] data-ending-style:scale-98 data-starting-style:translate-y-[calc(-50%+8px)] data-starting-style:scale-98">
           {body}
         </DialogContent>
       </Dialog>
@@ -29,14 +30,16 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
   }
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="max-h-[92svh] overflow-y-auto rounded-t-[26px] px-5 pt-[22px] pb-[max(40px,env(safe-area-inset-bottom))] duration-320">
+      <SheetContent initialFocus={confirmRef} className="max-h-[92svh] overflow-y-auto rounded-t-[26px] px-5 pt-[22px] pb-[max(40px,env(safe-area-inset-bottom))] duration-320">
         {body}
       </SheetContent>
     </Sheet>
   );
 }
 
-function DeleteAccountBody({ onCancel }: { onCancel: () => void }) {
+type BodyProps = { confirmRef: RefObject<HTMLInputElement | null>; onCancel: () => void };
+
+function DeleteAccountBody({ confirmRef, onCancel }: BodyProps) {
   const exportLinks = useExportLinks();
   return (
     <>
@@ -55,7 +58,7 @@ function DeleteAccountBody({ onCancel }: { onCancel: () => void }) {
           Export my links
         </button>
       </p>
-      <ConfirmForm onCancel={onCancel} />
+      <ConfirmForm confirmRef={confirmRef} onCancel={onCancel} />
     </>
   );
 }
@@ -71,7 +74,7 @@ function Consequence({ icon, children }: { icon: ReactNode; children: ReactNode 
   );
 }
 
-function ConfirmForm({ onCancel }: { onCancel: () => void }) {
+function ConfirmForm({ confirmRef, onCancel }: BodyProps) {
   const deleteAccount = useDeleteAccount();
   const form = useForm<DeleteAccountForm>({ resolver: zodResolver(deleteAccountFormSchema), defaultValues: { confirm: "" } });
   const matches = deleteAccountFormSchema.safeParse({ confirm: form.watch("confirm") }).success;
@@ -101,6 +104,10 @@ function ConfirmForm({ onCancel }: { onCancel: () => void }) {
             matches && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40",
           )}
           {...field}
+          ref={(element) => {
+            field.ref(element);
+            confirmRef.current = element;
+          }}
           onChange={(event) => {
             event.target.value = event.target.value.toUpperCase();
             void field.onChange(event);
