@@ -14,3 +14,9 @@ export const supabase = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_AN
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut({ scope: "local" });
 }
+
+// After the account is deleted: ends every session, the extension's and other
+// devices' too. As with signOut, this browser's session goes even if the revoke fails.
+export async function signOutEverywhere(): Promise<void> {
+  await supabase.auth.signOut({ scope: "global" });
+}
