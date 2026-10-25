@@ -111,8 +111,8 @@ export const PRIVACY_DOC: LongTextDoc = {
       heading: "Cookies and local storage",
       body: (
         <p>
-          linkables uses no tracking cookies. Your browser's local storage keeps your sign-in session, so you stay signed in, and a few settings such as the
-          width of the details panel. Signing out removes the session.
+          linkables uses no tracking cookies. Your browser's local storage keeps your sign-in session, so you stay signed in, and a few display
+          settings. Signing out removes the session.
         </p>
       ),
     },
