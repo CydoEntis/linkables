@@ -9,7 +9,7 @@ import { domainOf, safeHref } from "../links/link-display";
 import { ReaderBlocks } from "./ReaderBlocks";
 import { useReader } from "./use-reader";
 
-const route = getRouteApi("/read/$linkId");
+const route = getRouteApi("/l/$linkId/read");
 
 export function ReaderPage() {
   const { linkId } = route.useParams();

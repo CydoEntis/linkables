@@ -47,7 +47,7 @@ const collectionRoute = createRoute({
 // shared collection never links here.
 const readerRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/read/$linkId",
+  path: "/l/$linkId/read",
   component: ReaderPage,
 });
 

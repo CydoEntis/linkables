@@ -35,7 +35,7 @@ test.describe("at 1280 px", () => {
     await page.getByRole("link", { name: /^Build times/ }).click();
     await panel(page).getByRole("link", { name: "Read" }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/read/${link?.id ?? ""}$`));
+    await expect(page).toHaveURL(new RegExp(`/l/${link?.id ?? ""}/read$`));
     await expect(page.getByRole("heading", { level: 1, name: "How We Cut Build Times in Half" })).toBeVisible();
     await expect(page.getByText("Example Engineering · 1 min read")).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Caching dependencies" })).toBeVisible();
@@ -54,7 +54,7 @@ test.describe("at 1280 px", () => {
     await expect(panel(page).getByRole("heading", { name: /Tokyo night walk/ })).toBeVisible();
     await expect(panel(page).getByRole("link", { name: "Read" })).toHaveCount(0);
 
-    await page.goto(`/read/${video?.id ?? ""}`);
+    await page.goto(`/l/${video?.id ?? ""}/read`);
     await expect(page.getByText("Reader view isn't available for this page")).toBeVisible();
     await expect(page.getByRole("main").getByRole("link", { name: /^Open/ })).toHaveAttribute("href", VIDEO.url);
 
@@ -64,7 +64,7 @@ test.describe("at 1280 px", () => {
 
   test("another user's link reads as not found", async ({ page, db }) => {
     const [theirs] = await seedLinksFor(db, randomUUID(), [ARTICLE]);
-    await page.goto(`/read/${theirs?.id ?? ""}`);
+    await page.goto(`/l/${theirs?.id ?? ""}/read`);
     await expect(page.getByText("Couldn't find this link")).toBeVisible();
   });
 });
@@ -75,7 +75,7 @@ test.describe("at 390 px", () => {
   test("the reader fits a phone without sideways scrolling", async ({ page, db, seedLinks }) => {
     const [link] = await seedLinks([ARTICLE]);
     await storeReadableCopy(db, link?.resourceId ?? "");
-    await page.goto(`/read/${link?.id ?? ""}`);
+    await page.goto(`/l/${link?.id ?? ""}/read`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
