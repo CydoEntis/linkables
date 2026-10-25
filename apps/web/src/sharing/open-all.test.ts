@@ -23,12 +23,12 @@ describe("openAll", () => {
       { opener: null, location: { href: "https://a.example/" } },
       { opener: null, location: { href: "http://b.example/" } },
     ]);
-    expect(result).toEqual({ opened: 2, blocked: 0 });
+    expect(result).toEqual({ opened: ["https://a.example/", "http://b.example/"], blocked: [] });
   });
 
-  it("counts the tabs the browser blocked", () => {
+  it("names the links the browser blocked", () => {
     const result = openAll(["https://a.example/", "https://b.example/", "https://c.example/"], opener([tab(), null, null]));
 
-    expect(result).toEqual({ opened: 1, blocked: 2 });
+    expect(result).toEqual({ opened: ["https://a.example/"], blocked: ["https://b.example/", "https://c.example/"] });
   });
 });
