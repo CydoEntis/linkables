@@ -5,7 +5,7 @@ const mail = <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>;
 
 export const PRIVACY_DOC: LongTextDoc = {
   title: "Privacy policy",
-  updated: "October 24, 2026",
+  updated: "October 25, 2026",
   short: [
     "We store the links you save, and what you add to them, so you can find them on any device.",
     "No ads, no analytics, no tracking, and we never sell your data.",
@@ -72,6 +72,10 @@ export const PRIVACY_DOC: LongTextDoc = {
           <p>
             There are no ads in linkables, no analytics or tracking scripts, and no profile of you. We don't sell your data or share it with anyone except
             the providers below, who process it only to run the service.
+          </p>
+          <p>
+            If you turn on a collection's share link, anyone with that link can see the collection's name and its links' addresses, titles, descriptions and
+            preview images, without signing in. They can't see your notes, your pins or who you are. Turning the link off stops it working right away.
           </p>
         </>
       ),
