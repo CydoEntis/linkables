@@ -1,4 +1,5 @@
 import { Worker } from "node:worker_threads";
+import type { Logger } from "../log/logger";
 
 export type ExtractRequest = { html: string; pageUrl: string };
 // The article is checked against the contract by the caller, so it crosses as unknown.
@@ -18,6 +19,7 @@ export type ExtractPoolOptions = {
   timeoutMs?: number;
   queueMax?: number;
   workerUrl?: URL;
+  logger?: Logger;
 };
 
 type Job = { request: ExtractRequest; resolve: (article: unknown) => void; reject: (error: ExtractError) => void };
@@ -34,17 +36,37 @@ export function createExtractPool({
   timeoutMs = 5_000,
   queueMax = 16,
   workerUrl = DEFAULT_WORKER,
+  logger,
 }: ExtractPoolOptions = {}) {
   const idle: Worker[] = [];
   const queue: Job[] = [];
+  const retired = new WeakSet<Worker>();
   let live = 0;
 
   function spawn(): Worker {
     live += 1;
     const worker = new Worker(workerUrl, { resourceLimits: { maxOldGenerationSizeMb: WORKER_HEAP_MB } });
+    // An 'error' with no listener would crash the API, and one can arrive while
+    // the worker is idle, so every worker keeps this listener for its whole life.
+    // Only the error's name is logged: its message can quote the page.
+    worker.on("error", (error: unknown) => {
+      logger?.error("extract worker failed", { error: error instanceof Error ? error.name : "unknown" });
+      retire(worker);
+    });
+    worker.on("exit", () => { retire(worker); });
     // An idle worker must never keep the process alive at shutdown.
     worker.unref();
     return worker;
+  }
+
+  // Idempotent: a failed worker is retired by its error, its exit and its job.
+  function retire(worker: Worker): void {
+    if (retired.has(worker)) return;
+    retired.add(worker);
+    live -= 1;
+    const at = idle.indexOf(worker);
+    if (at !== -1) idle.splice(at, 1);
+    void worker.terminate();
   }
 
   function pump(): void {
@@ -65,10 +87,7 @@ export function createExtractPool({
       clearTimeout(timer);
       worker.off("message", onMessage).off("error", onFailure).off("exit", onFailure);
       if (reusable) idle.push(worker);
-      else {
-        live -= 1;
-        void worker.terminate();
-      }
+      else retire(worker);
       settle();
       pump();
     };
@@ -91,6 +110,3 @@ export function createExtractPool({
 
   return { extract };
 }
-
-// One pool per process, so concurrent reads share its bounds.
-export const { extract: extractInWorker } = createExtractPool();
