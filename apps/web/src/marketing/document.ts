@@ -7,7 +7,6 @@ export type DocumentOptions = {
   page: MarketingPage;
   body: string;
   assets: BuiltAssets;
-  indexable: boolean;
   // The landing page loads the app in place when a session is stored (boot-app.ts).
   bootsApp: boolean;
 };
@@ -21,11 +20,14 @@ export function pageUrl(page: MarketingPage): string {
   return SITE_ORIGIN + page.path;
 }
 
-function metaTags(page: MarketingPage, indexable: boolean): string[] {
+function metaTags(page: MarketingPage): string[] {
   const title = escapeAttr(page.title);
   const description = escapeAttr(page.description);
   const image = SITE_ORIGIN + SOCIAL_IMAGE_PATH;
-  const shared = [
+  const url = pageUrl(page);
+  return [
+    `<link rel="canonical" href="${url}">`,
+    `<meta property="og:url" content="${url}">`,
     `<meta property="og:type" content="website">`,
     `<meta property="og:site_name" content="linkables">`,
     `<meta property="og:title" content="${title}">`,
@@ -39,18 +41,15 @@ function metaTags(page: MarketingPage, indexable: boolean): string[] {
     `<meta name="twitter:description" content="${description}">`,
     `<meta name="twitter:image" content="${image}">`,
   ];
-  if (!indexable) return [`<meta name="robots" content="noindex">`, ...shared];
-  const url = pageUrl(page);
-  return [`<link rel="canonical" href="${url}">`, `<meta property="og:url" content="${url}">`, ...shared];
 }
 
-export function marketingDocument({ page, body, assets, indexable, bootsApp }: DocumentOptions): string {
+export function marketingDocument({ page, body, assets, bootsApp }: DocumentOptions): string {
   const head = [
     `<meta charset="UTF-8">`,
     `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
     `<title>${escapeAttr(page.title)}</title>`,
     `<meta name="description" content="${escapeAttr(page.description)}">`,
-    ...metaTags(page, indexable),
+    ...metaTags(page),
     `<meta name="theme-color" content="#121212">`,
     `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`,
     `<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">`,

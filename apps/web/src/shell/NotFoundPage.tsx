@@ -1,4 +1,3 @@
-// A plain link home, not a router Link: this page is also prerendered as static 404.html.
 export function NotFoundPage() {
   return (
     <main className="flex min-h-svh items-center justify-center px-5 py-16 text-center">

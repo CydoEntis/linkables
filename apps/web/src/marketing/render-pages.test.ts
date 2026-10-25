@@ -54,10 +54,6 @@ it("lets only the landing page load the app, for signed-in users", () => {
   expect(parsed(PRIVACY_PAGE.file).documentElement.innerHTML).not.toContain(ASSETS.entry);
 });
 
-it("keeps the 404 page out of search results", () => {
-  expect(meta(parsed("404.html"), "meta[name=robots]")).toBe("noindex");
-});
-
 it("lists the public pages in the sitemap", () => {
   const sitemap = files.find((output) => output.file === "sitemap.xml")?.contents ?? "";
   const locs = [...sitemap.matchAll(/<loc>(.+?)<\/loc>/g)].map((match) => match[1]);
