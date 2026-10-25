@@ -113,7 +113,7 @@ describe("collection sharing", () => {
     expect(await viewed(res)).toEqual({
       name: "Trip to Japan",
       linkCount: 2,
-      updatedAt: expect.any(String),
+      updatedAt: expect.any(String) as string,
       links: [
         { url: "https://example.com/tokyo", title: null, description: null, thumbnailUrl: null, faviconUrl: null, kind: "page" },
         {
