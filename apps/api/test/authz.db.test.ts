@@ -76,6 +76,10 @@ const cases: Record<string, Case> = {
     request: ({ linkId }) => ({ path: `/api/v1/links/${linkId}` }),
     idFields: ["linkId"],
   },
+  "GET /api/v1/links/:id/reader": {
+    request: ({ linkId }) => ({ path: `/api/v1/links/${linkId}/reader` }),
+    idFields: ["linkId"],
+  },
   "GET /api/v1/collections": { request: () => ({ path: "/api/v1/collections" }) },
   "POST /api/v1/collections": { request: () => ({ path: "/api/v1/collections", body: { name: SHARED_NAME } }) },
   "PATCH /api/v1/collections/:id": {

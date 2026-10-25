@@ -2,6 +2,7 @@ import { skipNotifyAccountDeleted } from "../src/access/notify-owner";
 import { createApp, type AppDeps } from "../src/app";
 import { createDb } from "../src/db/client";
 import { createLogger, type LogLevel } from "../src/log/logger";
+import { FetchError } from "../src/metadata/fetcher";
 import { mintToken, testJwks } from "./auth/tokens";
 
 export const TEST_SUPABASE_URL = "https://test-ref.supabase.co";
@@ -17,6 +18,9 @@ export const TEST_AUTH: AppDeps["auth"] = {
 // database get a client that never opens a socket. DB tests pass their own.
 const unreachableDb = createDb("postgres://unused@127.0.0.1:1/unused").db;
 
+// Tests never reach the network; a test that reads a page passes its own fetchPage.
+const offlineFetchPage: AppDeps["fetchPage"] = () => Promise.reject(new FetchError("network", "tests are offline"));
+
 export function captureLogger(level: LogLevel = "debug") {
   const lines: string[] = [];
   return { logger: createLogger(level, (line) => lines.push(line)), lines };
@@ -29,6 +33,7 @@ export function createTestApp(deps: Partial<AppDeps> = {}) {
     auth: TEST_AUTH,
     db: unreachableDb,
     notifyAccountDeleted: skipNotifyAccountDeleted,
+    fetchPage: offlineFetchPage,
     ...deps,
   });
 }
