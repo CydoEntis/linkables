@@ -47,26 +47,23 @@ beforeEach(() => {
 });
 
 describe("SidebarCollections", () => {
-  it("shows the six most recent, capitalised, with their link counts", async () => {
+  it("lists every collection, capitalised, with its link count", async () => {
     renderSidebar();
     expect(await screen.findByRole("link", { name: /^Japan/ })).toBeInTheDocument();
-    expect(listedNames()).toEqual(["Japan", "Watch later1", "Rust2", "Recipes3", "Design4", "Running5"]);
+    expect(listedNames()).toEqual(["Japan", "Watch later1", "Rust2", "Recipes3", "Design4", "Running5", "Books6", "Music7"]);
+    expect(screen.queryByRole("button", { name: /Show all/ })).not.toBeInTheDocument();
   });
 
-  it("keeps the open collection listed when it is not among the recent six", async () => {
+  it("marks the open collection as the current page", async () => {
     renderSidebar(music.id);
     await screen.findByRole("link", { name: /^Japan/ });
     expect(screen.getByRole("link", { name: /^Music/ })).toHaveAttribute("aria-current", "page");
   });
 
-  it("shows all of them, and finds one by name", async () => {
-    const user = renderSidebar();
-    await user.click(await screen.findByRole("button", { name: "Show all 8" }));
-    expect(listedNames()).toHaveLength(8);
-    await user.type(screen.getByRole("textbox", { name: "Find a collection" }), "mus");
-    expect(listedNames()).toEqual(["Music7"]);
-    await user.type(screen.getByRole("textbox", { name: "Find a collection" }), "xyz");
-    expect(screen.getByText("No collection called that.")).toBeInTheDocument();
+  it("says where collections will show up when there are none", async () => {
+    request.mockImplementation((path) => Promise.resolve(path === "/collections" ? { items: [] } : null));
+    renderSidebar();
+    expect(await screen.findByText("Collections you make show up here.")).toBeInTheDocument();
   });
 
   it("draws each collection's 2×2 mini-cover from its cover tiles", async () => {

@@ -12,7 +12,6 @@ import { useCollectionsUi } from "./collections-ui-store";
 import { displayName } from "./display-name";
 import { MiniCover } from "./MiniCover";
 import { NewCollectionForm } from "./NewCollectionForm";
-import { RECENT_COUNT, sidebarList } from "./sidebar-list";
 import { useCollections } from "./use-collections";
 import { useMembership } from "./use-membership";
 
@@ -21,10 +20,6 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
   const dragging = useLinksUi((state) => state.draggingId !== null);
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-  const [query, setQuery] = useState("");
-  const all = collections.data ?? [];
-  const shown = sidebarList(all, { showAll, query, activeId });
 
   return (
     <section aria-labelledby="sidebar-collections" className="flex min-h-0 flex-1 flex-col gap-0.5">
@@ -56,16 +51,6 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
           }}
         />
       ) : null}
-      {showAll ? (
-        <input
-          autoFocus
-          value={query}
-          onChange={(event) => { setQuery(event.target.value); }}
-          placeholder="Find a collection"
-          aria-label="Find a collection"
-          className="mx-1 mb-1.5 h-[34px] shrink-0 animate-fade-in rounded-[9px] bg-transparent px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--line-strong)] outline-none focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring"
-        />
-      ) : null}
       {/* The gutter gives a row room to grow while a link is held over it or lands on it. */}
       <div className="-mx-3 flex min-h-0 flex-col overflow-x-hidden overflow-y-auto px-3">
         {collections.isError ? (
@@ -77,27 +62,14 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
           </p>
         ) : null}
         <ul className="flex flex-col">
-          {shown.map((collection) => (
+          {(collections.data ?? []).map((collection) => (
             <li key={collection.id}>
               <SidebarCollection collection={collection} active={collection.id === activeId} />
             </li>
           ))}
         </ul>
-        {showAll && query.trim() !== "" && shown.length === 0 ? (
-          <p className="px-3 py-2 text-[12.5px] text-subtle-foreground">No collection called that.</p>
-        ) : null}
-        {all.length > RECENT_COUNT ? (
-          <button
-            type="button"
-            aria-expanded={showAll}
-            onClick={() => {
-              setShowAll(!showAll);
-              setQuery("");
-            }}
-            className="flex h-9 shrink-0 items-center rounded-md px-3 text-left text-[13.5px] text-muted-foreground hover:text-foreground"
-          >
-            {showAll ? "Show less" : `Show all ${String(all.length)}`}
-          </button>
+        {collections.data?.length === 0 && !creating ? (
+          <p className="px-3 py-0.5 text-[13px] leading-normal text-subtle-foreground">Collections you make show up here.</p>
         ) : null}
       </div>
     </section>
