@@ -38,6 +38,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
       - run: pnpm verify
+      # Placeholder values: this only checks the extension builds; publish builds the real one.
+      - run: pnpm --filter extension build
+        env:
+          VITE_APP_URL: https://linkables.app
+          VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
 
   e2e:
     runs-on: ubuntu-latest
@@ -77,6 +83,10 @@ jobs:
       - run: pnpm e2e
       # The production build behind the real Caddyfile: prerendered pages and the landing page's app boot.
       - run: pnpm --filter web e2e:built
+      # Loads the unpacked extension in Chromium against its own e2e API; runs even
+      # when the web suite failed, so one failure doesn't hide the other.
+      - run: pnpm --filter extension e2e
+        if: success() || failure()
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
@@ -84,6 +94,8 @@ jobs:
           path: |
             apps/web/e2e/playwright-report/
             apps/web/e2e/test-results/
+            apps/extension/e2e/playwright-report/
+            apps/extension/e2e/test-results/
           retention-days: 7
 
   image:
@@ -150,6 +162,18 @@ jobs:
           VITE_API_URL: ${{ vars.APP_ORIGIN }}
           VITE_AUTH_REDIRECT_URL: ${{ vars.APP_ORIGIN }}/
           VITE_IOS_SHORTCUT_URL: ${{ vars.IOS_SHORTCUT_URL }}
+      - run: pnpm --filter extension build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_URL: ${{ vars.APP_ORIGIN }}
+      # After the web build, which empties apps/web/dist. The web image then serves
+      # the zip at a stable address for the install guide (/extension).
+      - name: Add the extension zip to the web build
+        run: |
+          pnpm --filter extension release
+          mkdir -p apps/web/dist/downloads
+          cp apps/extension/release/linkables-chrome-*.zip apps/web/dist/downloads/linkables-chrome.zip
       # The server is x86_64; arm64 is built too (under QEMU) so the images
       # still run on an arm64 host. Each SHA tag is one multi-arch manifest.
       - uses: docker/setup-qemu-action@v3
