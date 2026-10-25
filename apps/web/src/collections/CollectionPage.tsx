@@ -1,11 +1,13 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { Trash2 } from "lucide-react";
+import { Globe, Share, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { withoutLinkDetails } from "../link-details/details-search";
+import { useWideScreen } from "../link-details/use-wide-screen";
 import { LinksScreen } from "../links/LinksScreen";
 import type { FiltersChange } from "../search/list-filters";
+import { useSharedIds } from "../sharing/use-share";
 import { AppShell } from "../shell/AppShell";
 import { CollectionTitle } from "./CollectionTitle";
 import { useCollectionsUi, type PendingDelete } from "./collections-ui-store";
@@ -43,6 +45,9 @@ export function CollectionPage() {
 function CollectionHeader({ collection }: { collection: ListedCollection }) {
   const [sharing, setSharing] = useState(false);
   const deleteCollection = useDeleteCollection();
+  const shared = useSharedIds().has(collection.id);
+  // On phones the + button is the screen's lime action, so Share steps back.
+  const wide = useWideScreen();
 
   return (
     <div className="mt-2 mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-2 md:mt-[30px] md:mb-3.5 md:px-0">
@@ -50,11 +55,20 @@ function CollectionHeader({ collection }: { collection: ListedCollection }) {
         <MiniCover name={collection.name} cover={collection.cover} className="hidden size-11 animate-pop rounded-lg md:grid" />
         <div className="flex min-w-0 flex-col">
           <CollectionTitle collection={collection} />
-          <span className="mt-1 text-[13.5px] text-muted-foreground">{linkCountLabel(collection.linkCount)}</span>
+          <span className="mt-1 flex items-center gap-2 text-[13.5px] text-muted-foreground">
+            {linkCountLabel(collection.linkCount)}
+            {shared ? (
+              <span className="inline-flex h-[22px] animate-fade-in items-center gap-[5px] rounded-full bg-muted px-[9px] text-xs font-semibold text-foreground">
+                <Globe aria-hidden className="size-3" />
+                Shared
+              </span>
+            ) : null}
+          </span>
         </div>
       </div>
       <div className="flex gap-2">
-        <Button size="touch" onClick={() => { setSharing(true); }} className="px-4 md:h-10">
+        <Button variant={wide ? "default" : "ghost"} size="touch" onClick={() => { setSharing(true); }} className="px-4 font-bold md:h-10">
+          <Share aria-hidden className="size-[15px]" />
           Share
         </Button>
         <button

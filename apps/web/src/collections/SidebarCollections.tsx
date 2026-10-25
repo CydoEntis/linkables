@@ -1,13 +1,14 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Globe, Plus } from "lucide-react";
 import { useState, type DragEvent } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { LINK_DRAG_TYPE } from "../links/LinkRow";
 import { useLinksUi } from "../links/links-ui-store";
 import { findCachedLink } from "../links/use-links";
+import { useSharedIds } from "../sharing/use-share";
 import { useCollectionsUi } from "./collections-ui-store";
 import { displayName } from "./display-name";
 import { MiniCover } from "./MiniCover";
@@ -20,6 +21,7 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
   const dragging = useLinksUi((state) => state.draggingId !== null);
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
+  const sharedIds = useSharedIds();
 
   return (
     <section aria-labelledby="sidebar-collections" className="flex min-h-0 flex-1 flex-col gap-0.5">
@@ -64,7 +66,7 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
         <ul className="flex flex-col">
           {(collections.data ?? []).map((collection) => (
             <li key={collection.id}>
-              <SidebarCollection collection={collection} active={collection.id === activeId} />
+              <SidebarCollection collection={collection} active={collection.id === activeId} shared={sharedIds.has(collection.id)} />
             </li>
           ))}
         </ul>
@@ -77,7 +79,9 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
 }
 
 // Each row is a drop target for a dragged link; Add to… is the keyboard way to file.
-function SidebarCollection({ collection, active }: { collection: ListedCollection; active: boolean }) {
+type SidebarCollectionProps = { collection: ListedCollection; active: boolean; shared: boolean };
+
+function SidebarCollection({ collection, active, shared }: SidebarCollectionProps) {
   const [over, setOver] = useState(false);
   const bumping = useCollectionsUi((state) => state.bumpId === collection.id);
   const setFiled = useMembership();
@@ -120,6 +124,12 @@ function SidebarCollection({ collection, active }: { collection: ListedCollectio
     >
       <MiniCover name={collection.name} cover={collection.cover} className="size-6 rounded-[7px]" />
       <span className="min-w-0 flex-1 truncate">{displayName(collection.name)}</span>
+      {shared ? (
+        <span title="Shared" className="flex text-muted-foreground">
+          <Globe aria-hidden className="size-[13px]" />
+          <span className="sr-only">, shared</span>
+        </span>
+      ) : null}
       <span className="text-xs text-subtle-foreground">{collection.linkCount > 0 ? collection.linkCount : ""}</span>
     </Link>
   );
