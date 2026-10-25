@@ -1,6 +1,7 @@
 // Runs after `vite build`: renders the landing, legal and support pages to static
 // HTML in dist/, so search engines and link previews get real content and the
-// pages load without the app. Caddy serves them before the SPA fallback.
+// pages load without the app. Caddy serves them before the SPA fallback. It also
+// writes the app shell with the shared collection link preview, for /s/*.
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
@@ -17,7 +18,8 @@ function builtAssets(indexHtml: string): BuiltAssets {
   return { entry, stylesheets };
 }
 
-const assets = builtAssets(readFileSync(`${dist}index.html`, "utf8"));
+const indexHtml = readFileSync(`${dist}index.html`, "utf8");
+const assets = builtAssets(indexHtml);
 const vite = await createServer({ root: webRoot, mode: "production", server: { middlewareMode: true }, appType: "custom", logLevel: "warn" });
 try {
   const { renderMarketingFiles } = (await vite.ssrLoadModule("/src/marketing/render-pages.tsx")) as {
@@ -27,6 +29,12 @@ try {
     writeFileSync(`${dist}${file}`, contents);
     console.log(`prerendered dist/${file}`);
   }
+  const { SHARED_SHELL_FILE, sharedShellHtml } = (await vite.ssrLoadModule("/src/sharing/shared-shell.ts")) as {
+    SHARED_SHELL_FILE: string;
+    sharedShellHtml: (indexHtml: string) => string;
+  };
+  writeFileSync(`${dist}${SHARED_SHELL_FILE}`, sharedShellHtml(indexHtml));
+  console.log(`prerendered dist/${SHARED_SHELL_FILE}`);
 } finally {
   await vite.close();
 }

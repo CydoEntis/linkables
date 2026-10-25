@@ -102,11 +102,14 @@ test.describe("prerendered pages", () => {
     expect(html).toContain(`<div id="root">`);
   });
 
-  test("a shared collection's deep link gets the app shell, kept out of search and Referer headers", async ({ request }) => {
+  test("a shared collection's deep link gets the app shell with its link preview, kept out of search and Referer headers", async ({ request }) => {
     const response = await request.get(`/s/${"A".repeat(32)}`);
 
     expect(response.status()).toBe(200);
-    expect(await response.text()).toContain(`<div id="root">`);
+    const html = await response.text();
+    expect(html).toContain(`<div id="root">`);
+    expect(html).toContain(`<meta property="og:image" content="https://linkables.app/social/shared-collection.png">`);
+    expect(html).toContain(`<meta property="og:title" content="A shared collection on linkables">`);
     expect(response.headers()["x-robots-tag"]).toBe("noindex, nofollow");
     expect(response.headers()["referrer-policy"]).toBe("no-referrer");
   });
