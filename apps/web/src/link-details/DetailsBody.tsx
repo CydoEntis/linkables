@@ -73,13 +73,12 @@ function LinkFacts({ link, onDelete }: { link: SavedLink; onDelete: () => void }
         <CollectionTags link={link} />
       </div>
       <DetailsActions link={link} onDelete={onDelete} />
-      <SummaryCard />
       <NoteField link={link} />
     </>
   );
 }
 
-// The page's own text (its og:description), kept apart from the summary to come so neither passes for the other.
+// The page's own text (its og:description). A summary, when it comes, must stay apart from it so neither passes for the other.
 function PageDescription({ text }: { text: string | null }) {
   if (!text?.trim()) return null;
   return (
@@ -89,20 +88,6 @@ function PageDescription({ text }: { text: string | null }) {
   );
 }
 
-// Phase 4 fills this in, and must then say which source the summary came from.
-function SummaryCard() {
-  return (
-    <section aria-label="Summary" className="flex flex-col gap-1.5 rounded-xl bg-muted px-4 py-3.5">
-      <span className="flex items-center gap-2 text-xs font-bold">
-        Summary
-        <span className="rounded-full bg-accent px-[7px] py-0.5 text-[10.5px] font-semibold text-muted-foreground">Coming soon</span>
-      </span>
-      <p className="text-[13px] leading-[1.55] text-muted-foreground">
-        A short summary of this page will show here. We'll always say if it came from the page text or only the title.
-      </p>
-    </section>
-  );
-}
 
 function Gone() {
   return (
