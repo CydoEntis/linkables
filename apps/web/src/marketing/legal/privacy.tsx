@@ -118,12 +118,12 @@ export const PRIVACY_DOC: LongTextDoc = {
     },
     {
       id: "extension",
-      heading: "The Chrome extension (planned)",
+      heading: "The Chrome extension (beta)",
       body: (
         <p>
-          The Chrome extension isn't released yet. When it is, it will read the address and title of a tab only when you choose to save that tab, and send
-          them to your account. It won't read what you type into pages, your passwords, or your browsing history. We'll update this section before it
-          ships.
+          The Chrome extension reads the address and title of a tab only when you click linkables in the toolbar on that tab, and sends them to your
+          account to save it. It keeps your sign-in in Chrome's storage for the extension. It doesn't read what you type into pages, your passwords, or
+          your browsing history.
         </p>
       ),
     },

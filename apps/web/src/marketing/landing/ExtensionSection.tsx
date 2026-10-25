@@ -23,27 +23,27 @@ export function ExtensionSection() {
     <section id="extension" aria-labelledby="ext-h" className="border-t border-border">
       <div className="lp-reveal mx-auto grid max-w-[1280px] grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] items-center gap-[clamp(40px,6vw,88px)] px-5 py-[clamp(64px,9vw,128px)]">
         <div className="flex min-w-0 flex-col gap-[22px]">
-          <span className="flex h-7 items-center self-start rounded-full bg-muted px-[11px] text-[12.5px] font-bold text-muted-foreground">Coming soon</span>
+          <span className="flex h-7 items-center self-start rounded-full bg-muted px-[11px] text-[12.5px] font-bold text-muted-foreground">In beta</span>
           <h2 id="ext-h" className="font-display text-[clamp(34px,4.8vw,64px)] leading-none font-semibold tracking-[-0.05em]">
             One click
             <br />
             in Chrome.
           </h2>
           <p className="max-w-[480px] text-lg leading-[1.55] text-pretty text-muted-foreground">
-            The Chrome extension is on its way. Click Save in the toolbar and the page is saved. Pin it, share it, or drop it in a collection, and open the
-            side panel to browse your links next to whatever you're reading.
+            The Chrome extension is in beta for invited users, installed by hand for now. Click linkables in the toolbar and the page is saved. Pin it or
+            drop it in a collection. A side panel to browse your links beside the page comes next.
           </p>
           <FeatureList
             items={[
-              ["Quietly", "Alt+Shift+S saves without opening anything."],
-              ["Side panel", "Search, pinned and collections, beside the page."],
+              ["One click", "The page you're on is saved as the pop-up opens."],
               ["Collections", "File it as you save, or skip it and sort later."],
+              ["Already saved?", "It tells you, instead of saving it twice."],
             ]}
           />
         </div>
         <figure
           role="img"
-          aria-label="The coming linkables extension: the Saved pop-up with Pin, Share and collections, over the side panel with your recent links"
+          aria-label="The linkables extension: the Saved pop-up with Pin, Share and collections, over the side panel with your recent links"
           className="relative min-h-[760px] min-w-0 min-[900px]:min-h-[600px]"
         >
           <SidePanel />

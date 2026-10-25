@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
+import { EXTENSION_GUIDE_PATH } from "../../extension-guide/path";
 import { SAVE_ANYWHERE_PATH } from "../../save-anywhere/SaveAnywherePage";
 import { StoreSection } from "./StoreSection";
 import { storeCards } from "./stores";
@@ -17,11 +18,12 @@ it("marks a platform with somewhere to go as available, with its action", () => 
   expect(iphone.getByRole("link", { name: "Add the shortcut" })).toHaveAttribute("href", SHORTCUT);
 });
 
-it("marks the Chrome extension as coming soon, with no action that goes nowhere", () => {
+it("offers the Chrome extension beta through its install guide", () => {
   render(<StoreSection cards={storeCards(SHORTCUT, true)} />);
   const chrome = within(card("Chrome extension"));
-  expect(chrome.getByText("Coming soon")).toBeInTheDocument();
-  expect(chrome.queryByRole("link")).toBeNull();
+  expect(chrome.getByText("Available now")).toBeInTheDocument();
+  expect(chrome.getByText(/beta/)).toBeInTheDocument();
+  expect(chrome.getByRole("link", { name: "Get the extension" })).toHaveAttribute("href", EXTENSION_GUIDE_PATH);
 });
 
 it("sends iPhone visitors to the in-app guide while the shortcut link is unset", () => {
