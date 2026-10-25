@@ -17,7 +17,13 @@ export function linkCountLabel(count: number): string {
   return `${String(count)} ${count === 1 ? "link" : "links"}`;
 }
 
+function sharingLabel(token: string | null | undefined): string {
+  if (token === undefined) return "";
+  return token === null ? " · link sharing is off" : " · anyone with the link can view";
+}
+
 export function ShareDialog({ collection, open, onOpenChange }: ShareDialogProps) {
+  const token = useShareState(collection.id, open).data?.token;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -25,7 +31,10 @@ export function ShareDialog({ collection, open, onOpenChange }: ShareDialogProps
           <MiniCover name={collection.name} cover={collection.cover} className="size-14 rounded-[14px]" />
           <div className="flex min-w-0 flex-col gap-0.5">
             <DialogTitle className="text-xl wrap-anywhere">Share “{displayName(collection.name)}”</DialogTitle>
-            <DialogDescription className="text-[13px]">{linkCountLabel(collection.linkCount)} · anyone with the link can view</DialogDescription>
+            <DialogDescription className="text-[13px]">
+              {linkCountLabel(collection.linkCount)}
+              {sharingLabel(token)}
+            </DialogDescription>
           </div>
         </div>
         <ShareLink collectionId={collection.id} open={open} />
