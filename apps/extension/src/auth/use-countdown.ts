@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-// Seconds left until the deadline, ticking once a second; restart() starts it again.
-export function useCountdown(seconds: number): { secondsLeft: number; restart: () => void } {
-  const [deadline, setDeadline] = useState(() => Date.now() + seconds * 1000);
+// Seconds left of a countdown that began at startedAt, ticking once a second; restart() starts it again.
+export function useCountdown(seconds: number, startedAt: number): { secondsLeft: number; restart: () => void } {
+  const [deadline, setDeadline] = useState(() => startedAt + seconds * 1000);
   const [now, setNow] = useState(() => Date.now());
   const secondsLeft = Math.max(0, Math.ceil((deadline - now) / 1000));
   const running = secondsLeft > 0;

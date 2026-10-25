@@ -2,11 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { cn } from "cn";
 import { LoaderCircle } from "lucide-react";
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useController, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Alert, FILLED_FIELD, OfflineNote, PRIMARY_BUTTON, QUIET_LINK, Wordmark } from "../ui";
 import { CODE_LENGTH, sendCode, SIGN_IN_MESSAGES, toCodeDigits, verifyCode, type SendCodeProblem, type VerifyCodeProblem } from "./email-code";
+import { forgetCode, pendingCode, rememberCodeSent, type PendingCode } from "./pending-code";
 import { useCountdown } from "./use-countdown";
 import { useOnline } from "./use-online";
 
@@ -21,17 +22,47 @@ const codeSchema = z.object({
   code: z.string().regex(/^\d{6}$/, { error: "Enter the 6-digit code from the email." }),
 });
 
+// undefined while the stored pending code is being read, so the email step never flashes first.
+function usePendingCode() {
+  const [pending, setPending] = useState<PendingCode | null | undefined>(undefined);
+  useEffect(() => {
+    let current = true;
+    void pendingCode(chrome.storage.session, Date.now()).then((stored) => {
+      if (current) setPending(stored);
+    });
+    return () => { current = false; };
+  }, []);
+
+  function sent(email: string) {
+    const next = { email, sentAt: Date.now() };
+    setPending(next);
+    void rememberCodeSent(chrome.storage.session, next);
+  }
+
+  // Signed in, the pop-up moves on by itself, so only the stored copy goes.
+  function signedIn() {
+    void forgetCode(chrome.storage.session);
+  }
+
+  function startOver() {
+    setPending(null);
+    signedIn();
+  }
+
+  return { pending, sent, signedIn, startOver };
+}
+
 export function SignIn() {
   const offline = !useOnline();
-  const [email, setEmail] = useState<string | null>(null);
+  const { pending, sent, signedIn, startOver } = usePendingCode();
   return (
     <main className="flex flex-col gap-4 p-5">
       <Wordmark />
       {offline ? <OfflineNote /> : null}
-      {email === null ? (
-        <EmailStep offline={offline} onSent={setEmail} />
+      {pending === undefined ? null : pending === null ? (
+        <EmailStep offline={offline} onSent={sent} />
       ) : (
-        <CodeStep email={email} offline={offline} onUseDifferentEmail={() => { setEmail(null); }} />
+        <CodeStep pending={pending} offline={offline} onSent={sent} onSignedIn={signedIn} onUseDifferentEmail={startOver} />
       )}
     </main>
   );
@@ -93,16 +124,23 @@ function EmailStep({ offline, onSent }: { offline: boolean; onSent: (email: stri
   );
 }
 
-type CodeStepProps = { email: string; offline: boolean; onUseDifferentEmail: () => void };
+type CodeStepProps = {
+  pending: PendingCode;
+  offline: boolean;
+  onSent: (email: string) => void;
+  onSignedIn: () => void;
+  onUseDifferentEmail: () => void;
+};
 
-function CodeStep({ email, offline, onUseDifferentEmail }: CodeStepProps) {
+function CodeStep({ pending, offline, onSent, onSignedIn, onUseDifferentEmail }: CodeStepProps) {
+  const { email } = pending;
   return (
     <>
       <Heading title="Check your email">
         We sent a code to <strong className="break-all text-foreground">{email}</strong>.
       </Heading>
-      <CodeForm email={email} />
-      <Resend email={email} offline={offline} />
+      <CodeForm email={email} onSignedIn={onSignedIn} />
+      <Resend email={email} sentAt={pending.sentAt} offline={offline} onSent={onSent} />
       <div className="flex items-center justify-between gap-2">
         <button type="button" onClick={onUseDifferentEmail} className={QUIET_LINK}>
           Use a different email
@@ -113,7 +151,7 @@ function CodeStep({ email, offline, onUseDifferentEmail }: CodeStepProps) {
   );
 }
 
-function CodeForm({ email }: { email: string }) {
+function CodeForm({ email, onSignedIn }: { email: string; onSignedIn: () => void }) {
   const [problem, setProblem] = useState<VerifyCodeProblem | null>(null);
   const verify = useMutation({ mutationFn: (code: string) => verifyCode(email, code) });
   const form = useForm({ resolver: zodResolver(codeSchema), defaultValues: { code: "" } });
@@ -134,7 +172,10 @@ function CodeForm({ email }: { email: string }) {
     setProblem(null);
     verify.mutate(code, {
       onSuccess: (result) => {
-        if (result.ok) return;
+        if (result.ok) {
+          onSignedIn();
+          return;
+        }
         setProblem(result.problem);
         inputRef.current?.select();
       },
@@ -181,11 +222,17 @@ function CodeForm({ email }: { email: string }) {
   );
 }
 
-function Resend({ email, offline }: { email: string; offline: boolean }) {
-  const countdown = useCountdown(RESEND_WAIT_SECONDS);
+type ResendProps = { email: string; sentAt: number; offline: boolean; onSent: (email: string) => void };
+
+function Resend({ email, sentAt, offline, onSent }: ResendProps) {
+  const countdown = useCountdown(RESEND_WAIT_SECONDS, sentAt);
   const resend = useMutation({
     mutationFn: sendCode,
-    onSuccess: (result) => { if (result.ok) countdown.restart(); },
+    onSuccess: (result) => {
+      if (!result.ok) return;
+      countdown.restart();
+      onSent(email);
+    },
   });
   const result = resend.isError ? ({ ok: false, problem: "failed" } as const) : resend.data;
   const waiting = countdown.secondsLeft > 0;
