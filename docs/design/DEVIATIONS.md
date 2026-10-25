@@ -71,7 +71,7 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 | What | Handoff | Build | Why |
 |---|---|---|---|
 | Collection header Share button | White (secondary) in the prototype | Lime (primary) | The README makes Share the one lime action on a collection page. |
-| Share dialog | Read-only `linkables.app/alex/…` URL and a lime Copy link button | Mini-cover, title, link count, "Sharing arrives in a later version." and the dialog close button | Sharing is Phase 3; a copyable address that does not work would mislead. |
+| Share dialog | Read-only `linkables.app/alex/…` URL and a lime Copy link button | No dialog or sheet. Share makes the link and copies it in one click; once on, the header has Copy link (Send link… on phones that can share) and a ▾ menu with the link, Copy link, Open shared page, Send… on phones, and a two-tap Turn off link | The owner chose a header dropdown over the dialog (2026-10-25): a modal for one link was a detour. |
 | Phone collection page | Only the chip names the collection | A compact header with the name, Share and Delete | Phones need a way to rename, share and delete. |
 | Swipe Pin tile | Amber | Grey, white when pinned (like the web Pin button) | Amber is not in the token set. |
 
@@ -118,7 +118,7 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **The Chrome tile doesn't mention a side panel**, which the extension doesn't have yet.
 - **iPhone and Install tiles can have no button.** With no Shortcut link configured the iPhone tile says it's coming soon; where the browser offers no install dialog the app tile says how to install by hand, and in the installed app it says so.
 - **"All the ways to save"** under the tiles keeps Save from anywhere reachable now that it has left the account menu.
-- **"Turn off link", not "Turn off"**, on each shared collection row: it uses `TurnOffLinkButton`, the same two-tap button as the Share dialog.
+- **"Turn off link", not "Turn off"**, on each shared collection row: it uses `TurnOffLinkButton`, with the same two-tap rule as the sharing menu's Turn off link.
 - **The delete list doesn't count links or collections** ("Your links, collections and every note…"): Settings doesn't load the counts.
 - **Export keeps its toasts** ("Preparing your export…", then "Export downloaded"), since the same export runs from the delete dialog where there is no button to show progress.
 - **The goodbye has its own address**, `/account-deleted`, so it stays on screen after the sign-out lands. It opens only after a delete in this tab. Back to linkables.app appears once no session is left, and reloads the landing page.
