@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/* The handoff's dark tokens, the same values as apps/web/src/index.css, limited to what the pop-up uses. */
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-soft-foreground: var(--soft-foreground);
+    --color-subtle-foreground: var(--subtle-foreground);
+    --color-accent: var(--accent);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary-soft: var(--primary-soft);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-line-strong: var(--line-strong);
+    --color-ring: var(--ring);
+
+    --font-sans: "Familjen Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+    --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    --animate-pop: pop 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+    --animate-saved: spring 0.55s var(--ease-out-soft), ring 1s ease-out;
+    --animate-check-draw: check-draw 0.4s 0.14s ease-out both;
+    --animate-rise: rise 0.3s 0.06s var(--ease-out-soft) both;
+    --animate-tick: tick 0.3s ease-out;
+    --animate-pin-pop: pin-pop 0.55s var(--ease-out-soft);
+    --animate-shake: shake 0.3s ease-in-out;
+}
+
+:root {
+    color-scheme: dark;
+    --background: #121212;
+    --foreground: #ecebe8;
+    --card: #1a1a1a;
+    --muted: #1f1f1f;
+    --muted-foreground: #8d8d88;
+    --soft-foreground: #c9c9c4;
+    --subtle-foreground: #88887f;
+    --accent: #2a2a2a;
+    --primary: oklch(0.89 0.19 125);
+    --primary-foreground: #16200a;
+    --primary-soft: oklch(0.89 0.19 125 / 0.15);
+    --destructive: oklch(0.72 0.16 25);
+    --border: #222;
+    --line-strong: #2c2c2c;
+    --ring: oklch(0.89 0.19 125);
+}
+
+@keyframes pop {
+    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes spring {
+    0% { transform: scale(1); }
+    30% { transform: scale(0.86); }
+    65% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes ring {
+    0% { box-shadow: 0 0 0 0 oklch(0.89 0.19 125 / 0.45); }
+    100% { box-shadow: 0 0 0 16px oklch(0.89 0.19 125 / 0); }
+}
+
+@keyframes check-draw {
+    from { stroke-dashoffset: 24; }
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes tick {
+    0% { transform: scale(0.4); }
+    70% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pin-pop {
+    0% { transform: none; }
+    40% { transform: rotate(-22deg) scale(1.25); }
+    100% { transform: none; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: none; }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring;
+    }
+    /* Chrome sizes the pop-up to its content; the handoff draws it 344 wide. */
+    body {
+        @apply w-[344px] bg-card font-sans text-foreground antialiased;
+    }
+    input::placeholder {
+        color: var(--subtle-foreground);
+    }
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+    button:not(:disabled) {
+        cursor: pointer;
+    }
+    button:active:not(:disabled) {
+        transform: scale(0.96);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0s !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0s !important;
+    }
+}
