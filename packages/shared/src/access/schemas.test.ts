@@ -8,6 +8,10 @@ describe("accessRequestSchema", () => {
     expect(parse({ name: "Sam\nUse case: forged\r\nTime: now" }).name).toBe("Sam Use case: forged Time: now");
   });
 
+  it("replaces Unicode line separators and invisible format characters in a name", () => {
+    expect(parse({ name: "Sam Use case forged‮evil​end" }).name).toBe("Sam Use case forged evil end");
+  });
+
   it("keeps the line breaks and tabs in a use case and drops other control characters", () => {
     expect(parse({ useCase: "Recipes\r\n\tand\u0007 notes\u0000" }).useCase).toBe("Recipes\n\tand notes");
   });
