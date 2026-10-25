@@ -17,7 +17,7 @@ export function extractArticle(html: string, pageUrl: string): ReaderArticle | n
   if (!isProbablyReaderable(document)) return null;
   // The serializer hands back the content element itself, so it is never
   // serialised to HTML and parsed again.
-  const parsed = new Readability(document, { serializer: (node) => node as unknown as PageNode }).parse();
+  const parsed = new Readability<PageNode>(document, { serializer: (node) => node }).parse();
   if (!parsed?.content) return null;
   const { blocks, truncated } = toBlocks(parsed.content, pageUrl);
   if (blocks.length === 0) return null;
