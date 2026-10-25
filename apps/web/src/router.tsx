@@ -12,6 +12,7 @@ import { LinksPage } from "./links/LinksPage";
 import { DEFAULT_LINKS_SEARCH, linksSearchSchema } from "./links/links-search";
 import { PrivacyPage, SupportPage, TermsPage } from "./marketing/legal/LegalPages";
 import { PRIVACY_PAGE, SUPPORT_PAGE, TERMS_PAGE } from "./marketing/pages";
+import { ReaderPage } from "./reader/ReaderPage";
 import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
@@ -40,6 +41,14 @@ const collectionRoute = createRoute({
   path: "/c/$collectionId",
   validateSearch: z.object({ ...listFiltersShape, ...linkDetailsSearchShape }).transform(orderRange),
   component: CollectionPage,
+});
+
+// Signed in only: the copy is read through the owner's own saved link, so a
+// shared collection never links here.
+const readerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/read/$linkId",
+  component: ReaderPage,
 });
 
 const signInRoute = createRoute({
@@ -102,7 +111,7 @@ const accountDeletedRoute = createRoute({
 });
 
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, accountDeletedRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, readerRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, accountDeletedRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {
