@@ -1,5 +1,7 @@
 # Supabase email templates
 
+> **Current templates:** the designed versions in [`docs/email-templates/`](email-templates/) replace the plain ones below (2026-10-25). Paste those; the settings in this file still apply.
+
 The sign-in page asks for the 6-digit code from the email as well as offering the
 link, because single-use links break on iPhone: iOS link previews and the Gmail
 in-app browser can spend the link, or open the session in a different browser
