@@ -39,10 +39,12 @@
     --color-accent-hover: var(--accent-hover);
     --color-primary-soft: var(--primary-soft);
     --color-scrim: var(--scrim);
+    --color-reader-foreground: var(--reader-foreground);
 
     --font-sans: "Familjen Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
     --font-display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --font-reader: "Newsreader Variable", Georgia, serif;
 
     --radius-sm: 8px;
     --radius-md: 10px;
@@ -114,6 +116,8 @@
     --input: #1f1f1f;
     --ring: oklch(0.89 0.19 125);
     --scrim: rgb(0 0 0 / 0.62);
+    /* Reader body text: a little softer than --foreground for long reading on dark. */
+    --reader-foreground: #dcdbd6;
 }
 
 @keyframes shimmer {
