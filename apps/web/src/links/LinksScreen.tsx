@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { AddToSheet } from "../collections/AddToSheet";
-import { LinkDetails } from "../link-details/LinkDetails";
 import { BookmarkletDialog } from "../save/BookmarkletDialog";
 import { CommandPalette } from "../search/CommandPalette";
 import { FilterBar } from "../search/FilterBar";
@@ -54,7 +53,6 @@ export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksS
       />
       <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <BookmarkletDialog open={bookmarkletOpen} onOpenChange={setBookmarkletOpen} />
-      <LinkDetails />
     </AppShell>
   );
 }

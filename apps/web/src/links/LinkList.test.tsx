@@ -139,7 +139,7 @@ describe("LinkList", () => {
   });
 
   it("lays the links out as cards in one grid on a big screen", async () => {
-    stubViewport(2560);
+    stubViewport(1920);
     request.mockResolvedValue({
       items: [savedLink({ resource: { title: "Fresh" } }), savedLink({ pinned: true, resource: { title: "Kept" } })],
       cursor: null,
@@ -150,6 +150,17 @@ describe("LinkList", () => {
     expect(first).toHaveAccessibleName(/^Kept/);
     expect(second).toHaveAccessibleName(/^Fresh/);
     expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
+  });
+
+  it("opens the details on the newest link at 2200 px and marks its card", async () => {
+    stubViewport(2560);
+    const newest = savedLink({ resource: { title: "Fresh" } });
+    const pinned = savedLink({ pinned: true, savedAt: new Date(Date.now() - 86_400_000).toISOString(), resource: { title: "Kept" } });
+    request.mockResolvedValue({ items: [pinned, newest], cursor: null });
+    renderList();
+    const details = await screen.findByRole("region", { name: "Link details" });
+    expect(within(details).getByRole("heading", { name: /Fresh/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Fresh/ })).toHaveAttribute("aria-current", "true");
   });
 
   it("keeps a sorted list flat, in the API's order", async () => {

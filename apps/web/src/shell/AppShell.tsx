@@ -21,8 +21,9 @@ export function AppShell({ scope, search, children }: AppShellProps) {
   const view = "view" in scope ? scope.view : undefined;
   const collectionId = "collectionId" in scope ? scope.collectionId : undefined;
 
+  // A docked details panel (huge screens) is fixed to the right; the shell gives up its width.
   return (
-    <div className="min-h-svh md:grid md:grid-cols-[272px_minmax(0,1fr)]">
+    <div className="group/shell min-h-svh has-[[data-docked-details]]:pr-[480px] md:grid md:grid-cols-[272px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-svh flex-col gap-6 border-r border-border bg-sidebar px-4 pt-6 pb-4 md:flex">
         <Link to="/" className="self-start rounded-md px-2.5 py-1" aria-label="linkables, All links">
           <Wordmark />
@@ -78,7 +79,7 @@ export function AppShell({ scope, search, children }: AppShellProps) {
             </Link>
           ))}
         </nav>
-        <main className="mx-auto w-full max-w-[1040px] px-2 pt-3 pb-32 md:px-14 md:pt-8 3xl:max-w-[1900px] 3xl:pt-9">{children}</main>
+        <main className="mx-auto w-full max-w-[1040px] px-2 pt-3 pb-32 md:px-14 md:pt-8 3xl:max-w-[1900px] 3xl:pt-9 3xl:group-has-[[data-docked-details]]/shell:max-w-[1560px]">{children}</main>
       </div>
     </div>
   );

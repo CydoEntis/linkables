@@ -11,6 +11,7 @@ import { useLinksUi } from "../links/links-ui-store";
 import { savedLink } from "../links/test-links";
 import { linksKeys, updateCachedLink, type LinksPages } from "../links/use-links";
 import { renderWithRouter, testQueryClient } from "../test/render-with-router";
+import { stubViewport } from "../test/viewport";
 import { LinkDetails } from "./LinkDetails";
 import { NOTE_SAVE_DELAY_MS } from "./use-note-autosave";
 
@@ -372,7 +373,7 @@ describe("a link saved moments ago", () => {
 
 describe("link details on the web", () => {
   beforeEach(() => {
-    vi.stubGlobal("matchMedia", (query: string) => ({ matches: true, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    stubViewport(1440);
     localStorage.clear();
   });
 
