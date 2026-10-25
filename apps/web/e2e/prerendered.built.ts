@@ -102,6 +102,14 @@ test.describe("prerendered pages", () => {
     expect(html).toContain(`<div id="root">`);
   });
 
+  test("the shared collection shell is no page of its own", async ({ request }) => {
+    for (const path of ["/shared", "/shared.html"]) {
+      const response = await request.get(path, { maxRedirects: 0 });
+      expect(response.status()).toBe(302);
+      expect(response.headers().location).toBe("/");
+    }
+  });
+
   test("a shared collection's deep link gets the app shell with its link preview, kept out of search and Referer headers", async ({ request }) => {
     const response = await request.get(`/s/${"A".repeat(32)}`);
 

@@ -30,6 +30,12 @@
 		file_server
 	}
 
+	# shared.html is only the shell for /s/*; on its own it is no page.
+	@sharedShell path /shared /shared.html
+	handle @sharedShell {
+		redir * / 302
+	}
+
 	# A shared collection gets the app shell with its own link preview tags
 	# (shared.html). Its address holds the token: keep it out of search
 	# engines and out of the Referer of anything the page loads or opens.
