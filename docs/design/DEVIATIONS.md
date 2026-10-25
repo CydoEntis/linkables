@@ -110,3 +110,15 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **No "open the link" button** on Check your email: it is the prototype's stand-in for clicking the email. Resend fills the row instead.
 - **Not built yet:** the "Signing you in…" progress bar, "You're in" with its device choices, and "Welcome back" for returning users. The handoff's Privacy, Terms and Help pages arrive later; the footer links point at `/privacy`, `/terms` and `/support`.
 - **Removed state** on `/save` after Undo ("Removed"), and an error state with Retry: the prompt lists neither.
+
+## Settings (round 2 handoff, section 2)
+
+- **No "Installed ✓" on the Chrome tile.** The web app has no reliable way to tell whether the extension is installed; the tile always offers Add to Chrome, which opens the store listing once `CHROME_WEB_STORE_URL` is set and the `/extension` guide until then.
+- **A puzzle-piece icon on the Chrome tile.** Lucide has no Chrome logo.
+- **The Chrome tile doesn't mention a side panel**, which the extension doesn't have yet.
+- **iPhone and Install tiles can have no button.** With no Shortcut link configured the iPhone tile says it's coming soon; where the browser offers no install dialog the app tile says how to install by hand, and in the installed app it says so.
+- **"All the ways to save"** under the tiles keeps Save from anywhere reachable now that it has left the account menu.
+- **"Turn off link", not "Turn off"**, on each shared collection row: the same two-tap button as the Share dialog.
+- **The delete list doesn't count links or collections** ("Your links, collections and every note…"): Settings doesn't load the counts.
+- **Export keeps its toasts** ("Preparing your export…", then "Export downloaded"), since the same export runs from the delete dialog where there is no button to show progress.
+- **The goodbye has its own address**, `/account-deleted`, so it stays on screen after the sign-out lands. Back to linkables.app reloads the landing page.
