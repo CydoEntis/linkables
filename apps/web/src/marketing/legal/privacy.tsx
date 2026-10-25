@@ -88,7 +88,8 @@ export const PRIVACY_DOC: LongTextDoc = {
             <strong>OVHcloud</strong> hosts the linkables website and server, in Vint Hill, Virginia, USA.
           </li>
           <li>
-            <strong>Resend</strong> sends the sign-in emails, from noreply@linkables.app, so it receives your email address when you ask for a sign-in code.
+            <strong>Resend</strong> sends the sign-in emails, from noreply@linkables.app, so it receives your email address when you ask for a sign-in code. It also
+            delivers each access request to us.
           </li>
           <li>
             <strong>Google</strong>, only if you choose Continue with Google, confirms who you are and tells us your email address.
@@ -140,6 +141,18 @@ export const PRIVACY_DOC: LongTextDoc = {
             An iPhone app is planned. Like the shortcut, it will only send the links you share to it. We'll update this section before it ships.
           </p>
         </>
+      ),
+    },
+    {
+      id: "access-requests",
+      heading: "Access requests",
+      body: (
+        <p>
+          While linkables is invite-only, you can ask for access with the form at linkables.app/request-access. We keep the email address, and the
+          optional name and note you send, with the time and the kind of browser you sent it from, only to decide on and send beta invites. We don't
+          store your IP address with it. Each request is also sent to us by email through Resend. We keep requests until the beta ends, or until you
+          ask us to delete yours at {mail}.
+        </p>
       ),
     },
     {
