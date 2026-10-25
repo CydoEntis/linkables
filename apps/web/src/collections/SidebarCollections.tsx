@@ -66,7 +66,8 @@ export function SidebarCollections({ activeId }: { activeId: string | undefined 
           className="mx-1 mb-1.5 h-[34px] shrink-0 animate-fade-in rounded-[9px] bg-transparent px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--line-strong)] outline-none focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring"
         />
       ) : null}
-      <div className="flex min-h-0 flex-col overflow-auto">
+      {/* The gutter gives a row room to grow while a link is held over it or lands on it. */}
+      <div className="-mx-3 flex min-h-0 flex-col overflow-x-hidden overflow-y-auto px-3">
         {collections.isError ? (
           <p className="flex items-center justify-between px-3 py-2 text-[12.5px] text-muted-foreground">
             Couldn't load collections.
