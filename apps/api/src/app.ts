@@ -29,7 +29,7 @@ export type AppDeps = {
   db: Db;
   now?: () => number;
   notifyOwner?: NotifyOwner;
-  // Unset when Resend is not configured; deleting an account then logs a warning instead.
+  // Unset when Resend is not configured; DELETE /me then answers UPSTREAM and deletes nothing.
   notifyAccountDeleted?: NotifyAccountDeleted | undefined;
 };
 

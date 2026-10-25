@@ -1,3 +1,4 @@
+import { skipNotifyAccountDeleted } from "../src/access/notify-owner";
 import { createApp, type AppDeps } from "../src/app";
 import { createDb } from "../src/db/client";
 import { createLogger, type LogLevel } from "../src/log/logger";
@@ -27,6 +28,7 @@ export function createTestApp(deps: Partial<AppDeps> = {}) {
     corsOrigins: ["http://localhost:5173"],
     auth: TEST_AUTH,
     db: unreachableDb,
+    notifyAccountDeleted: skipNotifyAccountDeleted,
     ...deps,
   });
 }
