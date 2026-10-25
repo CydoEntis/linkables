@@ -30,23 +30,30 @@ function variantFor(wide: boolean) {
 export function ShareControls({ collection, wide }: ShareControlsProps) {
   const token = useShareToken(collection.id);
   const shareRef = useRef<HTMLButtonElement>(null);
-  const [turnedOff, setTurnedOff] = useState(false);
+  const copyRef = useRef<HTMLButtonElement>(null);
+  const focusNext = useRef<"share" | "copy" | null>(null);
 
-  // The menu that turned the link off goes away with it, so focus lands on Share.
+  // Turning the link on or off swaps the control that was clicked for another,
+  // which drops focus to the page; this hands it to the control that replaced it.
   useEffect(() => {
-    if (turnedOff && token === undefined) shareRef.current?.focus();
-  }, [turnedOff, token]);
+    const want = token === undefined ? "share" : "copy";
+    if (focusNext.current !== want) return;
+    focusNext.current = null;
+    if (document.activeElement === document.body) (want === "share" ? shareRef : copyRef).current?.focus();
+  }, [token]);
 
-  if (token === undefined) return <ShareButton ref={shareRef} collectionId={collection.id} wide={wide} />;
+  if (token === undefined) {
+    return <ShareButton ref={shareRef} collectionId={collection.id} wide={wide} onShared={() => { focusNext.current = "copy"; }} />;
+  }
   return (
     <div className="flex gap-px">
-      <SendOrCopy url={sharedUrl(token)} title={displayName(collection.name)} wide={wide} />
+      <SendOrCopy ref={copyRef} url={sharedUrl(token)} title={displayName(collection.name)} wide={wide} />
       <ShareMenu
         collectionId={collection.id}
         token={token}
         title={displayName(collection.name)}
         wide={wide}
-        onTurnedOff={() => { setTurnedOff(true); }}
+        onTurnedOff={() => { focusNext.current = "share"; }}
       />
     </div>
   );
@@ -64,18 +71,22 @@ async function shareAndCopy(url: Promise<string>): Promise<void> {
     return;
   }
   const text = await url;
-  toast("Link is on", { action: { label: "Copy", onClick: () => void copyLink(text) } });
+  toast("Link is on · anyone with it can view", { action: { label: "Copy", onClick: () => void copyLink(text) } });
 }
 
-type ShareButtonProps = { ref: Ref<HTMLButtonElement>; collectionId: string; wide: boolean };
+type ShareButtonProps = { ref: Ref<HTMLButtonElement>; collectionId: string; wide: boolean; onShared: () => void };
 
-function ShareButton({ ref, collectionId, wide }: ShareButtonProps) {
+function ShareButton({ ref, collectionId, wide, onShared }: ShareButtonProps) {
   const setSharing = useSetSharing(collectionId);
   const pending = setSharing.isPending;
 
   function share() {
     if (pending) return;
-    shareAndCopy(setSharing.mutateAsync(true).then(urlOf)).catch(() => {
+    const made = setSharing.mutateAsync(true).then((state) => {
+      onShared();
+      return urlOf(state);
+    });
+    shareAndCopy(made).catch(() => {
       toast.error("Couldn't make the link. Try again.");
     });
   }
@@ -89,10 +100,14 @@ function ShareButton({ ref, collectionId, wide }: ShareButtonProps) {
   );
 }
 
-function SendOrCopy({ url, title, wide }: { url: string; title: string; wide: boolean }) {
+type SendOrCopyProps = { ref: Ref<HTMLButtonElement>; url: string; title: string; wide: boolean };
+
+function SendOrCopy({ ref, url, title, wide }: SendOrCopyProps) {
   const send = !wide && canSend();
   return (
     <Button
+      ref={ref}
+      aria-description={url}
       variant={variantFor(wide)}
       size="touch"
       onClick={() => void (send ? sendLink(url, title) : copyLink(url))}
@@ -111,15 +126,16 @@ function ShareMenu({ collectionId, token, title, wide, onTurnedOff }: ShareMenuP
   const setSharing = useSetSharing(collectionId);
   const url = sharedUrl(token);
 
+  // A promise, not mutate's callbacks: the menu unmounts as soon as the link is gone.
   function turnOff() {
-    setSharing.mutate(false, {
-      onSuccess: () => {
+    setSharing.mutateAsync(false).then(
+      () => {
         setOpen(false);
         onTurnedOff();
         toast("Link turned off. It no longer works.");
       },
-      onError: () => { toast.error("Couldn't turn the link off. Try again."); },
-    });
+      () => { toast.error("Couldn't turn the link off. Try again."); },
+    );
   }
 
   const turnOffTap = useTwoTap(turnOff, setSharing.isPending);
@@ -143,7 +159,7 @@ function ShareMenu({ collectionId, token, title, wide, onTurnedOff }: ShareMenuP
           <span className="shrink-0 text-muted-foreground">{sharedPrefix()}</span>
           <span className="truncate">{token}</span>
         </p>
-        <DropdownMenuItem onClick={() => void copyLink(url)}>
+        <DropdownMenuItem aria-description={url} onClick={() => void copyLink(url)}>
           <Copy aria-hidden className="text-muted-foreground" />
           Copy link
         </DropdownMenuItem>
@@ -177,7 +193,7 @@ function TurnOffItem({ armed, pending, onPress }: { armed: boolean; pending: boo
         {armed ? "Tap again to turn off" : "Turn off link"}
       </DropdownMenuItem>
       {/* Always rendered, so screen readers are listening when the hint appears. */}
-      <p aria-live="polite" className="sr-only">
+      <p aria-live="polite" className={cn("px-2.5 text-[12.5px] leading-normal text-muted-foreground", armed && "pt-1 pb-1.5")}>
         {armed ? TURN_OFF_HINT : ""}
       </p>
     </>
