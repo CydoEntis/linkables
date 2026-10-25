@@ -74,5 +74,18 @@ describe("SharedCollectionsSection", () => {
     await waitFor(() => { expect(screen.queryByRole("link", { name: "Trip" })).not.toBeInTheDocument(); });
     expect(request).toHaveBeenCalledWith(`/collections/${TRIP.id}/share`, expect.anything(), { method: "DELETE" });
     expect(screen.getByRole("link", { name: "Music" })).toBeInTheDocument();
+    expect(within(await row("Music")).getByRole("button", { name: "Copy link" })).toHaveFocus();
+  });
+
+  it("moves the focus to the heading when the last shared link is turned off", async () => {
+    serve([TRIP]);
+    const user = userEvent.setup();
+    await renderWithRouter(<SharedCollectionsSection />);
+
+    await user.click(within(await row("Trip")).getByRole("button", { name: "Turn off link" }));
+    await user.click(within(await row("Trip")).getByRole("button", { name: "Tap again to turn off" }));
+
+    await within(section()).findByText(/Nothing is shared/);
+    expect(screen.getByRole("heading", { name: "Shared collections" })).toHaveFocus();
   });
 });
