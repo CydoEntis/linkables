@@ -79,8 +79,8 @@ Copy each answer from `store/privacy-practices.md`:
    host permissions (`https://linkables.app/*` and the Supabase URL).
 3. **Are you using remote code?** No, I am not using remote code.
 4. **Data usage:** tick **Personally identifiable information**,
-   **Authentication information** and **Web history**; leave every other
-   category unticked.
+   **Authentication information**, **Location** (IP address, in the sign-in
+   provider's logs) and **Web history**; leave every other category unticked.
 5. **Certifications:** tick all three.
 6. **Privacy policy URL:** `https://linkables.app/privacy`
 

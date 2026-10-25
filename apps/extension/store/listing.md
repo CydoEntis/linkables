@@ -35,7 +35,7 @@ What it does
 What it doesn't do
 • It only reads the tab you're on, and only when you click the toolbar button. It doesn't read what you type into pages, your passwords or your browsing history.
 • It doesn't run on pages in the background, show ads or track you.
-• It saves the page's address only. Page titles and previews are fetched by linkables' server afterwards, not read from your browser.
+• It sends only the page's address. It reads the tab's title just to show it in the pop-up; the title and preview saved to your account are fetched by linkables' server.
 
 Before you install
 • linkables is in a private beta. You need an invited linkables account to sign in.
