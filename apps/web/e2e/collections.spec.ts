@@ -116,6 +116,25 @@ test.describe("at 1280 px", () => {
     await expect(sidebar(page).getByRole("link", { name: /^Watch later/ })).toContainText("1");
   });
 
+  test("the sidebar never scrolls sideways while a row is held over a collection", async ({ page, seedLinks, request, user }) => {
+    await createCollection(request, user, "Watch later");
+    await seedLinks([{ url: "https://example.com/a", resource: { title: "Held row", fetchStatus: "fetched" } }]);
+    await page.goto("/?view=inbox");
+    await page.getByRole("link", { name: /^Held row/ }).hover();
+    await page.mouse.down();
+    const target = sidebar(page).getByRole("link", { name: /^Watch later/ });
+    const box = await target.boundingBox();
+    if (box === null) throw new Error("the collection row has no box");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 5 });
+    await page.mouse.move(box.x + box.width / 2 + 2, box.y + box.height / 2);
+    await expect(sidebar(page).getByRole("heading", { name: "Drop on a collection" })).toBeVisible();
+    // Past the row's hover transition, so the check sees its full size.
+    await page.waitForTimeout(300);
+    const scroller = sidebar(page).getByRole("list").locator("..");
+    expect(await scroller.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
+    await page.mouse.up();
+  });
+
   test("Undo on delete brings the collection back, and nothing is deleted", async ({ page, request, user }) => {
     const japan = await createCollection(request, user, "trip to japan");
     await page.goto(`/c/${japan.id}`);
