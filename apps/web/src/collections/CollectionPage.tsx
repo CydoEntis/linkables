@@ -2,8 +2,8 @@ import type { ListedCollection } from "@linkables/shared/collections";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { Globe, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { withoutLinkDetails } from "../link-details/details-search";
-import { useWideScreen } from "../link-details/use-wide-screen";
+import { withoutOldLink } from "../link-page/old-link-address";
+import { useWideScreen } from "../shell/use-wide-screen";
 import { LinksScreen } from "../links/LinksScreen";
 import type { FiltersChange } from "../search/list-filters";
 import { useShareToken } from "../sharing/use-share";
@@ -21,7 +21,7 @@ const route = getRouteApi("/c/$collectionId");
 
 export function CollectionPage() {
   const { collectionId } = route.useParams();
-  const filters = withoutLinkDetails(route.useSearch());
+  const filters = withoutOldLink(route.useSearch());
   const navigate = route.useNavigate();
   const onFiltersChange: FiltersChange = (patch, { replace = false } = {}) => {
     void navigate({ search: (previous) => ({ ...previous, ...patch }), replace });

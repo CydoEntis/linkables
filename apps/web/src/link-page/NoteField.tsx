@@ -1,10 +1,10 @@
 import { NOTE_MAX, type SavedLink } from "@linkables/shared/links";
-import { useId } from "react";
+import { useId, type Ref } from "react";
 import { useNoteAutosave, type NoteStatus } from "./use-note-autosave";
 
 const QUIET: Partial<Record<NoteStatus, string>> = { saving: "Saving…", saved: "Saved" };
 
-export function NoteField({ link }: { link: SavedLink }) {
+export function NoteField({ link, textareaRef }: { link: SavedLink; textareaRef?: Ref<HTMLTextAreaElement> }) {
   const note = useNoteAutosave(link);
   const id = useId();
   const problemId = `${id}-problem`;
@@ -22,6 +22,7 @@ export function NoteField({ link }: { link: SavedLink }) {
         </span>
       </div>
       <textarea
+        ref={textareaRef}
         id={id}
         value={note.value}
         maxLength={NOTE_MAX}

@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { INVITE_ONLY, primaryCta } from "../config/access";
-import { useWideScreen } from "../link-details/use-wide-screen";
+import { useWideScreen } from "../shell/use-wide-screen";
 import { Mark, MarkWordmark } from "../marketing/Mark";
 import { SharedCollection } from "./SharedCollection";
 import { SharedLoadFailed, SharedLoading, SharedUnavailable } from "./SharedStates";

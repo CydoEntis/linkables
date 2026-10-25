@@ -16,20 +16,20 @@ function renderRow(link = savedLink(), inCollection = false) {
 }
 
 describe("LinkRow", () => {
-  it("opens the link's details in place instead of the saved URL", async () => {
+  it("opens the link's own page instead of the saved URL", async () => {
     const link = savedLink({ originalUrl: "https://example.com/a?ref=1" });
     const { router } = await renderRow(link);
     const row = screen.getByRole("link");
-    expect(row).toHaveAttribute("href", `/?link=${link.id}`);
+    expect(row).toHaveAttribute("href", `/l/${link.id}`);
     expect(row).not.toHaveAttribute("target");
     await userEvent.click(row);
-    expect(router.state.location.search).toEqual({ link: link.id });
+    expect(router.state.location.pathname).toBe(`/l/${link.id}`);
   });
 
   it("never links to a saved URL, so a javascript: URL cannot run from the row", async () => {
     const link = savedLink({ originalUrl: "javascript:alert(1)", resource: { title: "Odd one" } });
     await renderRow(link);
-    expect(screen.getByRole("link", { name: /^Odd one/ })).toHaveAttribute("href", `/?link=${link.id}`);
+    expect(screen.getByRole("link", { name: /^Odd one/ })).toHaveAttribute("href", `/l/${link.id}`);
   });
 
   it("shows the user's title over the fetched one", async () => {
@@ -61,7 +61,7 @@ describe("LinkRow", () => {
     const image = container.querySelector("img");
     expect(image).toHaveAttribute("src", "https://cdn.example.com/og.png");
     expect(image).toHaveAttribute("referrerpolicy", "no-referrer");
-    expect(screen.getByRole("link").getAttribute("href")).toMatch(/^\/\?link=/);
+    expect(screen.getByRole("link").getAttribute("href")).toMatch(/^\/l\//);
   });
 
   it("shows the domain's letter when there is no image", async () => {

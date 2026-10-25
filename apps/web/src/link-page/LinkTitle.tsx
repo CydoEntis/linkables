@@ -1,22 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { SavedLink } from "@linkables/shared/links";
-import { useId, useState } from "react";
+import { useId, useState, type Ref } from "react";
 import { useForm } from "react-hook-form";
 import { cn } from "cn";
 import { displayTitle } from "../links/link-display";
 import { titleFormSchema, type TitleFormInput, type TitleFormOutput } from "./title-form";
 import { useUpdateLink } from "./use-update-link";
 
-const TITLE = "text-[21px] leading-[1.25] font-bold tracking-[-0.01em] wrap-anywhere";
+const TITLE = "text-[26px] leading-[1.15] font-bold tracking-[-0.02em] wrap-anywhere md:text-[34px]";
 
 // Click the title to rename the link: Enter or leaving the field saves, Esc
 // cancels, and a blank title brings back the fetched one.
-export function DetailsTitle({ link }: { link: SavedLink }) {
+export function LinkTitle({ link, titleRef }: { link: SavedLink; titleRef: Ref<HTMLHeadingElement> }) {
   const [editing, setEditing] = useState(false);
   const title = displayTitle(link);
   if (editing) return <TitleForm link={link} onDone={() => { setEditing(false); }} />;
   return (
-    <h2 className={TITLE}>
+    <h1 ref={titleRef} tabIndex={-1} className={cn(TITLE, "outline-none")}>
       <button
         type="button"
         title="Rename"
@@ -30,7 +30,7 @@ export function DetailsTitle({ link }: { link: SavedLink }) {
         {title.text}
         <span className="sr-only">, rename</span>
       </button>
-    </h2>
+    </h1>
   );
 }
 

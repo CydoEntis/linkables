@@ -9,7 +9,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useExportLinks } from "../export/use-export-links";
-import { useWideScreen } from "../link-details/use-wide-screen";
+import { useWideScreen } from "../shell/use-wide-screen";
 import { CONFIRM_WORD, deleteAccountFormSchema, useDeleteAccount, type DeleteAccountForm } from "./use-delete-account";
 
 type DeleteAccountDialogProps = { open: boolean; onOpenChange: (open: boolean) => void };

@@ -1,6 +1,6 @@
 import type { ListLinksResponse } from "@linkables/shared/links";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@linkables/shared/api-client";
@@ -9,6 +9,7 @@ import type { ListFilters } from "../search/list-filters";
 import { TestRouter } from "../test/router";
 import { resetViewport, stubViewport } from "../test/viewport";
 import { LinkList } from "./LinkList";
+import { useLinksUi } from "./links-ui-store";
 import type { LinksView } from "./links-search";
 import { savedLink } from "./test-links";
 
@@ -53,6 +54,15 @@ describe("LinkList", () => {
     expect(await screen.findByRole("heading", { name: "Pinned" })).toBeInTheDocument();
     const headings = screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
     expect(headings).toEqual(["Pinned", "Today"]);
+  });
+
+  it("gives focus back to the row of the link whose page was just left, once", async () => {
+    const back = savedLink({ resource: { title: "Read just now" } });
+    request.mockResolvedValue({ items: [savedLink({ resource: { title: "Other" } }), back], cursor: null });
+    useLinksUi.setState({ returnFocusId: back.id });
+    renderList();
+    await waitFor(() => { expect(screen.getByRole("link", { name: /^Read just now/ })).toHaveFocus(); });
+    expect(useLinksUi.getState().returnFocusId).toBeNull();
   });
 
   it("asks the API for the New view as view=inbox", async () => {
@@ -150,25 +160,6 @@ describe("LinkList", () => {
     expect(first).toHaveAccessibleName(/^Kept/);
     expect(second).toHaveAccessibleName(/^Fresh/);
     expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
-  });
-
-  it("opens the details on the newest link at 2200 px and marks its card", async () => {
-    stubViewport(2560);
-    const newest = savedLink({ resource: { title: "Fresh" } });
-    const pinned = savedLink({ pinned: true, savedAt: new Date(Date.now() - 86_400_000).toISOString(), resource: { title: "Kept" } });
-    request.mockResolvedValue({ items: [pinned, newest], cursor: null });
-    renderList();
-    const details = await screen.findByRole("region", { name: "Link details" });
-    expect(within(details).getByRole("heading", { name: /Fresh/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Fresh/ })).toHaveAttribute("aria-current", "true");
-  });
-
-  it("leaves the details shut on a search, even at 2200 px", async () => {
-    stubViewport(2560);
-    request.mockResolvedValue(page(["Rust book"]));
-    renderList("all", { q: "rust" });
-    await screen.findByRole("list", { name: "Links" });
-    expect(screen.queryByRole("region", { name: "Link details" })).not.toBeInTheDocument();
   });
 
   it("keeps a sorted list flat, in the API's order", async () => {

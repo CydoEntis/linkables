@@ -11,9 +11,10 @@ export type NoteStatus = "idle" | "saving" | "saved" | "invalid" | "failed";
 const noteSchema = updateLinkRequestSchema.shape.note.unwrap().unwrap();
 
 // The note saves itself shortly after typing stops, and at once when the field
-// loses focus, the details close, or the page is hidden or unloaded. Only an
-// unload sends a keepalive save; a hidden page (a tab or app switch) lives on
-// and saves through the usual queue, with its inline status.
+// loses focus or goes away (the note popover closes, the link page is left), or
+// the page is hidden or unloaded. Only an unload sends a keepalive save; a
+// hidden page (a tab or app switch) lives on and saves through the usual queue,
+// with its inline status.
 // shortcut: a save as the page leaves can still be lost when no unexpired token
 // is in memory (it must wait for one), or when the browser holds no CORS
 // preflight for the link yet: Chrome drops a keepalive request that needs one.

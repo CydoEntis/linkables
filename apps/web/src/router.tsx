@@ -1,9 +1,10 @@
-import { createRootRoute, createRoute, createRouter, stripSearchParams } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, redirect, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
 import { RequestAccessPage } from "./access/RequestAccessPage";
 import { AuthGate } from "./auth/AuthGate";
 import { REQUEST_ACCESS_PATH } from "./config/access";
-import { linkDetailsSearchShape } from "./link-details/details-search";
+import { LinkPage } from "./link-page/LinkPage";
+import { oldLinkSearchShape, redirectOldLinkAddress } from "./link-page/old-link-address";
 import { CollectionPage } from "./collections/CollectionPage";
 import { ExtensionGuidePage } from "./extension-guide/ExtensionGuidePage";
 import { EXTENSION_GUIDE_PATH } from "./extension-guide/path";
@@ -12,7 +13,6 @@ import { LinksPage } from "./links/LinksPage";
 import { DEFAULT_LINKS_SEARCH, linksSearchSchema } from "./links/links-search";
 import { PrivacyPage, SupportPage, TermsPage } from "./marketing/legal/LegalPages";
 import { PRIVACY_PAGE, SUPPORT_PAGE, TERMS_PAGE } from "./marketing/pages";
-import { ReaderPage } from "./reader/ReaderPage";
 import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
@@ -32,6 +32,7 @@ const linksRoute = createRoute({
   path: "/",
   validateSearch: linksSearchSchema,
   search: { middlewares: [stripSearchParams(DEFAULT_LINKS_SEARCH)] },
+  beforeLoad: redirectOldLinkAddress,
   component: LinksPage,
 });
 
@@ -39,16 +40,24 @@ const linksRoute = createRoute({
 const collectionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/c/$collectionId",
-  validateSearch: z.object({ ...listFiltersShape, ...linkDetailsSearchShape }).transform(orderRange),
+  validateSearch: z.object({ ...listFiltersShape, ...oldLinkSearchShape }).transform(orderRange),
+  beforeLoad: redirectOldLinkAddress,
   component: CollectionPage,
 });
 
-// Signed in only: the copy is read through the owner's own saved link, so a
-// shared collection never links here.
-const readerRoute = createRoute({
+// Signed in only: the page reads the owner's own saved link, so a shared
+// collection never links here.
+const linkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/l/$linkId",
+  component: LinkPage,
+});
+
+// The reader had its own address before it became the link page's body.
+const oldReaderRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/l/$linkId/read",
-  component: ReaderPage,
+  beforeLoad: ({ params }) => redirect({ to: "/l/$linkId", params, replace: true, throw: true }),
 });
 
 const signInRoute = createRoute({
@@ -110,8 +119,10 @@ const accountDeletedRoute = createRoute({
   component: AccountDeletedPage,
 });
 
+// Restoring scroll brings a list back where it was when Back leaves a link's page.
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, readerRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, accountDeletedRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
+  scrollRestoration: true,
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, linkRoute, oldReaderRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, accountDeletedRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {

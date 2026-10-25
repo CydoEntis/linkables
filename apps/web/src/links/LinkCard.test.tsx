@@ -11,14 +11,14 @@ vi.mock("../api/api", () => ({ api: { request } }));
 const now = new Date(2026, 9, 22, 12, 0).getTime();
 
 describe("LinkCard", () => {
-  it("opens the link's details in place, like a row", async () => {
+  it("opens the link's own page, like a row", async () => {
     const link = savedLink();
     const { router } = await renderWithRouter(<LinkCard link={link} now={now} />);
     const card = screen.getByRole("link");
-    expect(card).toHaveAttribute("href", `/?link=${link.id}`);
+    expect(card).toHaveAttribute("href", `/l/${link.id}`);
     expect(card).toHaveAttribute("draggable", "true");
     await userEvent.click(card);
-    expect(router.state.location.search).toEqual({ link: link.id });
+    expect(router.state.location.pathname).toBe(`/l/${link.id}`);
   });
 
   it("shows the title, the page's description and where it is filed", async () => {
@@ -51,10 +51,5 @@ describe("LinkCard", () => {
     const actions = screen.getByRole("group", { name: "Ramen guide" });
     expect(actions).toContainElement(screen.getByRole("button", { name: "Share" }));
     expect(actions).toContainElement(screen.getByRole("button", { name: "Pin" }));
-  });
-
-  it("marks the card the details panel shows", async () => {
-    await renderWithRouter(<LinkCard link={savedLink()} now={now} selected />);
-    expect(screen.getByRole("link")).toHaveAttribute("aria-current", "true");
   });
 });

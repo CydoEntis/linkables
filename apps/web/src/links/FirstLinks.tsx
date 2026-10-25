@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AddToChromeLink, ChromeMark } from "../extension-guide/AddToChrome";
 import { CHROME_WEB_STORE_URL, EXTENSION_GUIDE_PATH } from "../extension-guide/path";
-import { useWideScreen } from "../link-details/use-wide-screen";
+import { useWideScreen } from "../shell/use-wide-screen";
 import { useInstallPrompt } from "../save-anywhere/install-prompt";
 import { SAVE_ANYWHERE_PATH } from "../save-anywhere/SaveAnywherePage";
 import { modKeyLabel } from "../search/shortcut-keys";

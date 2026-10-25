@@ -2,10 +2,9 @@ import type { SavedLink } from "@linkables/shared/links";
 import { Link } from "@tanstack/react-router";
 import { Pin } from "lucide-react";
 import { cn } from "cn";
-import { useLinkDetails } from "../link-details/details-search";
 import { MatchedText } from "../search/MatchedText";
 import { displayTitle, domainOf, filedLabel, relativeTime } from "./link-display";
-import { openDetails, RowActions, startDrag, type LinkRowProps } from "./LinkRow";
+import { RowActions, startDrag, type LinkRowProps } from "./LinkRow";
 import { LinkThumb } from "./LinkThumb";
 import { useLinksUi } from "./links-ui-store";
 import { isPending } from "./use-links";
@@ -13,9 +12,8 @@ import { usePinLink } from "./use-pin-link";
 
 // The grid's card: a row's link and actions, laid out around the image.
 // It keeps the row's data attributes so focus hand-offs treat both alike.
-export function LinkCard({ link, now, selected = false, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
+export function LinkCard({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
-  const details = useLinkDetails();
 
   return (
     <div
@@ -26,17 +24,15 @@ export function LinkCard({ link, now, selected = false, inCollection = false, hi
       )}
     >
       <Link
-        to="."
-        search={(prev) => ({ ...prev, link: link.id })}
-        aria-current={selected ? "true" : undefined}
-        onClick={(event) => { openDetails(event, () => { details.open(link.id); }); }}
+        to="/l/$linkId"
+        params={{ linkId: link.id }}
         draggable
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
         data-row-link
         data-link-id={link.id}
         className={cn(
-          "flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-[0_0_0_1px_var(--border)] transition-shadow aria-[current]:shadow-[0_0_0_2px_var(--foreground)]",
+          "flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-[0_0_0_1px_var(--border)] transition-shadow",
           highlight === "hop" && "animate-hop",
           highlight === "flash" && "animate-glow",
         )}
