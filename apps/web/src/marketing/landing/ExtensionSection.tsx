@@ -1,4 +1,4 @@
-import { Check, PanelRight, Pin, Search, Share } from "lucide-react";
+import { Check, PanelRight, Pin, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { Mark } from "../Mark";
 import { FeatureList } from "./FeatureList";
@@ -43,7 +43,7 @@ export function ExtensionSection() {
         </div>
         <figure
           role="img"
-          aria-label="The linkables extension: the Saved pop-up with Pin, Share and collections, over the side panel with your recent links"
+          aria-label="The linkables extension: the Saved pop-up with Pin and collections, over the side panel with your recent links, which comes next"
           className="relative min-h-[760px] min-w-0 min-[900px]:min-h-[600px]"
         >
           <SidePanel />
@@ -60,7 +60,7 @@ function SidePanel() {
       <div className="flex items-center gap-2 px-1">
         <Mark size={20} />
         <span className="flex-1 font-display text-[15px] font-semibold tracking-[-0.03em]">linkables</span>
-        <span className="text-xs text-subtle-foreground">Side panel</span>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">Side panel · coming next</span>
       </div>
       <span className="flex h-9 items-center gap-2 rounded-[11px] bg-muted px-3 text-[12.5px] text-subtle-foreground">
         <Search aria-hidden className="size-[13px]" />
@@ -99,9 +99,8 @@ function SavedPopup() {
           </span>
           <Tile site="tokyocheapo.com" className="h-8 w-12 rounded-lg text-[11px]" />
         </div>
-        <div className="grid grid-cols-3 gap-1.5 text-[11.5px] font-semibold">
+        <div className="grid grid-cols-2 gap-1.5 text-[11.5px] font-semibold">
           <PopupTile icon={<Pin aria-hidden className="size-[15px]" />} label="Pin" />
-          <PopupTile icon={<Share aria-hidden className="size-[15px]" />} label="Share" />
           <PopupTile icon={<PanelRight aria-hidden className="size-[15px]" />} label="All links" />
         </div>
         <span className="px-0.5 text-[11.5px] font-semibold text-muted-foreground">Add to a collection · optional</span>
@@ -120,8 +119,7 @@ function SavedPopup() {
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-between border-t border-[#262626] pt-2.5">
-          <span className="text-[11.5px] text-subtle-foreground">Alt+Shift+S saves quietly</span>
+        <div className="flex items-center justify-end border-t border-[#262626] pt-2.5">
           <span className="flex h-8 items-center rounded-[9px] bg-foreground px-3.5 text-[12.5px] font-bold text-background">Done</span>
         </div>
       </div>

@@ -121,9 +121,9 @@ export const PRIVACY_DOC: LongTextDoc = {
       heading: "The Chrome extension (beta)",
       body: (
         <p>
-          The Chrome extension reads the address and title of a tab only when you click linkables in the toolbar on that tab, and sends them to your
-          account to save it. It keeps your sign-in in Chrome's storage for the extension. It doesn't read what you type into pages, your passwords, or
-          your browsing history.
+          The Chrome extension reads the address and title of a tab only when you click linkables in the toolbar on that tab. It sends the address to
+          your account to save it; the title is only shown in the pop-up. It keeps your sign-in in Chrome's storage for the extension. It doesn't read
+          what you type into pages, your passwords, or your browsing history.
         </p>
       ),
     },
