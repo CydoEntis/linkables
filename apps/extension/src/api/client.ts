@@ -1,22 +1,10 @@
-import { API_V1_PREFIX, ERROR_CODES, failureEnvelopeSchema, metaSchema, type ErrorCode } from "@linkables/shared/http";
-import { z } from "zod";
+import { ApiError, NETWORK_ERROR, parseData, readEnvelope } from "@linkables/shared/api-client";
+import { API_V1_PREFIX, ERROR_CODES } from "@linkables/shared/http";
+import type { z } from "zod";
 
-export const NETWORK_ERROR = "NETWORK_ERROR";
-// "string & {}" keeps codes added to the API after this build while known codes still narrow.
-export type ApiErrorCode = ErrorCode | typeof NETWORK_ERROR | (string & {});
-
-export class ApiError extends Error {
-  override readonly name = "ApiError";
-
-  constructor(
-    readonly code: ApiErrorCode,
-    message: string,
-    readonly requestId?: string,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-  }
-}
+// No token to send, which here means supabase-js could not refresh the session
+// (Supabase unreachable or failing); the stored session may still be good.
+export const NO_SESSION = "NO_SESSION";
 
 type ApiClientOptions = {
   baseUrl: string;
@@ -29,15 +17,13 @@ type RequestOptions = { method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; js
 
 export type ApiClient = ReturnType<typeof createApiClient>;
 
-// A lean twin of apps/web/src/api/client.ts: the same envelope rules, without the web's keepalive path.
+// The web client's envelope rules (packages/shared/src/api-client), without its keepalive path.
 export function createApiClient(options: ApiClientOptions) {
   const doFetch = options.fetch ?? ((input, init) => fetch(input, init));
   const root = options.baseUrl.replace(/\/+$/, "") + API_V1_PREFIX;
 
-  async function send(path: string, { method = "GET", json }: RequestOptions): Promise<Response> {
-    const headers = new Headers({ Accept: "application/json" });
-    const token = await options.getAccessToken();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
+  async function send(path: string, token: string, { method = "GET", json }: RequestOptions): Promise<Response> {
+    const headers = new Headers({ Accept: "application/json", Authorization: `Bearer ${token}` });
     if (json !== undefined) headers.set("Content-Type", "application/json");
     const body = json === undefined ? null : JSON.stringify(json);
     try {
@@ -49,43 +35,16 @@ export function createApiClient(options: ApiClientOptions) {
     }
   }
 
+  // Signs out only when the API rejects a token that was sent; a missing token fails here,
+  // so a refresh that failed for a moment never throws a good session away.
   async function request<T extends z.ZodType>(path: string, dataSchema: T, init: RequestOptions = {}): Promise<z.infer<T>> {
-    const envelope = parseOrThrow(anyEnvelopeSchema, await readJson(await send(path, init)));
-    if (envelope.ok) return parseOrThrow(dataSchema, envelope.data);
+    const token = await options.getAccessToken();
+    if (!token) throw new ApiError(NO_SESSION, "No session to send");
+    const envelope = await readEnvelope(await send(path, token, init));
+    if (envelope.ok) return parseData(dataSchema, envelope.data);
     if (envelope.error.code === ERROR_CODES.UNAUTHENTICATED) await options.onUnauthenticated();
     throw new ApiError(envelope.error.code, envelope.error.message, envelope.meta.requestId);
   }
 
   return { request };
-}
-
-// Looser than the shared schemas on purpose: an installed extension must survive
-// additive API changes, which the contract calls non-breaking.
-const clientMetaSchema = z.looseObject(metaSchema.shape);
-const anyEnvelopeSchema = z.discriminatedUnion("ok", [
-  z.looseObject({ ok: z.literal(true), data: z.unknown(), meta: clientMetaSchema }),
-  z.looseObject({
-    ok: z.literal(false),
-    error: z.looseObject({ ...failureEnvelopeSchema.shape.error.shape, code: z.string() }),
-    meta: clientMetaSchema,
-  }),
-]);
-
-function parseOrThrow<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> {
-  const parsed = schema.safeParse(value);
-  if (parsed.success) return parsed.data;
-  throw unexpectedResponse(parsed.error);
-}
-
-function unexpectedResponse(cause: unknown): ApiError {
-  return new ApiError(ERROR_CODES.INTERNAL, "Unexpected response from linkables", undefined, { cause });
-}
-
-async function readJson(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch (error) {
-    if (error instanceof SyntaxError) throw unexpectedResponse(error);
-    throw error;
-  }
 }

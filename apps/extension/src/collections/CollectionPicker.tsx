@@ -2,7 +2,7 @@ import { COLLECTION_NAME_MAX_LENGTH, type ListedCollection } from "@linkables/sh
 import { cn } from "cn";
 import { Check } from "lucide-react";
 import { useId, useState, type KeyboardEvent } from "react";
-import { ApiError } from "../api/client";
+import { ApiError } from "@linkables/shared/api-client";
 import { Alert } from "../ui";
 import { displayName, freezeOrder, pickerRows } from "./picker";
 import { useCollections, useCreateCollection, type CollectionRef } from "./use-collections";

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { ApiError, createApiClient, NETWORK_ERROR } from "./client";
+import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
+import { createApiClient, NO_SESSION } from "./client";
 
 const idSchema = z.object({ id: z.string() });
 const REQUEST_ID = "6f1c8f4e-2b7a-4c1d-9e0f-3a5b7c9d1e2f";
@@ -41,10 +42,11 @@ describe("api client", () => {
     expect(sent().headers.get("Content-Type")).toBe("application/json");
   });
 
-  it("sends no Authorization header without a session", async () => {
-    const { api, sent } = setup(okId, null);
-    await api.request("/links", idSchema);
-    expect(sent().headers.get("Authorization")).toBeNull();
+  it("fails without calling the API or signing out when there is no token to send", async () => {
+    const { api, sent, onUnauthenticated } = setup(okId, null);
+    await expect(api.request("/links", idSchema)).rejects.toMatchObject({ code: NO_SESSION });
+    expect(sent().url).toBeUndefined();
+    expect(onUnauthenticated).not.toHaveBeenCalled();
   });
 
   it("returns the data of a success envelope", async () => {

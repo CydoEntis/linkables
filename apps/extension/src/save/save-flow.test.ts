@@ -1,6 +1,7 @@
 import type { SaveLinkResponse } from "@linkables/shared/links";
 import { describe, expect, it, vi } from "vitest";
-import { ApiError, NETWORK_ERROR } from "../api/client";
+import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
+import { NO_SESSION } from "../api/client";
 import { CANT_SAVE_REASONS } from "./savable";
 import { saveCurrentTab, SAVE_MESSAGES, savedTitle } from "./save-flow";
 
@@ -57,6 +58,14 @@ describe("saveCurrentTab", () => {
     await expect(saveCurrentTab({ readTab: tab("https://example.com/a"), save })).resolves.toEqual({
       status: "error",
       message: SAVE_MESSAGES.offline,
+    });
+  });
+
+  it("asks to try again when the sign-in could not be refreshed", async () => {
+    const save = () => Promise.reject(new ApiError(NO_SESSION, "No session to send"));
+    await expect(saveCurrentTab({ readTab: tab("https://example.com/a"), save })).resolves.toEqual({
+      status: "error",
+      message: SAVE_MESSAGES.noSession,
     });
   });
 
