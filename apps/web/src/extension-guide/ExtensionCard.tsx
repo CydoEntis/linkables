@@ -35,7 +35,7 @@ export function ExtensionCard() {
           <span className="text-[12.5px] text-muted-foreground">Save any tab in one click</span>
         </span>
       </div>
-      <AddToChromeLink look={{ variant: "ghost", className: "h-9 rounded-[10px] bg-accent text-[13px] font-bold hover:bg-[#343434]" }}>
+      <AddToChromeLink look={{ variant: "ghost", className: "h-9 rounded-[10px] bg-accent text-[13px] font-bold hover:bg-accent-hover" }}>
         Add to Chrome
       </AddToChromeLink>
     </section>
