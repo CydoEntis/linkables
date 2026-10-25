@@ -13,9 +13,11 @@
   "dependencies": {
     "@hono/node-server": "2.1.5",
     "@linkables/shared": "workspace:*",
+    "@mozilla/readability": "0.6.0",
     "drizzle-orm": "0.45.4",
     "hono": "4.13.13",
     "jose": "6.2.12",
+    "linkedom": "0.18.13",
     "parse5": "8.0.1",
     "postgres": "3.4.9",
     "undici": "8.12.3",
