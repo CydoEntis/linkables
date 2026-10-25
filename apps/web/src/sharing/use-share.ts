@@ -61,9 +61,12 @@ export function useSetSharing(collectionId: string) {
   return useMutation({
     mutationFn: (on: boolean) =>
       api.request(`/collections/${collectionId}/share`, shareStateSchema, { method: on ? "POST" : "DELETE" }),
-    // Not awaited: the header swaps controls once the list refetches, and that
-    // must not unmount the caller before its own onSuccess runs.
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: shareKeys.own }); },
+    onSuccess: (_state, on) => {
+      // A link turned off is dead at once, so nothing may offer to copy it while the list refetches.
+      if (!on) queryClient.setQueryData<OwnSharedCollectionsResponse>(shareKeys.own, (data) => data && { items: data.items.filter((item) => item.id !== collectionId) });
+      // Not awaited, so the caller's own onSuccess runs before its row or control unmounts.
+      void queryClient.invalidateQueries({ queryKey: shareKeys.own });
+    },
   });
 }
 
