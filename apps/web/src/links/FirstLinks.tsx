@@ -51,7 +51,7 @@ function DesktopWays() {
   ];
 
   return (
-    <div className="flex animate-fade-up flex-col gap-[22px] pt-[30px]">
+    <div className="flex max-w-[1040px] animate-fade-up flex-col gap-[22px] pt-[30px]">
       <div className="flex flex-col gap-1.5">
         <h2 className="text-2xl font-bold tracking-[-0.015em]">Save your first link</h2>
         <p className="text-[15px] text-muted-foreground">Three ways in. Use whichever is closest.</p>
