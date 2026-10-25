@@ -105,6 +105,24 @@ describe("link details", () => {
     expect(within(details()).queryByRole("link", { name: /Open/ })).not.toBeInTheDocument();
   });
 
+  it("puts Read first in the action row, opening the link's reader", async () => {
+    const link = savedLink();
+    await renderDetails(link);
+    const actions = within(details()).getByRole("group", { name: "Actions" });
+    expect(Array.from(actions.children, (action) => action.textContent)).toEqual(["Read", "Pin", "Share", "Delete"]);
+    expect(within(actions).getByRole("link", { name: "Read" })).toHaveAttribute("href", `/l/${link.id}/read`);
+    expect(within(details()).getAllByRole("link", { name: "Read" })).toHaveLength(1);
+  });
+
+  it("offers no Read for a video or a file", async () => {
+    for (const kind of ["video", "other"] as const) {
+      const { unmount } = await renderDetails(savedLink({ resource: { kind } }));
+      expect(within(details()).queryByRole("link", { name: "Read" })).not.toBeInTheDocument();
+      expect(within(details()).getByRole("button", { name: "Pin" })).toBeInTheDocument();
+      unmount();
+    }
+  });
+
   it("links each collection tag to its collection", async () => {
     await renderDetails(savedLink({ collections: [{ id: rust.id, name: "rust" }] }));
     expect(within(details()).getByRole("link", { name: "Rust" })).toHaveAttribute("href", `/c/${rust.id}`);
