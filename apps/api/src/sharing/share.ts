@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { SHARED_LINKS_MAX, type SharedCollection, type ShareState } from "@linkables/shared/sharing";
 import { and, count, desc, eq, sql } from "drizzle-orm";
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import type { Db } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
 import { NotFoundError } from "../http/errors";
@@ -88,12 +89,23 @@ function withoutCredentials(saved: string): string {
   return url.href;
 }
 
+// Drizzle puts a failed query's params in its error, which the error handler
+// logs; a token must never reach the logs, so only the driver's cause goes on.
+async function withoutParams<T>(query: Promise<T>): Promise<T> {
+  try {
+    return await query;
+  } catch (error) {
+    // eslint-disable-next-line preserve-caught-error -- the caught error itself carries the token.
+    if (error instanceof DrizzleQueryError) throw new Error("Shared collection lookup failed", { cause: error.cause });
+    throw error;
+  }
+}
+
 // An unknown token and a turned-off one are the same NOT_FOUND.
 export async function sharedCollection(db: Db, token: string): Promise<SharedCollection> {
-  const [found] = await db
-    .select({ id: collection.id, name: collection.name })
-    .from(collection)
-    .where(eq(collection.shareToken, token));
+  const [found] = await withoutParams(
+    db.select({ id: collection.id, name: collection.name }).from(collection).where(eq(collection.shareToken, token)),
+  );
   if (found === undefined) throw new NotFoundError("Shared collection not found");
   const [links, linkCount] = await Promise.all([sharedLinks(db, found.id), sharedLinkCount(db, found.id)]);
   return { name: found.name, linkCount, links: links.map((link) => ({ ...link, url: withoutCredentials(link.url) })) };
