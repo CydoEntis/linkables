@@ -1,6 +1,6 @@
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { linkCountLabel } from "../collections/ShareDialog";
+import { linkCountLabel } from "../collections/link-count";
 
 type BlockedBannerProps = { wide: boolean; opened: number; blocked: number; total: number; onOpenRest: () => void };
 

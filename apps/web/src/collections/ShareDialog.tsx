@@ -10,6 +10,7 @@ import { ShareOff } from "../sharing/ShareOff";
 import { ShareOn } from "../sharing/ShareOn";
 import { useSetSharing, useShareState } from "../sharing/use-share";
 import { displayName } from "./display-name";
+import { linkCountLabel } from "./link-count";
 import { MiniCover } from "./MiniCover";
 
 type ShareDialogProps = { collection: ListedCollection; open: boolean; onOpenChange: (open: boolean) => void };
@@ -17,10 +18,6 @@ type ShareDialogProps = { collection: ListedCollection; open: boolean; onOpenCha
 // The handoff's pop-in: up 8 px from .98 over 240 ms.
 const POP_IN =
   "gap-[18px] p-[22px] duration-240 ease-out-soft transition-[opacity,scale,translate] data-ending-style:translate-y-[calc(-50%+8px)] data-ending-style:scale-98 data-starting-style:translate-y-[calc(-50%+8px)] data-starting-style:scale-98";
-
-export function linkCountLabel(count: number): string {
-  return `${String(count)} ${count === 1 ? "link" : "links"}`;
-}
 
 function sharingLabel(token: string | null | undefined): string {
   if (token === undefined) return "";
