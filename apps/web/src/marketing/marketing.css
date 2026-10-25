@@ -1,0 +1,130 @@
+/* Landing and long-text pages (docs/design/landing-handoff/README.md, 0a).
+   Everything here reads fully with motion off; see the reduced-motion block. */
+
+/* A layer, so Tailwind utilities such as hidden still win over these classes. */
+@layer components {
+    html[data-app-boot] #landing {
+        display: none;
+    }
+
+    .lp {
+        overflow-x: clip;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .lp-prose p,
+    .lp-prose li {
+        font-size: 17px;
+        line-height: 1.7;
+        color: var(--soft-foreground);
+        text-wrap: pretty;
+    }
+    .lp-prose ul { list-style: disc; padding-left: 22px; }
+    .lp-prose a { color: var(--primary); font-weight: 600; }
+    .lp-prose a:hover { color: var(--foreground); }
+    .lp-prose strong { color: var(--foreground); }
+
+    .lp-dots {
+        background-image: radial-gradient(#2a2a2a 1px, transparent 1.2px);
+        background-size: 26px 26px;
+        mask-image: radial-gradient(ellipse 65% 60% at 50% 30%, #000 20%, transparent 75%);
+    }
+
+    .lp-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: transform 0.18s var(--ease-out-soft), background-color 0.2s ease, filter 0.2s ease;
+    }
+    .lp-btn:hover { transform: translateY(-1px); }
+    .lp-btn:active { transform: scale(0.97); transition-duration: 0.06s; }
+    .lp-btn-primary { box-shadow: inset 0 -3px 0 rgb(22 32 10 / 0.18); }
+    .lp-btn-primary:hover { filter: brightness(1.05); }
+    .lp-btn-ghost { box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.35); }
+    .lp-btn .lp-arrow { transition: transform 0.25s var(--ease-out-soft); }
+    .lp-btn:hover .lp-arrow { transform: translateX(4px); }
+
+    .lp-store-row { transition: background-color 0.2s ease, padding 0.25s var(--ease-out-soft); }
+    .lp-store-row:hover { background: rgb(22 32 10 / 0.07); padding-inline: 14px; }
+
+    .lp-menu > summary { list-style: none; }
+    .lp-menu > summary::-webkit-details-marker { display: none; }
+    .lp-faq > summary { list-style: none; }
+    .lp-faq > summary::-webkit-details-marker { display: none; }
+    .lp-faq[open] .lp-plus { transform: rotate(45deg); }
+
+    .lp-word { display: inline-block; animation: lp-word 0.8s var(--ease-out-soft) both; }
+    .lp-in { animation: lp-in 0.8s var(--ease-out-soft) both; }
+    .lp-rise { animation: lp-rise-in 1s 0.5s var(--ease-out-soft) both; }
+    .lp-chip-in { animation: lp-chip-in 0.8s var(--ease-out-soft) both; }
+    .lp-bob { animation: lp-bob 7s 1.5s ease-in-out infinite; }
+    .lp-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: lp-draw 0.7s 0.75s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
+    .lp-drop { animation: lp-drop 0.7s 1.6s var(--ease-out-soft) both; }
+    .lp-fade-actions { animation: lp-fade-actions 0.35s 2.4s ease-out both; }
+    .lp-swipe { animation: lp-swipe 6s 1s var(--ease-out-soft) infinite; }
+
+    @supports (animation-timeline: view()) {
+        .lp-reveal {
+            animation: lp-reveal linear both;
+            animation-timeline: view();
+            animation-range: entry 0% cover 24%;
+        }
+    }
+
+    @keyframes lp-word {
+        from { opacity: 0; transform: translateY(0.35em); filter: blur(8px); }
+        to { opacity: 1; transform: none; filter: none; }
+    }
+    @keyframes lp-in {
+        from { opacity: 0; transform: translateY(18px); filter: blur(6px); }
+        to { opacity: 1; transform: none; filter: none; }
+    }
+    @keyframes lp-rise-in {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: none; }
+    }
+    @keyframes lp-chip-in {
+        from { opacity: 0; transform: translateY(24px) scale(0.94); }
+        to { opacity: 1; transform: none; }
+    }
+    @keyframes lp-bob {
+        0%, 100% { translate: 0 0; }
+        50% { translate: 0 -10px; }
+    }
+    @keyframes lp-draw {
+        to { stroke-dashoffset: 0; }
+    }
+    @keyframes lp-drop {
+        from { opacity: 0; max-height: 0; transform: translateY(-8px); }
+        to { opacity: 1; max-height: 70px; transform: none; }
+    }
+    @keyframes lp-fade-actions {
+        from { opacity: 0; translate: 6px 0; }
+        to { opacity: 1; translate: 0 0; }
+    }
+    @keyframes lp-reveal {
+        from { opacity: 0; transform: translateY(28px); }
+        to { opacity: 1; transform: none; }
+    }
+    /* The phone row slides left to show its actions, holds, then closes. */
+    @keyframes lp-swipe {
+        0%, 15% { transform: none; }
+        25%, 65% { transform: translateX(-192px); }
+        75%, 100% { transform: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .lp, .lp *, .lp *::before, .lp *::after {
+            animation: none !important;
+            transition: none !important;
+        }
+        .lp-draw { stroke-dashoffset: 0; }
+        html { scroll-behavior: auto !important; }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        html:has(.lp) { scroll-behavior: smooth; }
+    }
+    html:has(.lp) { scroll-padding-top: 80px; }
+}
