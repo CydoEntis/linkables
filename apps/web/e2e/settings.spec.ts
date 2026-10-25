@@ -15,13 +15,15 @@ test.describe("at 1280 px", () => {
   test("opens Settings from the account menu", async ({ page, user }) => {
     await page.goto("/");
     await page.getByRole("complementary").getByRole("button", { name: "Account" }).click();
+    await expect(page.getByRole("menuitem")).toHaveText(["Settings", "Sign out"]);
     await page.getByRole("menuitem", { name: "Settings" }).click();
 
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Account" })).toContainText(user.email);
-    await expect(page.getByRole("link", { name: "Get the extension" })).toHaveAttribute("href", "/extension");
-    await expect(page.getByRole("link", { name: "Privacy policy" })).toHaveAttribute("href", "/privacy");
+    await expect(page.getByRole("link", { name: "Add to Chrome" })).toHaveAttribute("href", "/extension");
+    await expect(page.getByRole("link", { name: "All the ways to save" })).toHaveAttribute("href", "/save-from-anywhere");
+    await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
   });
 
   test("turns off a collection's share link so it stops working", async ({ page, db, user, seedLinks }) => {
@@ -32,9 +34,11 @@ test.describe("at 1280 px", () => {
     await page.goto("/settings");
 
     await expect(sharedSection(page).getByRole("link", { name: "Trip to Japan" })).toBeVisible();
-    await sharedSection(page).getByRole("button", { name: "Turn off link to Trip to Japan" }).click();
+    const tripRow = sharedSection(page).getByRole("listitem", { name: "Trip to Japan" });
+    await tripRow.getByRole("button", { name: "Turn off link" }).click();
+    await tripRow.getByRole("button", { name: "Tap again to turn off" }).click();
 
-    await expect(sharedSection(page)).toContainText("No collection has its link on");
+    await expect(sharedSection(page)).toContainText("Nothing is shared");
     await page.goto(`/s/${TOKEN}`);
     await expect(page.getByRole("heading", { name: "This shared collection isn't available" })).toBeVisible();
   });
@@ -44,13 +48,17 @@ test.describe("at 1280 px", () => {
     await db.insert(collection).values({ userId: user.id, name: "Trip to Japan" });
     await page.goto("/settings");
 
-    await page.getByRole("button", { name: "Delete account" }).click();
+    await page.getByRole("button", { name: "Delete account…" }).click();
     const dialog = page.getByRole("dialog", { name: "Delete your account?" });
-    await dialog.getByRole("textbox", { name: "Type DELETE to confirm" }).fill("DELETE");
+    await expect(dialog.getByRole("button", { name: "Delete account" })).toBeDisabled();
+    await dialog.getByRole("textbox", { name: "Type DELETE to confirm" }).fill("delete");
     await dialog.getByRole("button", { name: "Delete account" }).click();
 
-    await expect(page.getByText("Your account is deleted")).toBeVisible();
-    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Your account is deleted" })).toBeVisible();
+    await expect(page).toHaveURL(/\/account-deleted$/);
+    await page.getByRole("link", { name: "Back to linkables.app" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key.includes("auth-token")))).toEqual([]);
     expect(await db.query.savedLink.findMany({ where: (row, { eq }) => eq(row.userId, user.id) })).toEqual([]);
     expect(await db.query.collection.findMany({ where: (row, { eq }) => eq(row.userId, user.id) })).toEqual([]);
   });
@@ -67,5 +75,21 @@ test.describe("on a 360 px phone", () => {
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBe(0);
+    await page.getByRole("link", { name: "Back" }).click();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test("confirms a delete in a bottom sheet with Delete account above Cancel", async ({ page }) => {
+    await page.goto("/settings");
+    await page.getByRole("button", { name: "Delete account…" }).click();
+    const sheet = page.getByRole("dialog", { name: "Delete your account?" });
+
+    await expect.poll(async () => {
+      const box = await sheet.boundingBox();
+      return box ? Math.round(box.y + box.height) : 0;
+    }).toBe(780);
+    const deleteBox = await sheet.getByRole("button", { name: "Delete account" }).boundingBox();
+    const cancelBox = await sheet.getByRole("button", { name: "Cancel" }).boundingBox();
+    expect(deleteBox && cancelBox && deleteBox.y < cancelBox.y).toBe(true);
   });
 });

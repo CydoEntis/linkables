@@ -39,15 +39,14 @@ async function shot(page: Page, testInfo: TestInfo, name: string) {
 }
 
 async function openBookmarkletDialog(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Account" }).click();
-  await page.getByRole("menuitem", { name: "Get the bookmark button" }).click();
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "Get the button" }).click();
   const dialog = page.getByRole("dialog", { name: "Get the bookmark button" });
   await expect(dialog).toBeVisible();
   return dialog;
 }
 
-test("the account menu offers a draggable Save to linkables button built from the app origin", async ({ page }, testInfo) => {
+test("Settings offers a draggable Save to linkables button built from the app origin", async ({ page }, testInfo) => {
   const dialog = await openBookmarkletDialog(page);
   await expect(dialog.getByText("Drag this to your bookmarks bar")).toBeVisible();
   const button = dialog.getByRole("link", { name: "Save to linkables" });
@@ -90,7 +89,7 @@ test("Get the bookmark button explains dragging when the button is clicked", asy
   const dialog = await openBookmarkletDialog(page);
   await dialog.getByRole("link", { name: "Save to linkables" }).click();
   await expect(dialog.getByRole("status")).toHaveText("Drag it to your bookmarks bar, or use Copy the link.");
-  expect(new URL(page.url()).pathname).toBe("/");
+  expect(new URL(page.url()).pathname).toBe("/settings");
   expect(page.context().pages()).toHaveLength(1);
 });
 
