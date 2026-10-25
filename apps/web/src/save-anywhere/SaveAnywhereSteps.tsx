@@ -1,5 +1,6 @@
 import { Download, ExternalLink, Share } from "lucide-react";
 import { useId, type ReactNode } from "react";
+import { EXTENSION_GUIDE_PATH } from "../extension-guide/path";
 import { BookmarkletPanel } from "../save/BookmarkletDialog";
 import { useInstallPrompt } from "./install-prompt";
 import { SAVE_DEVICES, type SaveDevice } from "./save-device";
@@ -121,7 +122,9 @@ function DesktopSteps() {
       <Note>Then click it on any page to save that page.</Note>
       <BookmarkletPanel />
       <Note>Or drag any link onto your links list.</Note>
-      <p className="text-[13px] text-subtle-foreground">Chrome extension: coming soon</p>
+      <a href={EXTENSION_GUIDE_PATH} className="self-start text-[14.5px] font-semibold text-primary underline-offset-4 hover:underline">
+        Use Chrome? Try the linkables extension (beta)
+      </a>
     </>
   );
 }
