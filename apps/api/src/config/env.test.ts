@@ -71,6 +71,23 @@ describe("parseEnv", () => {
     if (!result.ok) expect(result.message).toContain("CORS_ORIGINS");
   });
 
+  it("accepts a Chrome extension origin", () => {
+    const extension = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
+    const result = parseEnv({ ...VALID, CORS_ORIGINS: `https://app.example.com, ${extension}` });
+
+    expect(result.ok && result.config.corsOrigins).toEqual(["https://app.example.com", extension]);
+  });
+
+  it.each(["chrome-extension://short", "chrome-extension://abcdefghijklmnopabcdefghijklmnop/"])(
+    "rejects the malformed Chrome extension origin %s",
+    (entry) => {
+      const result = parseEnv({ ...VALID, CORS_ORIGINS: entry });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.message).toContain("CORS_ORIGINS");
+    },
+  );
+
   it("never echoes a variable's value in the failure message", () => {
     const result = parseEnv({ ...VALID, DATABASE_URL: "not a url db-secret", PORT: "db-secret" });
 

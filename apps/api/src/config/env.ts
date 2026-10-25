@@ -1,9 +1,15 @@
 import { z } from "zod";
 import { LOG_LEVELS } from "../log/logger";
 
-const origin = z.url().refine((value) => new URL(value).origin === value, {
+const webOrigin = z.url().refine((value) => new URL(value).origin === value, {
   message: "each entry must be a bare origin such as https://app.example.com",
 });
+
+// The extension's pages send Origin chrome-extension://<id>. URL gives such a URL
+// the opaque origin "null", so it is matched by shape: an id is 32 letters a to p.
+const chromeExtensionOrigin = z.string().regex(/^chrome-extension:\/\/[a-p]{32}$/);
+
+const origin = z.union([chromeExtensionOrigin, webOrigin]);
 
 const corsOrigins = z
   .string()

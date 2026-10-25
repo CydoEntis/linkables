@@ -21,6 +21,17 @@ describe("CORS", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 
+  it("answers a preflight from an allowed Chrome extension origin", async () => {
+    const extension = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
+    const res = await createTestApp({ corsOrigins: [ALLOWED, extension] }).request("/api/v1/links", {
+      method: "OPTIONS",
+      headers: { Origin: extension, "Access-Control-Request-Method": "POST" },
+    });
+
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(extension);
+  });
+
   it("keeps CORS headers on an error response", async () => {
     const res = await requestFrom(ALLOWED, "/api/v1/me");
 
