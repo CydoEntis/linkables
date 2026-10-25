@@ -30,21 +30,6 @@
         mask-image: radial-gradient(ellipse 65% 60% at 50% 30%, #000 20%, transparent 75%);
     }
 
-    .lp-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        transition: transform 0.18s var(--ease-out-soft), background-color 0.2s ease, filter 0.2s ease;
-    }
-    .lp-btn:hover { transform: translateY(-1px); }
-    .lp-btn:active { transform: scale(0.97); transition-duration: 0.06s; }
-    .lp-btn-primary { box-shadow: inset 0 -3px 0 rgb(22 32 10 / 0.18); }
-    .lp-btn-primary:hover { filter: brightness(1.05); }
-    .lp-btn-ghost { box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.35); }
-    .lp-btn .lp-arrow { transition: transform 0.25s var(--ease-out-soft); }
-    .lp-btn:hover .lp-arrow { transform: translateX(4px); }
-
     .lp-store-row { transition: background-color 0.2s ease, padding 0.25s var(--ease-out-soft); }
     .lp-store-row:hover { background: rgb(22 32 10 / 0.07); padding-inline: 14px; }
 
