@@ -34,7 +34,7 @@ export function TurnOffLinkButton({ onConfirm, pending = false }: TurnOffLinkBut
         disabled={pending}
         onClick={onClick}
         className={cn(
-          "h-9 px-3 text-[13.5px] font-bold",
+          "h-9 px-3 text-[13.5px] font-bold inset-shadow-none",
           armed ? "bg-destructive/16 text-destructive hover:bg-destructive/22" : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
