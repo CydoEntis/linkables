@@ -1,4 +1,4 @@
-import { successEnvelopeSchema } from "@linkables/shared/http";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
 import { count, eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -138,6 +138,22 @@ describe("DELETE /me", () => {
 
     expect(lines.join("\n")).toContain("owner not emailed");
     for (const secret of [a.id, A_EMAIL]) expect(lines.join("\n")).not.toContain(secret);
+  });
+
+  it("refuses a fourth delete within the hour for the same user, without emailing again", async () => {
+    const notifyAccountDeleted = vi.fn<NotifyAccountDeleted>().mockResolvedValue();
+    let at = NOW;
+    const app = createTestApp({ db, now: () => at, notifyAccountDeleted });
+
+    for (let i = 0; i < 3; i += 1) expect((await deleteAccount(app, a.headers)).status).toBe(200);
+    const limited = await deleteAccount(app, a.headers);
+
+    expect(limited.status).toBe(429);
+    expect(failureEnvelopeSchema.parse(await limited.json()).error.code).toBe("RATE_LIMIT");
+    expect(notifyAccountDeleted).toHaveBeenCalledTimes(3);
+    expect((await deleteAccount(app, b.headers)).status).toBe(200);
+    at = NOW + 60 * 60 * 1000;
+    expect((await deleteAccount(app, a.headers)).status).toBe(200);
   });
 
   it("still answers 200, and logs without naming the user, when the owner's email fails", async () => {
