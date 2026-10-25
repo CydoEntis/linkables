@@ -11,7 +11,7 @@ import { NotFoundError } from "../http/errors";
 import { rateLimit } from "../http/rate-limit";
 import { parseWith } from "../http/validate";
 import type { Logger } from "../log/logger";
-import { disableShare, enableShare, getShareState, sharedCollection } from "./share";
+import { disableShare, enableShare, getShareState, listOwnShared, sharedCollection } from "./share";
 
 const MINUTE_MS = 60 * 1000;
 // A viewer loads the page once; this leaves room for a household behind one address.
@@ -29,6 +29,7 @@ const tokenParams = validator("param", (value) => {
 
 export function shareRoutes({ db }: { db: Db }) {
   return new Hono<AuthEnv>()
+    .get("/collections/shared", async (c) => ok(c, await listOwnShared(db, c.get("userId"))))
     .get("/collections/:id/share", collectionParams, async (c) =>
       ok(c, await getShareState(db, { userId: c.get("userId"), id: c.req.valid("param").id })),
     )
