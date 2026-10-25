@@ -1,10 +1,9 @@
 import type { SavedLink } from "@linkables/shared/links";
 import { Link } from "@tanstack/react-router";
 import { Pin, Plus, Share, Trash2 } from "lucide-react";
-import { useRef, useState, type DragEvent, type MouseEvent } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { cn } from "cn";
 import { AddToPopover } from "../collections/AddToPopover";
-import { useLinkDetails } from "../link-details/details-search";
 import { displayTitle, domainOf, filedLabel, relativeTime, savedFromLabel } from "./link-display";
 import { MatchedText } from "../search/MatchedText";
 import { LinkThumb } from "./LinkThumb";
@@ -26,8 +25,6 @@ const TEXT_FADE_PX = 120;
 export type LinkRowProps = {
   link: SavedLink;
   now: number;
-  // Whether the details panel shows this link.
-  selected?: boolean;
   // On a collection's page every row is in that collection, so the meta skips where it is filed.
   inCollection?: boolean;
   highlight?: RowHighlight | undefined;
@@ -38,10 +35,10 @@ export type LinkRowProps = {
   query?: string | undefined;
 };
 
-// The row opens the link's details; Open ↗ in the details goes to the saved URL.
-export function LinkRow({ link, now, selected = false, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
+// The row is a real link to the link's own page, so a modified click opens it
+// in a new tab; the saved URL itself opens from that page.
+export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
-  const details = useLinkDetails();
   const deleteLink = useDeleteLink();
   const swipeOpen = useLinksUi((state) => state.swipeOpenId === link.id);
   const setSwipeOpenId = useLinksUi((state) => state.setSwipeOpenId);
@@ -56,10 +53,8 @@ export function LinkRow({ link, now, selected = false, inCollection = false, hig
   return (
     <div ref={rowRef} data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
       <Link
-        to="."
-        search={(prev) => ({ ...prev, link: link.id })}
-        aria-current={selected ? "true" : undefined}
-        onClick={(event) => { openDetails(event, () => { details.open(link.id); }); }}
+        to="/l/$linkId"
+        params={{ linkId: link.id }}
         draggable
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
@@ -67,7 +62,7 @@ export function LinkRow({ link, now, selected = false, inCollection = false, hig
         data-row-link
         data-link-id={link.id}
         className={cn(
-          "flex touch-pan-y items-center gap-3 rounded-xl py-2.5 pr-3.5 pl-3 transition-colors group-hover/row:bg-row-hover focus-visible:outline-offset-0 aria-[current]:bg-row-hover max-md:select-none md:gap-4 md:px-3.5",
+          "flex touch-pan-y items-center gap-3 rounded-xl py-2.5 pr-3.5 pl-3 transition-colors group-hover/row:bg-row-hover focus-visible:outline-offset-0 max-md:select-none md:gap-4 md:px-3.5",
           highlight === "hop" && "animate-hop",
           highlight === "flash" && "animate-glow",
         )}
@@ -106,15 +101,7 @@ export function LinkRow({ link, now, selected = false, inCollection = false, hig
   );
 }
 
-// A plain click opens the details in place; a modified click is left to the
-// browser (a new tab with the same details), and a swipe has already cancelled it.
-export function openDetails(event: MouseEvent<HTMLAnchorElement>, open: () => void) {
-  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  event.preventDefault();
-  open();
-}
-
-// Dragged out of the app, the row carries the saved URL, not the details address.
+// Dragged out of the app, the row carries the saved URL, not the link page's address.
 export function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
   event.dataTransfer.setData("text/uri-list", link.originalUrl);
   event.dataTransfer.setData("text/plain", link.originalUrl);

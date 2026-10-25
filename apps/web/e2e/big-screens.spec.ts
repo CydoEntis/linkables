@@ -8,30 +8,15 @@ const TWO_LINKS = [
 test.describe("at 2560 px", () => {
   test.use({ viewport: { width: 2560, height: 1440 } });
 
-  test("the list opens as a grid, with the newest link's details docked beside it", async ({ page, seedLinks }) => {
-    await seedLinks(TWO_LINKS);
+  test("the list opens as a grid across the whole column, and a card opens its link's page", async ({ page, seedLinks }) => {
+    const [, newer] = await seedLinks(TWO_LINKS);
     await page.goto("/");
     const grid = page.getByRole("list", { name: "Links" });
-    await expect(grid.getByRole("link", { name: /^Newer link/ })).toHaveAttribute("aria-current", "true");
-    const details = page.getByRole("region", { name: "Link details" });
-    await expect(details.getByRole("heading", { name: /Newer link/ })).toBeVisible();
-    await expect(details).not.toBeFocused();
+    await expect(grid.getByRole("link", { name: /^Newer link/ })).toBeVisible();
+    expect((await page.getByRole("main").boundingBox())?.width).toBe(1900);
 
-    const gridBox = await grid.boundingBox();
-    const detailsBox = await details.boundingBox();
-    expect(detailsBox?.width).toBe(480);
-    expect((gridBox?.x ?? 0) + (gridBox?.width ?? 0)).toBeLessThanOrEqual(detailsBox?.x ?? 0);
-  });
-
-  test("closing the docked panel widens the list column, and it stays closed", async ({ page, seedLinks }) => {
-    await seedLinks(TWO_LINKS);
-    await page.goto("/");
-    const main = page.getByRole("main");
-    const docked = (await main.boundingBox())?.width ?? 0;
-    await page.getByRole("region", { name: "Link details" }).getByRole("button", { name: "Back" }).click();
-    await expect(page.getByRole("region", { name: "Link details" })).toHaveCount(0);
-    await expect.poll(async () => (await main.boundingBox())?.width).toBe(1900);
-    expect(docked).toBe(1560);
+    await grid.getByRole("link", { name: /^Newer link/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/l/${newer?.id ?? ""}$`));
   });
 });
 
@@ -43,7 +28,6 @@ test.describe("at 1440 px", () => {
     await page.goto("/");
     await expect(page.getByRole("link", { name: /^Newer link/ })).toBeVisible();
     await expect(page.getByRole("list", { name: "Links" })).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Link details" })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Grid" }).click();
     await expect(page.getByRole("list", { name: "Links" })).toBeVisible();

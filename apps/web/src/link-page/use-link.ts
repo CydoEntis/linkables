@@ -8,18 +8,20 @@ import { useLinksUi } from "../links/links-ui-store";
 import { findCachedLink, findListedCopy, isPending, linksKeys, pendingPoller } from "../links/use-links";
 import { shouldRetry } from "../query-client";
 
-export type DetailsLink =
+export type LinkState =
   | { status: "found"; link: SavedLink }
   | { status: "loading" }
   | { status: "gone" }
+  // Deleted on this page and leaving it; the Undo toast can still bring it back.
+  | { status: "deleted" }
   | { status: "failed"; retry: () => void };
 
-// Details show the freshest cached copy of the link, and fetch it on their own
+// The link page shows the freshest cached copy of the link, and fetches it on its own
 // when no list holds it (an address opened directly, or a link deep in an
 // unloaded page) or while its metadata is pending, since the list holding it
 // may be off screen and not polling. The fetch starts from the list's copy, so
 // a link a refetch drops from the lists (filed out of New, say) stays up.
-export function useDetailsLink(linkId: string): DetailsLink {
+export function useLink(linkId: string): LinkState {
   const queryClient = useQueryClient();
   // Batched like TanStack's own hooks: a query created while another component renders must not update this one mid-render.
   const subscribe = useCallback(
@@ -39,7 +41,7 @@ export function useDetailsLink(linkId: string): DetailsLink {
   });
   const deleting = useLinksUi((state) => state.deletingIds.includes(linkId));
 
-  if (deleting) return { status: "gone" };
+  if (deleting) return { status: "deleted" };
   if (isApiError(own.error, ERROR_CODES.NOT_FOUND)) return { status: "gone" };
   if (cached) return { status: "found", link: cached };
   return own.isError ? { status: "failed", retry: () => void own.refetch() } : { status: "loading" };

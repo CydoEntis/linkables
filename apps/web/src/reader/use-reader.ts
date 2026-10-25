@@ -6,8 +6,10 @@ import { api } from "../api/api";
 import { shouldRetry } from "../query-client";
 
 // The API keeps a readable copy for days, so one fetch per visit is plenty.
-export function useReader(linkId: string) {
+// enabled: false for a link that cannot have an article (a video or a file).
+export function useReader(linkId: string, enabled: boolean) {
   return useQuery({
+    enabled,
     queryKey: ["reader", linkId] as const,
     queryFn: ({ signal }) => api.request(`/links/${linkId}/reader`, readerViewSchema, { signal }),
     staleTime: Infinity,

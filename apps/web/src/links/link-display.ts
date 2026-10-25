@@ -72,7 +72,7 @@ export function savedFromLabel(source: SavedLink["savedFrom"]): string | null {
   return device ? `from ${device}` : null;
 }
 
-// Link details: "Saved Oct 20 · on iPhone", or "Saved just now" (handoff 2).
+// The link page: "Saved Oct 20 · on iPhone", or "Saved just now" (handoff 2).
 export function savedOnLabel(link: SavedLink, now: number): string {
   const at = Date.parse(link.savedAt);
   const when = now - at < MINUTE ? "just now" : shortDate(at, now);

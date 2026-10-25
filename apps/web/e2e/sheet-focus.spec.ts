@@ -1,11 +1,21 @@
 import { collectionSchema } from "@linkables/shared/collections";
 import { successEnvelopeSchema } from "@linkables/shared/http";
+import type { ReaderArticle } from "@linkables/shared/reader";
 import type { Locator, Page } from "@playwright/test";
 import { API_URL } from "./env";
 import { expect, test } from "./fixtures";
 import { expectFocusTrapped } from "./focus-trap";
+import { stubReader } from "./reader-stub";
 
 const RUST = { url: "https://doc.rust-lang.org/rust-by-example/", resource: { title: "Rust by Example", fetchStatus: "fetched" as const } };
+const ARTICLE: ReaderArticle = {
+  title: "Ownership",
+  byline: null,
+  siteName: null,
+  minutes: 1,
+  truncated: false,
+  blocks: [{ type: "paragraph", content: [{ text: "Each value has one owner." }] }],
+};
 
 async function expectTrapAndEscape(page: Page, trigger: Locator) {
   const sheet = page.getByRole("dialog");
@@ -48,11 +58,14 @@ test.describe("at 375 px", () => {
     await expectTrapAndEscape(page, trigger);
   });
 
-  test("the link details sheet keeps Tab inside, and Esc returns to the row", async ({ page, seedLinks }) => {
-    await seedLinks([RUST]);
-    await page.goto("/");
-    const trigger = page.getByRole("link", { name: /^Rust by Example/ });
+  test("the link page's note sheet keeps Tab inside, and Esc returns to More", async ({ page, seedLinks }) => {
+    const [link] = await seedLinks([RUST]);
+    await stubReader(page, { status: "ok", url: RUST.url, article: ARTICLE });
+    await page.goto(`/l/${link?.id ?? ""}`);
+    const trigger = page.getByRole("button", { name: "More actions" });
     await trigger.click();
+    await page.getByRole("menuitem", { name: "Note" }).click();
+    await expect(page.getByRole("textbox", { name: "Note" })).toBeFocused();
     await expectTrapAndEscape(page, trigger);
   });
 });

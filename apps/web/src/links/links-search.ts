@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { linkDetailsSearchShape } from "../link-details/details-search";
+import { oldLinkSearchShape } from "../link-page/old-link-address";
 import { listFiltersShape, orderRange } from "../search/list-filters";
 
 // The URL's views. "inbox" keeps the API's name; the UI calls it New (CONTEXT.md).
@@ -21,6 +21,6 @@ export const linksSearchSchema = z
     view: z.enum(LINKS_VIEWS).default(DEFAULT_LINKS_SEARCH.view).catch(DEFAULT_LINKS_SEARCH.view),
     ...listFiltersShape,
     collection: z.uuid().optional().catch(undefined),
-    ...linkDetailsSearchShape,
+    ...oldLinkSearchShape,
   })
   .transform(orderRange);

@@ -1,14 +1,14 @@
-import { BookOpen, ExternalLink } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { OpenOriginal } from "./OpenOriginal";
 
 const SHIMMER = "animate-[shimmer_1.4s_linear_infinite] bg-[linear-gradient(90deg,#1a1a1a,#262626,#1a1a1a)] bg-size-[200%_100%]";
 
-export function ArticleSkeleton() {
+// label: what is loading, the link itself or its article.
+export function ArticleSkeleton({ label }: { label: string }) {
   return (
     <div role="status" className="mx-auto flex max-w-[700px] flex-col gap-3.5 px-[22px] pt-[26px] pb-16 md:px-8 md:pt-14">
-      <span className="text-[13px] text-muted-foreground">Getting the article…</span>
+      <span className="text-[13px] text-muted-foreground">{label}</span>
       <span aria-hidden className={`h-10 w-[90%] rounded-[10px] ${SHIMMER}`} />
       <span aria-hidden className={`h-10 w-[55%] rounded-[10px] ${SHIMMER}`} />
       <span aria-hidden className={`my-3.5 aspect-video rounded-[16px] ${SHIMMER}`} />
@@ -16,20 +16,6 @@ export function ArticleSkeleton() {
         <span key={width} aria-hidden className="h-3.5 rounded-[5px] bg-[#1c1c1c]" style={{ width: `${String(width)}%` }} />
       ))}
     </div>
-  );
-}
-
-export function Unavailable({ url }: { url: string }) {
-  return (
-    <StateView
-      title="Reader view isn't available for this page"
-      detail="It's a video, it's behind a paywall, or there's no article on it to pull out."
-    >
-      <OpenOriginal url={url} variant="default" className="mt-1.5 h-[46px] gap-2 px-5 text-[14.5px]">
-        Open original
-        <ExternalLink aria-hidden strokeWidth={2.2} className="size-3.5" />
-      </OpenOriginal>
-    </StateView>
   );
 }
 

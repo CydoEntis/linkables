@@ -8,7 +8,7 @@ const FRAME = "relative flex aspect-video shrink-0 animate-pop items-center just
 
 // The handoff's 16:9 media: the page image when there is one, else a player mock
 // for videos and the tinted letter tile for pages. Decoration only.
-export function DetailsMedia({ link }: { link: SavedLink }) {
+export function LinkMedia({ link }: { link: SavedLink }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const { thumbnailUrl, kind } = link.resource;
   const video = kind === "video";

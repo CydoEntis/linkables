@@ -26,6 +26,10 @@ type LinksUi = {
   deletingIds: readonly string[];
   startDeleting: (linkId: string) => void;
   stopDeleting: (linkId: string) => void;
+  // The link whose page was just left: the list focuses its row once, when it shows.
+  returnFocusId: string | null;
+  setReturnFocusId: (linkId: string) => void;
+  takeReturnFocusId: () => string | null;
 };
 
 const HIGHLIGHT_MS = 1500;
@@ -71,4 +75,11 @@ export const useLinksUi = create<LinksUi>()((set, get) => ({
   deletingIds: [],
   startDeleting: (linkId) => { set({ deletingIds: [...get().deletingIds.filter((id) => id !== linkId), linkId] }); },
   stopDeleting: (linkId) => { set({ deletingIds: get().deletingIds.filter((id) => id !== linkId) }); },
+  returnFocusId: null,
+  setReturnFocusId: (linkId) => { set({ returnFocusId: linkId }); },
+  takeReturnFocusId: () => {
+    const linkId = get().returnFocusId;
+    set({ returnFocusId: null });
+    return linkId;
+  },
 }));

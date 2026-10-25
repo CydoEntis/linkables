@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { BIG_SCREEN_QUERY, useMediaQuery, useWideScreen } from "../link-details/use-wide-screen";
+import { BIG_SCREEN_QUERY, useMediaQuery, useWideScreen } from "../shell/use-wide-screen";
 
 export type ListLayout = "grid" | "list";
 

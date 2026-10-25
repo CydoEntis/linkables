@@ -6,14 +6,13 @@ import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { isNarrowed, type FiltersChange, type ListFilters } from "../search/list-filters";
 import { NoMatches } from "../search/NoMatches";
 import { groupLinks, type LinkGroup } from "./link-groups";
-import { useShownLinkId } from "../link-details/docked-details";
-import { LinkDetails } from "../link-details/LinkDetails";
 import { LinkCard } from "./LinkCard";
 import { LinkRow, type LinkRowProps, type RowHighlight } from "./LinkRow";
 import { useListLayout } from "./list-layout";
 import { useLinksUi } from "./links-ui-store";
 import { LinksEmpty } from "./LinksEmpty";
 import { belongsIn, useLinks, type ListScope } from "./use-links";
+import { useFocusReturningRow } from "./use-focus-returning-row";
 import { useHeldRow } from "./use-held-row";
 
 type LinkListProps = { scope: ListScope; filters?: ListFilters; onFiltersChange?: FiltersChange };
@@ -36,20 +35,14 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const belongs = (link: SavedLink) => belongsIn(scope, link, filters);
   const stays = (link: SavedLink) => !deletingIds.includes(link.id) && (belongs(link) || link.id === heldId);
   const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
-  // Only the plain newest-first list opens the docked panel by itself; a search
-  // or another sort is the user looking for something else.
-  const plainList = filters.q === undefined && (filters.sort ?? "newest") === "newest";
-  const newestId = plainList ? newestLinkId(links.filter(stays)) : undefined;
-  const selectedId = useShownLinkId(newestId).shownId;
+  useFocusReturningRow(links.length > 0);
 
   const narrowed = isNarrowed(filters);
   // One status region in every state, so a change to "0 matches" is announced too.
-  // The details panel sits here too: on huge screens it opens on this list's newest link.
   const withStatus = (body: ReactNode, count: string | null = null) => (
     <>
       <ResultCount text={count} />
       {body}
-      <LinkDetails newestLinkId={newestId} />
     </>
   );
   if (query.isPending) return withStatus(<LinkListSkeleton />);
@@ -65,7 +58,6 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const itemProps = (link: SavedLink): LinkRowProps => ({
     link,
     now,
-    selected: link.id === selectedId,
     inCollection: "collectionId" in scope,
     highlight: highlightFor(link.id),
     belongs: belongs(link),
@@ -133,12 +125,6 @@ function LinkGrid({ links, itemProps }: { links: SavedLink[]; itemProps: ItemPro
       ))}
     </ul>
   );
-}
-
-function newestLinkId(links: readonly SavedLink[]): string | undefined {
-  let newest: SavedLink | undefined;
-  for (const link of links) if (newest === undefined || link.savedAt > newest.savedAt) newest = link;
-  return newest?.id;
 }
 
 // Day groups follow the newest-first order; search results and other sorts are
