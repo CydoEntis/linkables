@@ -71,6 +71,11 @@ describe("SaveAnywhereSteps", () => {
     expect(screen.getByText("Or drag any link onto your links list.")).toBeVisible();
   });
 
+  it("points a computer to the Chrome extension guide", () => {
+    render(<SaveAnywhereSteps device="desktop" shortcutUrl={SHORTCUT} />);
+    expect(screen.getByRole("link", { name: "Use Chrome? Try the linkables extension (beta)" })).toHaveAttribute("href", "/extension");
+  });
+
   it("keeps the other devices behind See other ways", async () => {
     render(<SaveAnywhereSteps device="desktop" shortcutUrl={SHORTCUT} />);
     expect(screen.getByRole("region", { name: "On Android" })).not.toBeVisible();

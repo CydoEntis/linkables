@@ -3,6 +3,8 @@ import { z } from "zod";
 import { AuthGate } from "./auth/AuthGate";
 import { linkDetailsSearchShape } from "./link-details/details-search";
 import { CollectionPage } from "./collections/CollectionPage";
+import { ExtensionGuidePage } from "./extension-guide/ExtensionGuidePage";
+import { EXTENSION_GUIDE_PATH } from "./extension-guide/path";
 import { SignInPage } from "./auth/SignInScreen";
 import { LinksPage } from "./links/LinksPage";
 import { DEFAULT_LINKS_SEARCH, linksSearchSchema } from "./links/links-search";
@@ -60,8 +62,14 @@ const legalRoutes = [
   createRoute({ getParentRoute: () => rootRoute, path: SUPPORT_PAGE.path, component: SupportPage }),
 ];
 
+const extensionGuideRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: EXTENSION_GUIDE_PATH,
+  component: ExtensionGuidePage,
+});
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, ...legalRoutes]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, extensionGuideRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {
