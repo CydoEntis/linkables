@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildManifest, EXTENSION_ID, extensionIdFor, MANIFEST_KEY } from "./manifest";
 
@@ -28,6 +30,14 @@ describe("buildManifest", () => {
 
   it("has a description short enough for the Web Store summary", () => {
     expect(manifest.description.length).toBeLessThanOrEqual(132);
+  });
+
+  it("points every icon size at a file drawn at exactly that size", () => {
+    for (const [size, file] of Object.entries({ ...manifest.icons, ...manifest.action.default_icon })) {
+      const png = readFileSync(join(import.meta.dirname, "public", file));
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)], file).toEqual([Number(size), Number(size)]);
+    }
+    expect(Object.keys(manifest.icons)).toEqual(["16", "32", "48", "128"]);
   });
 
   it("drops a trailing slash from the configured origins", () => {
