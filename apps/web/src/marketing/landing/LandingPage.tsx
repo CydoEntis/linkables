@@ -1,5 +1,6 @@
 import { INVITE_ONLY } from "../../config/access";
 import { env } from "../../config/env";
+import { CHROME_WEB_STORE_URL } from "../../extension-guide/path";
 import { MarketingShell } from "../MarketingShell";
 import { ExtensionSection } from "./ExtensionSection";
 import { Faq } from "./Faq";
@@ -20,7 +21,7 @@ export function LandingPage() {
         <HowItWorks />
         <PhoneSection />
         <ExtensionSection />
-        <StoreSection cards={storeCards(env.VITE_IOS_SHORTCUT_URL, INVITE_ONLY)} />
+        <StoreSection cards={storeCards(env.VITE_IOS_SHORTCUT_URL, INVITE_ONLY, CHROME_WEB_STORE_URL)} />
         <FindSection />
         <PrivacySection />
         <Faq />

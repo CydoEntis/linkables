@@ -21,3 +21,17 @@ it("walks through loading the unzipped folder in Chrome", async () => {
     expect.stringContaining("Sign in"),
   ]);
 });
+
+const STORE_URL = "https://chromewebstore.google.com/detail/linkables/abcdefghijklmnopabcdefghijklmnop";
+
+it("offers Add to Chrome from the Web Store once the extension is listed there", async () => {
+  await renderWithRouter(<ExtensionGuidePage storeUrl={STORE_URL} />);
+  expect(screen.getByRole("link", { name: "Add to Chrome" })).toHaveAttribute("href", STORE_URL);
+  expect(screen.queryByRole("link", { name: "Download for Chrome" })).not.toBeInTheDocument();
+});
+
+it("skips the by-hand steps when the extension comes from the Web Store", async () => {
+  await renderWithRouter(<ExtensionGuidePage storeUrl={STORE_URL} />);
+  const steps = screen.getAllByRole("listitem").map((step) => step.textContent);
+  expect(steps).toEqual([expect.stringContaining("Add linkables"), expect.stringContaining("Pin"), expect.stringContaining("Sign in")]);
+});
