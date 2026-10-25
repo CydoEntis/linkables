@@ -2,6 +2,7 @@ import {
   ownSharedCollectionsResponseSchema,
   sharedCollectionSchema,
   shareStateSchema,
+  type OwnSharedCollectionsResponse,
   type ShareState,
 } from "@linkables/shared/sharing";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,11 @@ export function sharedUrl(token: string): string {
   return `${window.location.origin}${SHARED_PATH_PREFIX}${token}`;
 }
 
+// The shared address without its scheme, as the Share dialog shows it.
+export function sharedPrefix(): string {
+  return `${window.location.host}${SHARED_PATH_PREFIX}`;
+}
+
 export function useShareState(collectionId: string, enabled: boolean) {
   return useQuery({
     queryKey: shareKeys.state(collectionId),
@@ -26,13 +32,28 @@ export function useShareState(collectionId: string, enabled: boolean) {
   });
 }
 
+function fetchOwnShared({ signal }: { signal: AbortSignal }) {
+  return api.request("/collections/shared", ownSharedCollectionsResponseSchema, { signal });
+}
+
 // The signed-in user's collections whose link is on, for Settings.
 export function useOwnShared() {
   return useQuery({
     queryKey: shareKeys.own,
-    queryFn: ({ signal }) => api.request("/collections/shared", ownSharedCollectionsResponseSchema, { signal }),
+    queryFn: fetchOwnShared,
     select: (data) => data.items,
   });
+}
+
+const NONE: ReadonlySet<string> = new Set();
+
+function idsOf(data: OwnSharedCollectionsResponse): ReadonlySet<string> {
+  return new Set(data.items.map((item) => item.id));
+}
+
+// Which of the signed-in user's collections have their link on, for the globe marks.
+export function useSharedIds(): ReadonlySet<string> {
+  return useQuery({ queryKey: shareKeys.own, queryFn: fetchOwnShared, select: idsOf }).data ?? NONE;
 }
 
 // POST turns the link on (keeping one that is already on); DELETE turns it off.
