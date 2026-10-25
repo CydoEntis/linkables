@@ -154,7 +154,7 @@ test.describe("at 1280 px", () => {
     await expect(page).not.toHaveURL(/q=/);
     await expect(page.getByRole("heading", { level: 1, name: "New", exact: true })).toBeVisible();
 
-    // Leave focus on the page without clicking: a click in the middle could land on a row and open its details.
+    // Leave focus on the page without clicking: a click in the middle could land on a row and open its page.
     await expect(palette).toBeHidden();
     await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); });
     await page.keyboard.press("?");
