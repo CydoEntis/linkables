@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "cn";
 import { CollectionChip } from "../collections/CollectionSheet";
 import { SidebarCollections } from "../collections/SidebarCollections";
+import { ExtensionCard } from "../extension-guide/ExtensionCard";
 import { LINKS_VIEWS, VIEW_LABELS, type LinksView } from "../links/links-search";
 import type { ListScope } from "../links/use-links";
 import { AccountMenu } from "./AccountMenu";
@@ -43,6 +44,7 @@ export function AppShell({ scope, search, children }: AppShellProps) {
           ))}
         </nav>
         <SidebarCollections activeId={collectionId} />
+        <ExtensionCard />
         <div>
           <AccountMenu showEmail />
         </div>
