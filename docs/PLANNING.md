@@ -191,6 +191,8 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 
 - Objective: optional summaries and search over saved content, with citations.
 - In: on-demand summaries, semantic search, library Q&A with citations, usage metering.
+- Owner-requested (2026-10-25): "Reader: summaries, notes and highlights on articles". The
+  summaries belong here; notes and highlights inside articles are a Phase 6 candidate.
 - Exit: every AI call is metered and capped; summaries state whether source text
   or only metadata was used.
 - Tickets: none (outline only).
@@ -206,7 +208,8 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 
 - Objective: nothing committed. Each item is evaluated by user demand and cost.
 - Candidates: native apps, nested collections, import integrations, public
-  directories, marketing site.
+  directories, marketing site, and notes and highlights on reader articles
+  (owner-requested 2026-10-25, with the summaries in Phase 4).
 - Tickets: none.
 
 ## Hub
