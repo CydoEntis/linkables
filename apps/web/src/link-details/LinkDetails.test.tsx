@@ -4,7 +4,7 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "@/components/ui/sonner";
-import { ApiError } from "../api/client";
+import { ApiError } from "@linkables/shared/api-client";
 import { listedCollection } from "../collections/test-collections";
 import { LinkRow } from "../links/LinkRow";
 import { useLinksUi } from "../links/links-ui-store";

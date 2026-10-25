@@ -2,7 +2,7 @@ import type { SavedLink } from "@linkables/shared/links";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
-import { ApiError, NETWORK_ERROR } from "../api/client";
+import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { isNarrowed, type FiltersChange, type ListFilters } from "../search/list-filters";
 import { NoMatches } from "../search/NoMatches";
 import { groupLinks, type LinkGroup } from "./link-groups";

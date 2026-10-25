@@ -3,7 +3,7 @@ import { savedLinkSchema, type SavedLink } from "@linkables/shared/links";
 import { notifyManager, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useSyncExternalStore } from "react";
 import { api } from "../api/api";
-import { isApiError } from "../api/client";
+import { isApiError } from "@linkables/shared/api-client";
 import { useLinksUi } from "../links/links-ui-store";
 import { findListedLink, linksKeys } from "../links/use-links";
 import { shouldRetry } from "../query-client";

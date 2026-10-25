@@ -3,7 +3,8 @@ import { z } from "zod";
 import { readAccessToken } from "../auth/access-token";
 import { signOut, supabase } from "../auth/supabase";
 import { storeSession, stubAuthServer } from "../test/session";
-import { ApiError, createApiClient, NETWORK_ERROR } from "./client";
+import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
+import { createApiClient } from "./client";
 
 const API_URL = "http://api.test";
 const meSchema = z.object({ id: z.string() });
