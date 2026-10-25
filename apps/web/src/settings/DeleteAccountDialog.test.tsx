@@ -1,11 +1,10 @@
 import { ApiError } from "@linkables/shared/api-client";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { testQueryClient } from "../test/render-with-router";
+import { renderWithRouter } from "../test/render-with-router";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
+import { ACCOUNT_DELETED_PATH } from "./path";
 
 const request = vi.hoisted(() => vi.fn<(path: string, schema: unknown, init?: RequestInit) => Promise<unknown>>());
 vi.mock("../api/api", () => ({ api: { request } }));
@@ -15,58 +14,61 @@ const { signOut, signOutEverywhere } = vi.hoisted(() => ({
 }));
 vi.mock("../auth/supabase", () => ({ signOut, signOutEverywhere }));
 
-function renderDialog() {
+async function renderDialog() {
   const user = userEvent.setup();
-  render(
-    <QueryClientProvider client={testQueryClient()}>
-      <DeleteAccountDialog open onOpenChange={() => undefined} />
-    </QueryClientProvider>,
-  );
-  return user;
+  const { router } = await renderWithRouter(<DeleteAccountDialog open onOpenChange={() => undefined} />);
+  return { user, router };
 }
 
 const confirmField = () => screen.getByRole("textbox", { name: "Type DELETE to confirm" });
 const deleteButton = () => screen.getByRole("button", { name: "Delete account" });
 
 async function confirmDelete() {
-  const user = renderDialog();
-  await user.type(confirmField(), "DELETE");
-  await user.click(deleteButton());
+  const rendered = await renderDialog();
+  await rendered.user.type(confirmField(), "DELETE");
+  await rendered.user.click(deleteButton());
+  return rendered;
 }
 
 beforeEach(() => {
   request.mockReset().mockResolvedValue(null);
   signOut.mockReset().mockResolvedValue();
   signOutEverywhere.mockReset().mockResolvedValue();
-  vi.spyOn(toast, "success").mockReturnValue(1);
 });
 
 describe("DeleteAccountDialog", () => {
-  it("does nothing until DELETE is typed", async () => {
-    const user = renderDialog();
+  it("keeps Delete account off until DELETE is typed", async () => {
+    const { user } = await renderDialog();
 
-    await user.type(confirmField(), "delete");
-    await user.click(deleteButton());
+    await user.type(confirmField(), "DELET");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Type DELETE exactly as shown");
-    expect(request).not.toHaveBeenCalled();
+    expect(deleteButton()).toBeDisabled();
   });
 
-  it("deletes the account, confirms it, and signs out everywhere", async () => {
-    await confirmDelete();
+  it("uppercases what is typed, so delete counts", async () => {
+    const { user } = await renderDialog();
+
+    await user.type(confirmField(), "delete");
+
+    expect(confirmField()).toHaveValue("DELETE");
+    expect(deleteButton()).toBeEnabled();
+  });
+
+  it("deletes the account, shows the goodbye, and signs out everywhere", async () => {
+    const { router } = await confirmDelete();
 
     await waitFor(() => { expect(signOutEverywhere).toHaveBeenCalledOnce(); });
     expect(request).toHaveBeenCalledWith("/me", expect.anything(), { method: "DELETE" });
-    expect(toast.success).toHaveBeenCalledWith("Your account is deleted", expect.anything());
+    expect(router.state.location.pathname).toBe(ACCOUNT_DELETED_PATH);
   });
 
-  it("still confirms the delete and signs this browser out when signing out everywhere fails", async () => {
+  it("still shows the goodbye and signs this browser out when signing out everywhere fails", async () => {
     signOutEverywhere.mockRejectedValue(new Error("offline"));
 
-    await confirmDelete();
+    const { router } = await confirmDelete();
 
     await waitFor(() => { expect(signOut).toHaveBeenCalledOnce(); });
-    expect(toast.success).toHaveBeenCalledWith("Your account is deleted", expect.anything());
+    expect(router.state.location.pathname).toBe(ACCOUNT_DELETED_PATH);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
