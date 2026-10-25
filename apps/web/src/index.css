@@ -4,6 +4,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Big screens (3xl) get the grid and a wider column; huge ones (4xl) dock the details panel. Mirrored in use-wide-screen.ts. */
+@theme {
+    --breakpoint-3xl: 112.5rem;
+    --breakpoint-4xl: 137.5rem;
+}
+
 @theme inline {
     --color-ring: var(--ring);
     --color-input: var(--input);

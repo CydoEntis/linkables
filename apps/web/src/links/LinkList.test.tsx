@@ -1,12 +1,13 @@
 import type { ListLinksResponse } from "@linkables/shared/links";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@linkables/shared/api-client";
 import { useCollectionsUi } from "../collections/collections-ui-store";
 import type { ListFilters } from "../search/list-filters";
 import { TestRouter } from "../test/router";
+import { resetViewport, stubViewport } from "../test/viewport";
 import { LinkList } from "./LinkList";
 import type { LinksView } from "./links-search";
 import { savedLink } from "./test-links";
@@ -39,6 +40,8 @@ function requestedParams(): Record<string, string> {
 beforeEach(() => {
   request.mockReset();
 });
+
+afterEach(resetViewport);
 
 describe("LinkList", () => {
   it("groups links under day headings with pinned links first", async () => {
@@ -133,6 +136,20 @@ describe("LinkList", () => {
     request.mockResolvedValue(page(["Rust"], "cursor-1"));
     renderList("all", { q: "rust" });
     expect(await screen.findByText("1+ matches")).toBeInTheDocument();
+  });
+
+  it("lays the links out as cards in one grid on a big screen", async () => {
+    stubViewport(2560);
+    request.mockResolvedValue({
+      items: [savedLink({ resource: { title: "Fresh" } }), savedLink({ pinned: true, resource: { title: "Kept" } })],
+      cursor: null,
+    });
+    renderList();
+    const grid = await screen.findByRole("list", { name: "Links" });
+    const [first, second] = within(grid).getAllByRole("link");
+    expect(first).toHaveAccessibleName(/^Kept/);
+    expect(second).toHaveAccessibleName(/^Fresh/);
+    expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
   });
 
   it("keeps a sorted list flat, in the API's order", async () => {
