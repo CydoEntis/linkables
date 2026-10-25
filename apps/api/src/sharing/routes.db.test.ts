@@ -113,6 +113,7 @@ describe("collection sharing", () => {
     expect(await viewed(res)).toEqual({
       name: "Trip to Japan",
       linkCount: 2,
+      updatedAt: expect.any(String),
       links: [
         { url: "https://example.com/tokyo", title: null, description: null, thumbnailUrl: null, faviconUrl: null, kind: "page" },
         {
@@ -126,6 +127,22 @@ describe("collection sharing", () => {
       ],
     });
     for (const secret of ["secret note", a.id, col.id, older.id, newer.id]) expect(text).not.toContain(secret);
+  });
+
+  it("dates the shared collection by its newest filing, or not at all when it is empty", async () => {
+    const app = createTestApp({ db });
+    const col = await insertCollection(a.id, "Trip");
+    const token = await turnOn(app, a, col.id);
+    expect((await viewed(await view(app, token))).updatedAt).toBeNull();
+
+    const older = await insertLink(a.id, null, { url: "https://example.com/old" });
+    const newer = await insertLink(a.id, null, { url: "https://example.com/new" });
+    await db.insert(collectionItem).values([
+      { collectionId: col.id, savedLinkId: older.id, createdAt: new Date("2026-10-20T08:00:00Z") },
+      { collectionId: col.id, savedLinkId: newer.id, createdAt: new Date("2026-10-24T09:30:00Z") },
+    ]);
+
+    expect((await viewed(await view(app, token))).updatedAt).toBe("2026-10-24T09:30:00.000Z");
   });
 
   it("shows only that collection's links, and only the owner's", async () => {
