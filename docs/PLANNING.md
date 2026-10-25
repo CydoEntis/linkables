@@ -96,7 +96,8 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 - Billing and team plans (Phase 5)
 - Native mobile apps, nested collections, marketing site (Phase 6 or later)
 - Firefox extension
-- Tags, archive, bulk actions, account deletion (not asked for; add when wanted)
+- Tags, archive, bulk actions (not asked for; add when wanted)
+- Automated sign-in removal: Settings deletes a user's data at once, but the server has no Supabase service role key, so the owner removes the sign-in record by hand within 30 days (emailed on each deletion)
 
 ## Phases
 
