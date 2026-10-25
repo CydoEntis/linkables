@@ -1,3 +1,5 @@
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 import { BUILT_URL } from "./built-env";
 import { SUPABASE_URL } from "./env";
@@ -42,6 +44,31 @@ test("an expired email sign-in link loads the app, which explains the problem", 
   await page.goto("/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired");
   await expectAppBooted(page);
   await expect(page.getByRole("heading", { name: "This link has expired" })).toBeVisible();
+});
+
+test("the extension install guide is open to a visitor who is not signed in", async ({ page }) => {
+  await page.goto("/extension");
+  await expect(page.getByRole("heading", { name: "linkables for Chrome" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download for Chrome" })).toHaveAttribute("href", "/downloads/linkables-chrome.zip");
+});
+
+test.describe("the extension download", () => {
+  // CI copies the real zip here after the web build; the test stands in a tiny one.
+  const downloads = fileURLToPath(new URL("../dist/downloads/", import.meta.url));
+  const emptyZip = Buffer.from([0x50, 0x4b, 0x05, 0x06, ...new Array<number>(18).fill(0)]);
+
+  test.beforeAll(() => {
+    mkdirSync(downloads, { recursive: true });
+    writeFileSync(`${downloads}linkables-chrome.zip`, emptyZip);
+  });
+  test.afterAll(() => { rmSync(downloads, { recursive: true, force: true }); });
+
+  test("is served as the zip file, not the app shell", async ({ request }) => {
+    const response = await request.get("/downloads/linkables-chrome.zip");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("application/zip");
+    expect(await response.body()).toEqual(emptyZip);
+  });
 });
 
 test.describe("prerendered pages", () => {
