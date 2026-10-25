@@ -44,7 +44,8 @@ async function blockPopUpsAfterTheFirst(page: Page) {
 test.describe("the owner", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("gets a share link, opens it, and turns it off with two taps so it stops working", async ({ page, db, user, seedLinks }) => {
+  test("gets and copies a share link in one click, opens it, and turns it off with two taps so it stops working", async ({ page, context, db, user, seedLinks }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const col = await fileInto(db, user.id, await seedLinks(LINKS));
     await page.goto(`/c/${col.id}`);
 
@@ -52,9 +53,12 @@ test.describe("the owner", () => {
     await expect(shareDialog(page).getByText("2 links · only you can see it")).toBeVisible();
     await shareDialog(page).getByRole("button", { name: "Get share link" }).click();
     await expect(shareDialog(page).getByText("Link is on")).toBeVisible();
+    await expect(shareDialog(page).getByRole("button", { name: "Copied" })).toBeVisible();
+    await expect(page.getByText("Link copied")).toBeVisible();
     await expect(shareDialog(page).getByText("2 links · anyone with the link can view")).toBeVisible();
     const url = await shareDialog(page).getByRole("link", { name: "See what viewers see" }).getAttribute("href");
     expect(url).toMatch(/\/s\/[A-Za-z0-9_-]{32}$/);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
     await page.keyboard.press("Escape");
     await expect(page.getByText("Shared", { exact: true })).toBeVisible();
     await expect(page.getByRole("complementary").getByRole("link", { name: /^Trip to Japan\W+shared/ })).toBeVisible();
@@ -64,7 +68,7 @@ test.describe("the owner", () => {
     await expect(page.getByRole("link", { name: /Kyoto, my pick/ })).toHaveAttribute("href", "https://example.com/kyoto");
 
     await page.goto(`/c/${col.id}`);
-    await page.getByRole("button", { name: "Share", exact: true }).first().click();
+    await page.getByRole("button", { name: "Sharing options" }).click();
     await shareDialog(page).getByRole("button", { name: "Turn off link" }).click();
     await expect(shareDialog(page).getByText("The link stops working right away.", { exact: false })).toBeVisible();
     await shareDialog(page).getByRole("button", { name: "Tap again to turn off" }).click();
@@ -72,6 +76,30 @@ test.describe("the owner", () => {
 
     await page.goto(url ?? "");
     await expect(page.getByRole("heading", { name: "This shared collection isn't available" })).toBeVisible();
+  });
+
+  test("copies a shared collection's link from the header in one click", async ({ page, context, db, user, seedLinks }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const col = await fileInto(db, user.id, await seedLinks(LINKS), TOKEN);
+    await page.goto(`/c/${col.id}`);
+
+    await page.getByRole("button", { name: "Copy link" }).click();
+
+    await expect(page.getByText("Link copied")).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(new RegExp(`/s/${TOKEN}$`));
+    await page.getByRole("button", { name: "Sharing options" }).click();
+    await expect(shareDialog(page).getByText("Link is on")).toBeVisible();
+  });
+
+  test("on a phone, still opens the share sheet from a ghost Share once the link is on", async ({ page, db, user, seedLinks }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const col = await fileInto(db, user.id, await seedLinks(LINKS), TOKEN);
+    await page.goto(`/c/${col.id}`);
+
+    await page.getByRole("button", { name: "Share", exact: true }).first().click();
+
+    await expect(shareDialog(page).getByRole("button", { name: "Send link…" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sharing options" })).toHaveCount(0);
   });
 });
 

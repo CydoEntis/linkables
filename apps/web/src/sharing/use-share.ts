@@ -56,6 +56,15 @@ export function useSharedIds(): ReadonlySet<string> {
   return useQuery({ queryKey: shareKeys.own, queryFn: fetchOwnShared, select: idsOf }).data ?? NONE;
 }
 
+// The collection's share token while its link is on, for the header's Copy link.
+export function useShareToken(collectionId: string): string | undefined {
+  return useQuery({
+    queryKey: shareKeys.own,
+    queryFn: fetchOwnShared,
+    select: (data) => data.items.find((item) => item.id === collectionId)?.token,
+  }).data;
+}
+
 // POST turns the link on (keeping one that is already on); DELETE turns it off.
 export function useSetSharing(collectionId: string) {
   const queryClient = useQueryClient();
