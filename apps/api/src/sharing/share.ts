@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { SHARED_LINKS_MAX, type SharedCollection, type ShareState } from "@linkables/shared/sharing";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { SHARED_LINKS_MAX, type OwnSharedCollection, type OwnSharedCollectionsResponse, type SharedCollection, type ShareState } from "@linkables/shared/sharing";
+import { and, asc, count, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import type { Db } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
@@ -45,6 +45,15 @@ export async function disableShare(db: Db, owned: Owned): Promise<ShareState> {
     .where(ownedCollection(owned))
     .returning({ token: collection.shareToken });
   return stateOf(row);
+}
+
+export async function listOwnShared(db: Db, userId: string): Promise<OwnSharedCollectionsResponse> {
+  const rows = await db
+    .select({ id: collection.id, name: collection.name, token: collection.shareToken })
+    .from(collection)
+    .where(and(eq(collection.userId, userId), isNotNull(collection.shareToken)))
+    .orderBy(asc(sql`lower(${collection.name})`), asc(collection.id));
+  return { items: rows.filter((row): row is OwnSharedCollection => row.token !== null) };
 }
 
 // A filing counts only when the link belongs to the collection's owner.

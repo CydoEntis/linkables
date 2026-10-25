@@ -26,3 +26,9 @@ export const sharedCollectionSchema = z.strictObject({
   linkCount: z.number().int().nonnegative(),
   links: z.array(sharedLinkSchema).max(SHARED_LINKS_MAX),
 });
+
+// The signed-in owner's collections whose link is on, for Settings. Owner-only:
+// it names collections by id, which the public view never does.
+export const ownSharedCollectionSchema = z.strictObject({ id: z.uuid(), name: z.string(), token: shareTokenSchema });
+
+export const ownSharedCollectionsResponseSchema = z.strictObject({ items: z.array(ownSharedCollectionSchema) });
