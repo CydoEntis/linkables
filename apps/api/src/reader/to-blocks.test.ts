@@ -81,6 +81,10 @@ describe("toBlocks", () => {
     expect(blocks.length).toBeLessThan(READER_TEXT_MAX / 9_000);
   });
 
+  it("refuses a tree nested deeper than it walks, instead of overflowing the stack", () => {
+    expect(convert(`<p>${"<span>".repeat(5_000)}deep${"</span>".repeat(5_000)}</p>`)).toEqual({ blocks: [], truncated: false });
+  });
+
   it("stops at the block cap", () => {
     const { blocks, truncated } = convert("<p>x</p>".repeat(READER_BLOCKS_MAX + 5));
     expect(blocks).toHaveLength(READER_BLOCKS_MAX);

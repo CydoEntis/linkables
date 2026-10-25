@@ -4,20 +4,25 @@ import type { ReaderArticle, ReaderBlock } from "@linkables/shared/reader";
 import { parseHTML } from "linkedom";
 import { AUTHOR_MAX, cleanText } from "../metadata/extract";
 import { blockRuns, toBlocks, type PageNode } from "./to-blocks";
+import { exceedsLimits } from "./tree-limits";
 
-// Readability walks every element several times; past this a page is not an
-// article worth the CPU, and the API answers every user from one process.
-const ELEMENTS_MAX = 30_000;
+// Readability's cost grows with the cube of nesting depth (1,000 nested divs
+// take over 10 s), so pages past these limits are not read at all. Real
+// articles sit far inside both; the worker's time limit catches the rest.
+const PAGE_LIMITS = { elements: 30_000, depth: 150 };
 const WORDS_PER_MINUTE = 230;
 
 // null means the page has no readable article.
 export function extractArticle(html: string, pageUrl: string): ReaderArticle | null {
   const { document } = parseHTML(html);
-  if (document.getElementsByTagName("*").length > ELEMENTS_MAX) return null;
+  if (exceedsLimits(document, PAGE_LIMITS)) return null;
   if (!isProbablyReaderable(document)) return null;
   // The serializer hands back the content element itself, so it is never
   // serialised to HTML and parsed again.
-  const parsed = new Readability<PageNode>(document, { serializer: (node) => node }).parse();
+  const parsed = new Readability<PageNode>(document, {
+    serializer: (node) => node,
+    maxElemsToParse: PAGE_LIMITS.elements,
+  }).parse();
   if (!parsed?.content) return null;
   const { blocks, truncated } = toBlocks(parsed.content, pageUrl);
   if (blocks.length === 0) return null;
