@@ -19,6 +19,7 @@ export function TurnOffLinkButton({ onConfirm, pending = false }: TurnOffLinkBut
   }, [armed]);
 
   function onClick() {
+    if (pending) return;
     if (!armed) {
       setArmed(true);
       return;
@@ -28,10 +29,11 @@ export function TurnOffLinkButton({ onConfirm, pending = false }: TurnOffLinkBut
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="flex flex-col items-end">
+      {/* aria-disabled, not disabled, so focus stays on the button while it works. */}
       <Button
         variant="ghost"
-        disabled={pending}
+        aria-disabled={pending || undefined}
         onClick={onClick}
         className={cn(
           "h-9 px-3 text-[13.5px] font-bold inset-shadow-none",
@@ -41,7 +43,8 @@ export function TurnOffLinkButton({ onConfirm, pending = false }: TurnOffLinkBut
         {pending ? <LoaderCircle aria-hidden className="animate-spin" /> : null}
         {armed ? "Tap again to turn off" : "Turn off link"}
       </Button>
-      <p aria-live="polite" className="text-right text-[12.5px] leading-normal text-muted-foreground empty:hidden">
+      {/* Always rendered, so screen readers are listening when the hint appears. */}
+      <p aria-live="polite" className={cn("text-right text-[12.5px] leading-normal text-muted-foreground", armed && "mt-1.5")}>
         {armed ? "The link stops working right away. Turning it on later makes a new one." : ""}
       </p>
     </div>
