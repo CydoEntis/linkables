@@ -30,6 +30,18 @@
 		file_server
 	}
 
+	# A shared collection gets the app shell with its own link preview tags
+	# (shared.html). Its address holds the token: keep it out of search
+	# engines and out of the Referer of anything the page loads or opens.
+	handle /s/* {
+		root * /srv
+		header Cache-Control "no-cache"
+		header X-Robots-Tag "noindex, nofollow"
+		header Referrer-Policy "no-referrer"
+		rewrite * /shared.html
+		file_server
+	}
+
 	# Everything else (pages, the manifest, icons) is re-checked so a deploy
 	# shows up. / and the public pages are prerendered HTML (landing.html,
 	# privacy.html, ...); the landing page itself loads the app for a signed-in
@@ -37,11 +49,6 @@
 	handle {
 		root * /srv
 		header Cache-Control "no-cache"
-		# A shared collection's address holds its token: keep it out of search
-		# engines and out of the Referer of anything the page loads or opens.
-		@shared path /s/*
-		header @shared X-Robots-Tag "noindex, nofollow"
-		header @shared Referrer-Policy "no-referrer"
 		rewrite / /landing.html
 		try_files {path} {path}.html /index.html
 		file_server
