@@ -15,17 +15,31 @@ Contrast was measured in headless Chrome with the WCAG formula.
 | Save bar focus | 1.5 px `#3a3a3a` ring (1.53:1 on `#1a1a1a`) | 2 px lime ring (13.07:1); a valid link adds the soft lime halo on top | Focus rings need 2 px and 3:1; the brief and ADR-0006 make the ring lime. |
 | Menu items (account menu) | Highlight is `--raise` on `--card` (1.06:1) | Highlight keeps `--raise` and adds a 2 px lime ring (12.38:1 on the highlight) | A keyboard user must see which item is active. |
 | Phone view chips | 38 px pills | 38 px pill inside a 44 px tap target | Touch targets are 44 × 44 on phones. |
-| Solid delete red (swipe Delete tile, details Delete on hover) | `oklch(0.62 0.18 25)`: 3.97:1 under white text | `--destructive-solid` `oklch(0.58 0.18 25)`: 4.69:1 | Body text needs 4.5:1. |
-| Details panel resize grip | `--line2` `#2c2c2c` bar (1.3:1 on the panel's `#1a1a1a`) | `subtle-foreground` bar (about 5:1), white on hover, lime while dragging; a focusable separator that the arrow keys move | The grip is the only sign of a control: 3:1 for control edges. |
-| Phone link details: Back, Open ↗ and collection tags | 36 px buttons, 28 px pills | Same look inside 44 px tap targets | Touch targets are 44 × 44 on phones. |
+| Solid delete red (swipe Delete tile, link page Delete on hover) | `oklch(0.62 0.18 25)`: 3.97:1 under white text | `--destructive-solid` `oklch(0.58 0.18 25)`: 4.69:1 | Body text needs 4.5:1. |
+| Phone link page: Back, Share, Open original, More and collection tags | 36 px buttons, 28 px pills | Same look inside 44 px tap targets | Touch targets are 44 × 44 on phones. |
+
+## Link page (owner decision, 2026-10-25)
+
+The owner chose a page of its own for every link instead of the details panel: the rows already carry Add to, Share and Pin, so a panel repeating them felt redundant, and the reader's Pin and Share sat at the very end of the article.
+
+| What | Handoff | Build | Why |
+|---|---|---|---|
+| Opening a link | Details panel beside the list (web), full-screen sheet (phone); Read in it opens the reader | A row or card is a real link to `/l/<id>`, the link's own page; a modified or middle click opens it in a new tab | The owner chose one page per link; the panel only repeated the row's actions. |
+| Docked details at ≥2200 px | A 480 px third column open on the newest link, its card ringed | Gone; the grid and the list use the whole column (1900 px) | Nothing to dock once links open on their own page. |
+| Reader address | `/l/:id/read`, with the details panel as the quick look | The reader is the link page's body at `/l/:id`; `/l/:id/read` and the old `?link=<id>` on any list redirect there, so old bookmarks and shares still work | One address per link. |
+| Reader top bar | Back, site and reading time, A A A, Open original | Sticky on every size, and it also holds Pin, Add to, Share, Note (a lime dot when there is one) and Delete. On phones Share and Open original stay and the rest go under More (⋯), so the bar fits 360 px | The link's actions stay in reach wherever the article is scrolled to. |
+| End of article | Pin, Share and Back to my links | Only a quiet Back to my links | The bar already has Pin and Share. |
+| No article (video, paywall, a page with nothing to pull out) | "Reader view isn't available for this page" with Open original | The link's preview: 16:9 image, the title (click to rename), site, saved date and device, description, collection tags with + Add to, the note, and a lime Open original (Watch on YouTube for YouTube videos) | The page still shows what was saved. Videos and files never ask for an article. |
+| Note in an article | In the details panel | The bar's Note opens a popover on the web and a sheet with Done on phones; on a preview the note sits on the page and Note goes to it | No details panel to hold it. |
+| Back and focus | Back closed the panel and refocused the row | Back (or Esc) returns to the list where it was scrolled to, with focus on the link's row; a page opened directly goes to All links. Focus lands on the page's title on arrival | Keyboard users keep their place. |
 
 ## Not built yet (each is a later ticket)
 
 - **Sidebar counts** on All links, Pinned and To sort: there is no count endpoint.
 - **Get the extension** button: the extension is Phase 2.
-- **Delete in a row's Add to… popover**: a link is deleted from its details or, on phones, the swipe Delete tile.
+- **Delete in a row's Add to… popover**: a link is deleted from its page or, on phones, the swipe Delete tile.
 - **First-run swipe hint** ("Swipe a link left for actions") and the first row's nudge.
-- **Pin confetti on rows**: a row's Pin pops the pin icon and holds the list still for 1.5 s, but plays no confetti. The Pin in link details plays it.
+- **Pin confetti on rows**: a row's Pin pops the pin icon and holds the list still for 1.5 s, but plays no confetti. The Pin on the link page's bar plays it.
 - **Export design**: the handoff lists export as not designed. "Export my links" in the account menu downloads the file with a "Preparing your export…" toast, then "Export downloaded" or "Couldn't export your links. Try again."
 - **"Saved · Add to…" toast** after a new save, and **"Already saved in X"**. A duplicate says "Already saved" and flashes the existing row.
 - **Saving into the open collection**: a link saved on a collection's page lands in To sort, as in the prototype.
@@ -49,7 +63,7 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **A search from the URL stays a search**, even when it looks like a link (`?q=nodejs.org`): the bar shows it with Clear, not Save. Typed text that is a link still gets Save.
 - **Searches longer than 200 characters** (the API's limit) search their first 200, and the bar says so; the phone field stops at 200.
 - **Command palette** (Ctrl+K, or ⌘K on Apple keyboards): Search links for the typed text, Save a link, Save from anywhere, Get the bookmark button, Keyboard shortcuts, Go to All links / Pinned / To sort, and Go to each collection. The bar's hint reads "Ctrl K" where the keyboard has no ⌘.
-- **"?" lists the shortcuts** (/, Esc, Ctrl/⌘ K, Ctrl/⌘ V, ?). The brief's single-key actions on a selected card (p, c, e) are not built: rows have no selection, and pin and edit live in link details.
+- **"?" lists the shortcuts** (/, Esc, Ctrl/⌘ K, Ctrl/⌘ V, ?). The brief's single-key actions on a selected card (p, c, e) are not built: rows have no selection, and pin and edit live on the link's page.
 
 ## Share flow (`/save`)
 
@@ -93,11 +107,8 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **Keyboard access to swipe actions**: tabbing to a row's tiles opens them as a swipe would. Add to… is the keyboard way to file instead of dragging.
 - **Deleting a collection** reaches the server only when its Undo toast closes (5 s, longer while the toast is hovered); closing the tab before then keeps the collection. Going back to its page meanwhile shows "Deleted" with Undo.
 - **Account menu** (avatar, email, Get the bookmark button, Sign out) at the foot of the sidebar and in the phone header. The handoff draws the avatar with no menu; the brief (5.2) asks for an account menu.
-- **Link details have an address**: `?link=<id>` on any list opens them, so they can be linked to; the browser's Back closes them, and swapping rows replaces the entry instead of adding one. Rows are links to that address, so a modified click opens the details in a new tab. Dragged out of the app, a row still carries the saved URL.
-- **Opening details moves focus to the panel**, and Back or Esc returns it to the row. Open ↗ leaves the panel open. Details keep any search or filters in the address, and Ctrl/⌘ K inside the title or note stays with the field.
-- **Phone link details: + Add to** opens the same floating picker as the web panel inside the full-screen details, not the phone's Add to sheet.
-- **The note's autosave** waits for a 500 ms pause in typing (and saves at once when the field loses focus or the details close), shows "Saving…" then "Saved" quietly, and says so inline, with Try again, when a save fails.
-- **Deleting a link** reaches the server only when its Undo toast closes, as for collections; the row and the details go at once.
+- **The note's autosave** waits for a 500 ms pause in typing (and saves at once when the field loses focus, the note popover closes or the link's page is left), shows "Saving…" then "Saved" quietly, and says so inline, with Try again, when a save fails.
+- **Deleting a link** reaches the server only when its Undo toast closes, as for collections; the row goes at once, and the link's page goes back to the list.
 - **Load more** button at the end of the list (brief 5.4 left infinite scroll vs. Load more open).
 - **Pending rows stop polling** two minutes after this device first sees the newest pending row (2 s, then 5 s, then 15 s); a row still pending after that keeps "Getting details…" until the list next loads.
 - **Phone save button** stays enabled while grey; pressing it with an invalid link shows the reason instead of doing nothing.
