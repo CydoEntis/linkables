@@ -56,3 +56,5 @@ export function resendDeletionNotifier(options: ResendNotifierOptions): NotifyAc
 }
 
 export const skipNotifyOwner: NotifyOwner = () => Promise.resolve();
+
+export const skipNotifyAccountDeleted: NotifyAccountDeleted = () => Promise.resolve();
