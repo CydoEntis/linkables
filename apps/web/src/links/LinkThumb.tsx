@@ -8,7 +8,7 @@ import { isPending } from "./use-links";
 type ThumbVariant = "row" | "card";
 
 const FRAMES: Record<ThumbVariant, string> = {
-  row: "relative flex h-[38px] w-[58px] shrink-0 items-center justify-center overflow-hidden rounded-[9px] md:h-[46px] md:w-[72px] md:rounded-[10px]",
+  row: "relative flex h-[38px] w-[58px] shrink-0 items-center justify-center overflow-hidden rounded-[9px] md:h-[46px] md:w-[72px] md:rounded-[10px] 3xl:h-[63px] 3xl:w-[112px]",
   card: "relative flex aspect-video w-full items-center justify-center overflow-hidden",
 };
 

@@ -78,7 +78,7 @@ export function AppShell({ scope, search, children }: AppShellProps) {
             </Link>
           ))}
         </nav>
-        <main className="mx-auto w-full max-w-[1040px] px-2 pt-3 pb-32 md:px-14 md:pt-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1040px] px-2 pt-3 pb-32 md:px-14 md:pt-8 3xl:max-w-[1900px] 3xl:pt-9">{children}</main>
       </div>
     </div>
   );
