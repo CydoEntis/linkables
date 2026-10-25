@@ -90,8 +90,8 @@ export const TERMS_DOC: LongTextDoc = {
       heading: "Ending your account",
       body: (
         <p>
-          You can stop using linkables at any time. To delete your account and everything in it, email {SUPPORT_EMAIL} from the address you sign in
-          with.
+          You can stop using linkables at any time. To delete your account and everything in it, open Settings and choose Delete account, or email{" "}
+          {SUPPORT_EMAIL} from the address you sign in with.
         </p>
       ),
     },
