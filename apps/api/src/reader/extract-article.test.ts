@@ -91,6 +91,18 @@ describe("extractArticle", () => {
     expect(extractArticle("", PAGE_URL)).toBeNull();
   });
 
+  it.each([
+    ["2,000 nested divs", (body: string) => `${"<div>".repeat(2_000)}${body}${"</div>".repeat(2_000)}`],
+    ["5,000 nested spans", (body: string) => `${body}<p>${"<span>".repeat(5_000)}x${"</span>".repeat(5_000)}</p>`],
+    ["more elements than the limit", (body: string) => `${body}${"<i>x</i>".repeat(30_001)}`],
+  ])("gives up at once on a page with %s", (_name, wrap) => {
+    const article = fixture("article.html").replace(/<body>([\s\S]*)<\/body>/, (_match, body: string) => `<body>${wrap(body)}</body>`);
+    const started = performance.now();
+
+    expect(extractArticle(article, PAGE_URL)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
+
   it("gives an article the reader contract accepts", () => {
     expect(readerArticleSchema.safeParse(extractArticle(fixture("article.html"), PAGE_URL)).success).toBe(true);
   });
