@@ -69,6 +69,11 @@ describe("LinkRow", () => {
     expect(screen.getByText("D")).toBeInTheDocument();
   });
 
+  it("keeps the page's description for big screens' second line", async () => {
+    await renderRow(savedLink({ resource: { description: "A slow walk through Shibuya." } }));
+    expect(screen.getByText("A slow walk through Shibuya.")).toHaveClass("3xl:block");
+  });
+
   it("marks a pinned link", async () => {
     await renderRow(savedLink({ pinned: true }));
     expect(screen.getByRole("img", { name: "Pinned" })).toBeInTheDocument();

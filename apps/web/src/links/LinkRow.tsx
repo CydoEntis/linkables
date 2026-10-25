@@ -132,6 +132,8 @@ function RowText({ link, now, inCollection, pinned, opacity, query }: RowTextPro
   const filed = inCollection ? null : filedLabel(link.collections);
   const from = savedFromLabel(link.savedFrom);
   const unsorted = link.collections.length === 0 && !pending;
+  // Big screens have room for the page's description as a second line.
+  const description = link.resource.description?.trim();
 
   return (
     <>
@@ -144,6 +146,7 @@ function RowText({ link, now, inCollection, pinned, opacity, query }: RowTextPro
         >
           <MatchedText text={title.text} query={query} />
         </span>
+        {description ? <span className="hidden truncate text-[13.5px] text-[#b3b2ad] 3xl:block">{description}</span> : null}
         <span className="truncate text-xs text-muted-foreground md:text-[13px]">
           <MatchedText text={domainOf(link.originalUrl)} query={query} />
           {pending ? (
