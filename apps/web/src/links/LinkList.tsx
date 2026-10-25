@@ -35,7 +35,7 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const belongs = (link: SavedLink) => belongsIn(scope, link, filters);
   const stays = (link: SavedLink) => !deletingIds.includes(link.id) && (belongs(link) || link.id === heldId);
   const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
-  useFocusReturningRow(links.length > 0);
+  useFocusReturningRow(!query.isPending, loaded.map((link) => link.id));
 
   const narrowed = isNarrowed(filters);
   // One status region in every state, so a change to "0 matches" is announced too.

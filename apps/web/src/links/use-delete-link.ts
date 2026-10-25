@@ -54,6 +54,7 @@ export function useDeleteLink() {
       if (settled) return;
       settled = true;
       useLinksUi.getState().stopDeleting(linkId);
+      focusRestoredRow(linkId);
     };
 
     const ui = useLinksUi.getState();
@@ -66,4 +67,20 @@ export function useDeleteLink() {
       action: { label: "Undo", onClick: undo },
     });
   };
+}
+
+// The toast goes with Undo and sonner hands focus back to where it was before
+// the toast, often the page or the list's heading (which only stood in for the
+// deleted row). Once focus is out of the toast and the row is back, the row
+// takes it, unless focus went somewhere of its own. About a second at most.
+function focusRestoredRow(linkId: string, framesLeft = 60) {
+  requestAnimationFrame(() => {
+    const row = document.querySelector<HTMLElement>(`[data-row-link][data-link-id="${CSS.escape(linkId)}"]`);
+    const active = document.activeElement;
+    if (row === null || active?.closest("[data-sonner-toaster]")) {
+      if (framesLeft > 0) focusRestoredRow(linkId, framesLeft - 1);
+      return;
+    }
+    if (active === null || active === document.body || active.matches("main h1")) row.focus({ preventScroll: true });
+  });
 }
