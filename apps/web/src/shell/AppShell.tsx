@@ -8,8 +8,9 @@ import type { ListScope } from "../links/use-links";
 import { AccountMenu } from "./AccountMenu";
 import { Wordmark } from "./Wordmark";
 
+// scope: the list the page shows, if any; Settings has none, so no view is marked current.
 // search: the phone's search field, above the view chips as in the handoff.
-type AppShellProps = { scope: ListScope; search?: ReactNode; children: ReactNode };
+type AppShellProps = { scope?: ListScope; search?: ReactNode; children: ReactNode };
 
 // The phone's first chip picks All links or a collection, so only these two are plain links there.
 const PHONE_VIEW_CHIPS: LinksView[] = ["pinned", "inbox"];
@@ -17,8 +18,8 @@ const PHONE_VIEW_CHIPS: LinksView[] = ["pinned", "inbox"];
 // shortcut: the sidebar shows no counts yet; the API has no count endpoint, and
 // counting loaded pages would be wrong past the first page.
 export function AppShell({ scope, search, children }: AppShellProps) {
-  const view = "view" in scope ? scope.view : undefined;
-  const collectionId = "collectionId" in scope ? scope.collectionId : undefined;
+  const view = scope && "view" in scope ? scope.view : undefined;
+  const collectionId = scope && "collectionId" in scope ? scope.collectionId : undefined;
 
   return (
     <div className="min-h-svh md:grid md:grid-cols-[272px_minmax(0,1fr)]">
