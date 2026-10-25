@@ -135,3 +135,28 @@ describe("collection share token migration", () => {
     expect(rows).toEqual([{ share_token: null }, { share_token: null }]);
   });
 });
+
+describe("resource reader migration", () => {
+  it("adds an empty reader cache and still accepts the previous image's writes", async () => {
+    for (const file of [
+      "0000_init.sql",
+      "0001_collection_name_ignores_case.sql",
+      "0002_collection_pin_and_last_use.sql",
+      "0003_saved_link_saved_from.sql",
+      "0004_access_request.sql",
+      "0005_collection_share_token.sql",
+    ]) {
+      await apply(file);
+    }
+    await scratch`insert into resource (canonical_url) values ('https://example.com/old')`;
+
+    await apply("0006_resource_reader.sql");
+    const [created] = await scratch<{ id: string }[]>`
+      insert into resource (canonical_url) values ('https://example.com/new') returning id`;
+    await scratch`insert into resource_reader (resource_id, status, reason) values (${created?.id ?? ""}, 'unavailable', 'no_article')`;
+    await scratch`delete from resource where canonical_url = 'https://example.com/new'`;
+
+    expect(await scratch`select 1 from resource_reader`).toHaveLength(0);
+    expect(await scratch`select 1 from resource`).toHaveLength(1);
+  });
+});
