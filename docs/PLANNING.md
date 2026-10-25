@@ -59,15 +59,20 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
    IPv4-mapped addresses, on every redirect hop.
    Check: `pnpm --filter api test fetcher`.
 2. No code outside `apps/api/src/metadata/fetcher.ts` makes outbound HTTP, except
-   the Supabase JWKS fetch inside the auth middleware (ADR-0002).
-   Check: ESLint in `apps/api` excluding that file bans `fetch` and
+   the Supabase JWKS fetch inside the auth middleware (ADR-0002) and the owner's
+   access-request email to Resend's fixed API host (`apps/api/src/access/notify-owner.ts`;
+   it never fetches a user-supplied URL, so it needs no SSRF guard).
+   Check: ESLint in `apps/api` excluding those files bans `fetch` and
    `globalThis.fetch`, and static or dynamic imports of `undici` (and subpaths),
    `http`, `https` and `http2` (test files may import `http` for local test
    servers); `pnpm lint`.
-3. Every route except `/health` needs a valid Supabase JWT, and every query is
-   scoped to `sub`. Check: `apps/api/test/authz.db.test.ts` (every route: no
-   token → 401, another user's ids → 404, no leaks in any listing; fails if a route
-   is missing from it).
+3. Every route except `/health` and `POST /access-requests` needs a valid
+   Supabase JWT, and every query is scoped to `sub`. The request-access form is
+   public because its users have no account yet; it only inserts, gives the same
+   answer whatever is stored, and is rate-limited per IP.
+   Check: `apps/api/test/authz.db.test.ts` (every route: no token → 401, another
+   user's ids → 404, no leaks in any listing; each public API route returns no
+   data; fails if a route is missing from it).
 4. The database is reachable only through the API.
    Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
    project (turned off 2026-10-22).
