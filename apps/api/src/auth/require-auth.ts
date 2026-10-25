@@ -6,7 +6,8 @@ import { UnauthenticatedError, UpstreamError } from "../http/errors";
 import type { Logger } from "../log/logger";
 import { createKeySource, type AuthConfig } from "./key-source";
 
-export type AuthEnv = { Variables: AppEnv["Variables"] & { userId: string } };
+// userEmail: the address Supabase put in the token, absent for an account without one.
+export type AuthEnv = { Variables: AppEnv["Variables"] & { userId: string; userEmail: string | undefined } };
 
 const BEARER = /^Bearer (\S+)$/i;
 
@@ -25,7 +26,8 @@ const TOKEN_ERRORS = [
   errors.JWKSMultipleMatchingKeys,
 ];
 
-const claimsSchema = z.object({ sub: z.uuid() });
+// A missing or odd email never fails sign-in: only account deletion reads it, and it falls back to the id.
+const claimsSchema = z.object({ sub: z.uuid(), email: z.email().optional().catch(undefined) });
 
 function bearerToken(header: string | undefined): string {
   const token = BEARER.exec(header ?? "")?.[1];
@@ -64,6 +66,7 @@ export function requireAuth(config: AuthConfig, logger: Logger) {
     const claims = verification.kind === "valid" ? claimsSchema.safeParse(verification.payload) : undefined;
     if (!claims?.success) throw new UnauthenticatedError("Invalid token");
     c.set("userId", claims.data.sub);
+    c.set("userEmail", claims.data.email);
     await next();
   });
 }

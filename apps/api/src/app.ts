@@ -2,8 +2,9 @@ import { API_V1_PREFIX } from "@linkables/shared/http";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
-import { skipNotifyOwner, type NotifyOwner } from "./access/notify-owner";
+import { skipNotifyOwner, type NotifyAccountDeleted, type NotifyOwner } from "./access/notify-owner";
 import { accessRequestRoutes } from "./access/routes";
+import { accountRoutes } from "./account/routes";
 import { me } from "./auth/me";
 import { collectionRoutes } from "./collections/routes";
 import { exportRoutes } from "./export/routes";
@@ -28,17 +29,21 @@ export type AppDeps = {
   db: Db;
   now?: () => number;
   notifyOwner?: NotifyOwner;
+  // Unset when Resend is not configured; deleting an account then logs a warning instead.
+  notifyAccountDeleted?: NotifyAccountDeleted | undefined;
 };
 
 const PREFLIGHT_MAX_AGE_SECONDS = 2 * 60 * 60;
 
-export function createApp({ logger, corsOrigins, auth, db, now = Date.now, notifyOwner = skipNotifyOwner }: AppDeps) {
+export function createApp(deps: AppDeps) {
+  const { logger, corsOrigins, auth, db, now = Date.now, notifyOwner = skipNotifyOwner, notifyAccountDeleted } = deps;
   const behindProxy = auth.nodeEnv === "production";
   const v1 = new Hono<AuthEnv>()
     // Over the cap, bodyLimit throws a 413 HTTPException, which onError maps to VALIDATION.
     .use(bodyLimit({ maxSize: MAX_BODY_BYTES }))
     .use(requireAuth(auth, logger))
     .route("/", me)
+    .route("/", accountRoutes({ db, logger, now, notifyAccountDeleted }))
     .route("/", linkRoutes({ db, now }))
     .route("/", collectionRoutes({ db }))
     .route("/", exportRoutes({ db, now }))
