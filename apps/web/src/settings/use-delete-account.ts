@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "../api/api";
-import { signOut } from "../auth/supabase";
+import { signOut, signOutEverywhere } from "../auth/supabase";
 
 export const CONFIRM_WORD = "DELETE";
 
@@ -13,17 +13,18 @@ export const deleteAccountFormSchema = z.object({
 
 export type DeleteAccountForm = z.infer<typeof deleteAccountFormSchema>;
 
-// The data is gone once the API answers, so the session ends with it.
+// The data is gone once the API answers, so the sessions end with it. Signing out
+// runs apart from the mutation: a sign-out problem must never read as a failed delete.
 export function useDeleteAccount() {
   return useMutation({
     mutationFn: () => api.request("/me", z.null(), { method: "DELETE" }),
-    onSuccess: async () => {
-      await signOut();
+    onSuccess: () => {
       toast.success("Your account is deleted", {
         description: "Your links, notes and collections are gone. Your sign-in is removed within 30 days.",
         duration: Infinity,
         closeButton: true,
       });
+      void signOutEverywhere().catch(signOut);
     },
   });
 }
