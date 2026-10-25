@@ -1,5 +1,10 @@
 import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
-import { sharedCollectionSchema, shareStateSchema, shareTokenSchema } from "@linkables/shared/sharing";
+import {
+  ownSharedCollectionsResponseSchema,
+  sharedCollectionSchema,
+  shareStateSchema,
+  shareTokenSchema,
+} from "@linkables/shared/sharing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
@@ -207,5 +212,39 @@ describe("collection sharing", () => {
     expect(limited.status).toBe(429);
     expect(failureEnvelopeSchema.parse(await limited.json()).error.code).toBe("RATE_LIMIT");
     expect((await from("198.51.100.2")).status).toBe(200);
+  });
+});
+
+describe("GET /collections/shared", () => {
+  async function ownShared(app: App, user: TestUser) {
+    const res = await app.request("/api/v1/collections/shared", { headers: user.headers });
+    expect(res.status).toBe(200);
+    return successEnvelopeSchema(ownSharedCollectionsResponseSchema).parse(await res.json()).data.items;
+  }
+
+  it("lists only the user's own collections whose link is on, by name", async () => {
+    const app = createTestApp({ db });
+    const zoo = await insertCollection(a.id, "zoo trip");
+    const art = await insertCollection(a.id, "Art");
+    await insertCollection(a.id, "Not shared");
+    const theirs = await insertCollection(b.id, "B's shared");
+    const zooToken = await turnOn(app, a, zoo.id);
+    const artToken = await turnOn(app, a, art.id);
+    await turnOn(app, b, theirs.id);
+
+    expect(await ownShared(app, a)).toEqual([
+      { id: art.id, name: "Art", token: artToken },
+      { id: zoo.id, name: "zoo trip", token: zooToken },
+    ]);
+  });
+
+  it("drops a collection once its link is turned off", async () => {
+    const app = createTestApp({ db });
+    const col = await insertCollection(a.id, "Trip");
+    await turnOn(app, a, col.id);
+
+    await share(app, a, "DELETE", col.id);
+
+    expect(await ownShared(app, a)).toEqual([]);
   });
 });

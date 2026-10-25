@@ -38,6 +38,7 @@ const SHARED_NAME = "Reading";
 const A_INBOX_URL = "https://inbox-a.example/page";
 const A_TITLE = `${A_MARKER} title`;
 const A_PINNED = true;
+const A_SHARE_TOKEN = "User-A-Share-Token-0123456789abc";
 
 // Every route except the public ones below. A new route adds a case here and a
 // two-user test beside its source.
@@ -94,6 +95,7 @@ const cases: Record<string, Case> = {
     idFields: ["collectionId", "linkId"],
   },
   "GET /api/v1/export": { request: () => ({ path: "/api/v1/export" }) },
+  "GET /api/v1/collections/shared": { request: () => ({ path: "/api/v1/collections/shared" }) },
   "GET /api/v1/collections/:id/share": {
     request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/share` }),
     idFields: ["collectionId"],
@@ -143,6 +145,7 @@ function keyed<T>(rows: T[], key: (row: T) => string): (name: string) => T {
 
 // A owns a link to a resource only A saved and one to a resource both saved,
 // both filed in one of A's collections, and one more link in A's inbox.
+// That collection's share link is on, so a listing of shared collections has A's to leak.
 async function seed(): Promise<Seed> {
   const resources = keyed(
     await db
@@ -160,7 +163,7 @@ async function seed(): Promise<Seed> {
     await db
       .insert(collection)
       .values([
-        { userId: a.id, name: `${A_MARKER} collection` },
+        { userId: a.id, name: `${A_MARKER} collection`, shareToken: A_SHARE_TOKEN },
         { userId: a.id, name: SHARED_NAME },
         { userId: b.id, name: "user-b collection" },
       ])
@@ -202,7 +205,7 @@ async function seed(): Promise<Seed> {
     a: { linkId: aLink.id, collectionId: aCollection.id },
     b: { linkId: bLink.id, collectionId: bCollection.id },
     // Resource ids are not secrets: resources are shared by everyone who saves the URL.
-    secrets: [A_MARKER, aLink.id, aShared.id, aInbox.id, aCollection.id, collections(SHARED_NAME).id],
+    secrets: [A_MARKER, A_SHARE_TOKEN, aLink.id, aShared.id, aInbox.id, aCollection.id, collections(SHARED_NAME).id],
   };
 }
 
