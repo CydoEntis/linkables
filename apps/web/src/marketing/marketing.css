@@ -59,7 +59,8 @@
     .lp-rise { animation: lp-rise-in 1s 0.5s var(--ease-out-soft) both; }
     .lp-chip-in { animation: lp-chip-in 0.8s var(--ease-out-soft) both; }
     .lp-bob { animation: lp-bob 7s 1.5s ease-in-out infinite; }
-    .lp-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: lp-draw 0.7s 0.75s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
+    /* A rounded line cap still paints a dot where the hidden line starts, so it stays invisible until the stroke begins. */
+    .lp-draw { stroke-dasharray: 1 2; stroke-dashoffset: 1; opacity: 0; animation: lp-draw 0.7s 0.75s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
     .lp-drop { animation: lp-drop 0.7s 1.6s var(--ease-out-soft) both; }
     .lp-fade-actions { animation: lp-fade-actions 0.35s 2.4s ease-out both; }
     .lp-swipe { animation: lp-swipe 6s 1s var(--ease-out-soft) infinite; }
@@ -93,7 +94,8 @@
         50% { translate: 0 -10px; }
     }
     @keyframes lp-draw {
-        to { stroke-dashoffset: 0; }
+        from { stroke-dashoffset: 1; opacity: 1; }
+        to { stroke-dashoffset: 0; opacity: 1; }
     }
     @keyframes lp-drop {
         from { opacity: 0; max-height: 0; transform: translateY(-8px); }
@@ -119,7 +121,7 @@
             animation: none !important;
             transition: none !important;
         }
-        .lp-draw { stroke-dashoffset: 0; }
+        .lp-draw { stroke-dashoffset: 0; opacity: 1; }
         html { scroll-behavior: auto !important; }
     }
 
