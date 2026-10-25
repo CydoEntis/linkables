@@ -1,0 +1,111 @@
+import type { APIRequestContext, BrowserContext, Page, TestInfo } from "@playwright/test";
+import type { TestUser } from "../../web/e2e/session";
+import { API_URL, SUPABASE_URL } from "./env";
+import { expect, test } from "./fixtures";
+
+// Served by the test, on an origin the e2e build may read, so the pop-up sees its address and title.
+const ARTICLE_URL = `${API_URL}/e2e/weeknight-pasta`;
+
+async function openArticle(context: BrowserContext): Promise<Page> {
+  await context.route(ARTICLE_URL, (route) =>
+    route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Weeknight pasta</title><h1>Weeknight pasta</h1>" }),
+  );
+  const article = await context.newPage();
+  await article.goto(ARTICLE_URL);
+  return article;
+}
+
+async function signIn(popup: Page, email: string) {
+  await popup.getByLabel("Email").fill(email);
+  await popup.getByRole("button", { name: "Email me a code" }).click();
+  await expect(popup.getByRole("heading", { name: "Check your email" })).toBeVisible();
+  await popup.getByLabel("6-digit code").fill("123456");
+  // Signed in, the pop-up tries to save its own tab, an extension page.
+  await expect(popup.getByRole("heading", { name: "This page can't be saved" })).toBeVisible();
+}
+
+// The pop-up saves the active tab when it opens. Opened as a tab here, it is the
+// active tab itself until the article is brought back to the front and the pop-up reloads.
+async function saveFromPopup(popup: Page, article: Page) {
+  await article.bringToFront();
+  await popup.reload();
+}
+
+type ListedLink = { originalUrl: string; savedFrom: string; pinned: boolean; collections: { name: string }[] };
+
+// What the user's account holds now, as the web app would list it.
+async function savedLinks(request: APIRequestContext, user: TestUser): Promise<ListedLink[]> {
+  const response = await request.get(`${API_URL}/api/v1/links`, { headers: { Authorization: `Bearer ${user.accessToken}` } });
+  const body = (await response.json()) as { data: { items: ListedLink[] } };
+  return body.data.items;
+}
+
+async function snap(popup: Page, testInfo: TestInfo, name: string) {
+  await testInfo.attach(name, { body: await popup.locator("#root").screenshot({ animations: "disabled" }), contentType: "image/png" });
+}
+
+test("signs in with an email code, then saves the tab the user is on", async ({ context, openPopup, request, user }, testInfo) => {
+  const article = await openArticle(context);
+  const popup = await openPopup();
+  await expect(popup.getByRole("heading", { name: "Sign in to save this page" })).toBeVisible();
+  await snap(popup, testInfo, "popup-sign-in");
+
+  await signIn(popup, user.email);
+  await expect(popup.getByText("Browser pages like Settings don't have a web address.")).toBeVisible();
+  await snap(popup, testInfo, "popup-cant-save");
+
+  await saveFromPopup(popup, article);
+  await expect(popup.getByRole("heading", { name: "Saved", exact: true })).toBeVisible();
+  await expect(popup.getByText("Weeknight pasta")).toBeVisible();
+  await expect(popup.getByText("In New")).toBeVisible();
+  await snap(popup, testInfo, "popup-saved");
+
+  expect(await savedLinks(request, user)).toMatchObject([{ originalUrl: ARTICLE_URL, savedFrom: "extension", pinned: false, collections: [] }]);
+});
+
+test("a page saved before shows as Already saved, and can be pinned and filed", async ({ context, openPopup, request, user }, testInfo) => {
+  const article = await openArticle(context);
+  const popup = await openPopup();
+  await signIn(popup, user.email);
+  await saveFromPopup(popup, article);
+  await expect(popup.getByRole("heading", { name: "Saved", exact: true })).toBeVisible();
+
+  await saveFromPopup(popup, article);
+  await expect(popup.getByRole("heading", { name: "Already saved" })).toBeVisible();
+
+  await popup.getByLabel("Search collections").fill("Recipes");
+  await popup.getByRole("button", { name: "+ Create “Recipes”" }).click();
+  await expect(popup.getByRole("button", { name: "Recipes", pressed: true })).toBeVisible();
+  await expect(popup.getByText("In Recipes")).toBeVisible();
+
+  await popup.getByRole("button", { name: "Pin", exact: true }).click();
+  await expect(popup.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
+  await snap(popup, testInfo, "popup-already-saved-filed");
+
+  await expect
+    .poll(() => savedLinks(request, user))
+    .toMatchObject([{ originalUrl: ARTICLE_URL, pinned: true, collections: [{ name: "Recipes" }] }]);
+});
+
+test("an email with no invite is told so, without asking for an account", async ({ openPopup }, testInfo) => {
+  const popup = await openPopup();
+  const sent: unknown[] = [];
+  await popup.route(`${SUPABASE_URL}/auth/v1/otp*`, (route) => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ status: 422, json: { code: 422, error_code: "otp_disabled", msg: "Signups not allowed for otp" } });
+  });
+  await popup.getByLabel("Email").fill("stranger@example.com");
+  await popup.getByRole("button", { name: "Email me a code" }).click();
+
+  await expect(popup.getByRole("alert")).toHaveText("There's no linkables account for this email. linkables is invite-only for now.");
+  expect(sent).toMatchObject([{ email: "stranger@example.com", create_user: false }]);
+  await snap(popup, testInfo, "popup-not-invited");
+});
+
+test("signing out returns to sign-in", async ({ openPopup, user }) => {
+  const popup = await openPopup();
+  await signIn(popup, user.email);
+
+  await popup.getByRole("button", { name: "Sign out" }).click();
+  await expect(popup.getByRole("heading", { name: "Sign in to save this page" })).toBeVisible();
+});
