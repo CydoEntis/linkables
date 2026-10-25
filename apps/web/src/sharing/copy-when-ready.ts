@@ -5,11 +5,19 @@ import { toast } from "sonner";
 function startWrite(text: Promise<string>): Promise<boolean> {
   if (typeof ClipboardItem === "undefined" || !("clipboard" in navigator)) return Promise.resolve(false);
   const blob = text.then((value) => new Blob([value], { type: "text/plain" }));
+  // The caller reports a failed link; this handler only stops a second, unheard rejection.
+  blob.catch(() => undefined);
   // A failed write is not the end: writeText gets a second try below.
-  return navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]).then(
-    () => true,
-    () => false,
-  );
+  try {
+    return navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]).then(
+      () => true,
+      () => false,
+    );
+  } catch (error) {
+    // Some browsers have ClipboardItem but refuse a promise inside it.
+    if (!(error instanceof TypeError || error instanceof DOMException)) throw error;
+    return Promise.resolve(false);
+  }
 }
 
 async function writeText(text: string): Promise<boolean> {
