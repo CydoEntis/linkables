@@ -16,7 +16,8 @@ import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
 import { SAVE_ANYWHERE_PATH, SaveAnywherePage, saveAnywhereSearchSchema } from "./save-anywhere/SaveAnywherePage";
-import { SETTINGS_PATH } from "./settings/path";
+import { AccountDeletedPage } from "./settings/AccountDeletedPage";
+import { ACCOUNT_DELETED_PATH, SETTINGS_PATH } from "./settings/path";
 import { SettingsPage } from "./settings/SettingsPage";
 import { listFiltersShape, orderRange } from "./search/list-filters";
 import { SHARED_PATH_PREFIX } from "./sharing/path";
@@ -94,8 +95,14 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const accountDeletedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ACCOUNT_DELETED_PATH,
+  component: AccountDeletedPage,
+});
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, accountDeletedRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {
