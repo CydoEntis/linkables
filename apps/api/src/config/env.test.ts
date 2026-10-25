@@ -33,6 +33,7 @@ describe("parseEnv", () => {
           jwksUrl: "https://ref.supabase.co/auth/v1/.well-known/jwks.json",
           testJwks: undefined,
         },
+        resendApiKey: undefined,
       },
     });
   });
@@ -62,6 +63,18 @@ describe("parseEnv", () => {
     const result = parseEnv({ ...VALID, NODE_ENV: "test", AUTH_TEST_JWKS: '{"keys":[]}' });
 
     expect(result.ok && result.config.auth.testJwks).toBe('{"keys":[]}');
+  });
+
+  it("reads the optional Resend API key", () => {
+    const result = parseEnv({ ...VALID, RESEND_API_KEY: "re_123" });
+
+    expect(result.ok && result.config.resendApiKey).toBe("re_123");
+  });
+
+  it("treats an empty Resend API key as unset", () => {
+    const result = parseEnv({ ...VALID, RESEND_API_KEY: "" });
+
+    expect(result.ok && result.config.resendApiKey).toBeUndefined();
   });
 
   it("rejects a CORS entry that is not a bare origin", () => {

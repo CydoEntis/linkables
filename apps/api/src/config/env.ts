@@ -32,6 +32,12 @@ const envSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
     AUTH_TEST_JWKS: z.string().min(1).optional(),
+    // Unset, the API takes access requests without emailing the owner about them.
+    // The .env example leaves it empty, which counts as unset.
+    RESEND_API_KEY: z
+      .string()
+      .transform((key) => key || undefined)
+      .optional(),
   })
   .refine((env) => env.AUTH_TEST_JWKS === undefined || env.NODE_ENV === "test", {
     path: ["AUTH_TEST_JWKS"],
@@ -59,6 +65,7 @@ function toConfig(env: Env) {
       jwksUrl: `${authBase}/.well-known/jwks.json`,
       testJwks: env.AUTH_TEST_JWKS,
     },
+    resendApiKey: env.RESEND_API_KEY,
   };
 }
 

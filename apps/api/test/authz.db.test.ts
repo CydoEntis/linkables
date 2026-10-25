@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { failureEnvelopeSchema } from "@linkables/shared/http";
+import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
 import { asc, eq, or } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { collection, collectionItem, resource, savedLink } from "../src/db/schema";
 import { encodeCursor } from "../src/links/cursor";
 import { cursorAt } from "../src/links/sort";
@@ -37,8 +38,8 @@ const A_INBOX_URL = "https://inbox-a.example/page";
 const A_TITLE = `${A_MARKER} title`;
 const A_PINNED = true;
 
-// Every route except GET /health. A new route adds a case here and a two-user
-// test beside its source.
+// Every route except the public ones below. A new route adds a case here and a
+// two-user test beside its source.
 const cases: Record<string, Case> = {
   "GET /api/v1/me": { request: () => ({ path: "/api/v1/me" }) },
   "GET /api/v1/links": {
@@ -92,7 +93,13 @@ const cases: Record<string, Case> = {
   "GET /api/v1/export": { request: () => ({ path: "/api/v1/export" }) },
 };
 
-const PUBLIC_ROUTES = new Set(["GET /health"]);
+// Public on purpose (Rule 3): the health check, and the request-access form,
+// which only inserts. Each public API route is probed below for what it gives back.
+const PUBLIC_ROUTES = new Set(["GET /health", "POST /api/v1/access-requests"]);
+
+const INSERT_ONLY_ROUTES: Record<string, Probe> = {
+  "POST /api/v1/access-requests": { path: "/api/v1/access-requests", body: { email: "b@example.com", name: "B" } },
+};
 
 // app.routes, not hono/dev's inspectRoutes: inspectRoutes treats any handler
 // declared as (c, next) as middleware, so a route whose last handler takes next
@@ -286,6 +293,24 @@ describe("authz", () => {
     const { error } = failureEnvelopeSchema.parse(await theirs.json());
     expect(error).toMatchObject({ code: "VALIDATION", message: "Cursor is no longer valid" });
     expect(error).toEqual(failureEnvelopeSchema.parse(await unknown.json()).error);
+  });
+
+  it.each(Object.entries(INSERT_ONLY_ROUTES))("%s takes no token and answers with no data", async (route, probe) => {
+    const app = createTestApp({ db });
+    const ids = await seed();
+
+    // The first request and a repeat of it.
+    for (const res of [await send(app, methodOf(route), probe), await send(app, methodOf(route), probe)]) {
+      const text = await res.text();
+      expect(successEnvelopeSchema(z.null()).parse(JSON.parse(text)).data).toBeNull();
+      for (const secret of ids.secrets) expect(text).not.toContain(secret);
+    }
+  });
+
+  it("knows what every public API route gives back", () => {
+    const publicApiRoutes = [...PUBLIC_ROUTES].filter((route) => route.includes("/api/"));
+
+    expect(publicApiRoutes).toEqual(Object.keys(INSERT_ONLY_ROUTES));
   });
 
   it("has a case for every registered route", () => {

@@ -1,6 +1,7 @@
 import {
   bigserial,
   boolean,
+  check,
   index,
   integer,
   pgEnum,
@@ -98,3 +99,17 @@ export const job = pgTable("job", {
   lastError: text("last_error"),
   createdAt: createdAt(),
 }).enableRLS();
+
+// Insert-only from the public request-access form; nothing in the API reads it back.
+export const accessRequest = pgTable(
+  "access_request",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull().unique(),
+    name: text("name"),
+    useCase: text("use_case"),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+  },
+  (table) => [check("access_request_email_lowercase", sql`${table.email} = lower(${table.email})`)],
+).enableRLS();

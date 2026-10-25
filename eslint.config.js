@@ -4,6 +4,9 @@ import tseslint from "typescript-eslint";
 
 // Rule 2: only the SSRF-guarded fetcher makes outbound HTTP from the API.
 const GUARDED_FETCHER = "apps/api/src/metadata/fetcher.ts";
+// The one exception: the owner's access-request email goes to Resend's fixed API
+// host with our own key. It never fetches a user-supplied URL, so it needs no SSRF guard.
+const RESEND_CLIENT = "apps/api/src/access/notify-owner.ts";
 const OUTBOUND_HTTP_MESSAGE = "Outbound HTTP goes through apps/api/src/metadata/fetcher.ts (ADR-0003).";
 const restrictImports = (names, patterns = []) => [
   "error",
@@ -28,7 +31,7 @@ export default defineConfig(
   },
   {
     files: ["apps/api/**/*.ts"],
-    ignores: [GUARDED_FETCHER],
+    ignores: [GUARDED_FETCHER, RESEND_CLIENT],
     rules: {
       "no-restricted-globals": ["error", { name: "fetch", message: OUTBOUND_HTTP_MESSAGE }],
       "no-restricted-properties": [

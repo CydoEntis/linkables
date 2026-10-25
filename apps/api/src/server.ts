@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { resendNotifier, skipNotifyOwner } from "./access/notify-owner";
 import { createApp } from "./app";
 import { parseEnv } from "./config/env";
 import { createDb } from "./db/client";
@@ -14,9 +15,10 @@ if (!env.ok) {
 
 const logger = createLogger(env.config.logLevel);
 
-const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled } = env.config;
+const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey } = env.config;
 const { db, close } = createDb(databaseUrl);
-const app = createApp({ logger, corsOrigins, auth: { ...auth, nodeEnv }, db });
+const notifyOwner = resendApiKey === undefined ? skipNotifyOwner : resendNotifier({ apiKey: resendApiKey });
+const app = createApp({ logger, corsOrigins, auth: { ...auth, nodeEnv }, db, notifyOwner });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
   logger.info("api listening", { port: info.port });

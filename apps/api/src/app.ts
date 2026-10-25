@@ -2,6 +2,8 @@ import { API_V1_PREFIX } from "@linkables/shared/http";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
+import { skipNotifyOwner, type NotifyOwner } from "./access/notify-owner";
+import { accessRequestRoutes } from "./access/routes";
 import { me } from "./auth/me";
 import { collectionRoutes } from "./collections/routes";
 import { exportRoutes } from "./export/routes";
@@ -24,11 +26,12 @@ export type AppDeps = {
   auth: AuthConfig;
   db: Db;
   now?: () => number;
+  notifyOwner?: NotifyOwner;
 };
 
 const PREFLIGHT_MAX_AGE_SECONDS = 2 * 60 * 60;
 
-export function createApp({ logger, corsOrigins, auth, db, now = Date.now }: AppDeps) {
+export function createApp({ logger, corsOrigins, auth, db, now = Date.now, notifyOwner = skipNotifyOwner }: AppDeps) {
   const v1 = new Hono<AuthEnv>()
     // Over the cap, bodyLimit throws a 413 HTTPException, which onError maps to VALIDATION.
     .use(bodyLimit({ maxSize: MAX_BODY_BYTES }))
@@ -46,6 +49,8 @@ export function createApp({ logger, corsOrigins, auth, db, now = Date.now }: App
     // still needs a preflight, so browsers keep one for 2 h, Chrome's cap.
     .use(cors({ origin: corsOrigins, exposeHeaders: [REQUEST_ID_HEADER], maxAge: PREFLIGHT_MAX_AGE_SECONDS }))
     .get("/health", (c) => ok(c, { status: "ok" as const }))
+    // Mounted before v1, so a request it answers never reaches v1's auth middleware.
+    .route(API_V1_PREFIX, accessRequestRoutes({ db, logger, now, notifyOwner }))
     .route(API_V1_PREFIX, v1);
 
   app.onError(onError(logger));
