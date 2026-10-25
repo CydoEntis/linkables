@@ -29,9 +29,8 @@ Either:
 
 The store zip has no manifest `key`: the store rejects one and gives the item
 its own id. So the store install has a **different id** from the hand-installed
-build (`ekgbmopoceccloaibfknnbnohkpbkili`), and the API won't accept its
-requests until step 7 is done. Expect "Couldn't save" from a store install
-until then.
+build (`ekgbmopoceccloaibfknnbnohkpbkili`). The store item's id is
+`dckjkoommfddaimpjbghbomojdkhaoai`, and both are in production's `CORS_ORIGINS`.
 
 ## 1. Developer account
 
