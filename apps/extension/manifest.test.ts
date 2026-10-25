@@ -26,6 +26,10 @@ describe("buildManifest", () => {
     expect(built.permissions).toEqual(manifest.permissions);
   });
 
+  it("has a description short enough for the Web Store summary", () => {
+    expect(manifest.description.length).toBeLessThanOrEqual(132);
+  });
+
   it("drops a trailing slash from the configured origins", () => {
     const built = buildManifest({ version: "0.1.0", appUrl: "http://127.0.0.1:3261/", supabaseUrl: "http://dummy.test/" });
     expect(built.host_permissions).toEqual(["http://127.0.0.1:3261/*", "http://dummy.test/*"]);
