@@ -34,9 +34,11 @@ test.describe("the owner", () => {
     await page.goto(`/c/${col.id}`);
 
     await page.getByRole("button", { name: "Share", exact: true }).first().click();
+    await expect(shareDialog(page).getByText("2 links · link sharing is off")).toBeVisible();
     await shareDialog(page).getByRole("button", { name: "Turn on link" }).click();
     const field = shareDialog(page).getByRole("textbox", { name: "Share link" });
     await expect(field).toHaveValue(/\/s\/[A-Za-z0-9_-]{32}$/);
+    await expect(shareDialog(page).getByText("2 links · anyone with the link can view")).toBeVisible();
     const url = await field.inputValue();
 
     await page.goto(url);
