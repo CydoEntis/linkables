@@ -11,7 +11,7 @@ function sameTab(a: CurrentTab | undefined, b: CurrentTab): boolean {
 // on a host linkables may read. The panel re-reads its window's active tab whenever
 // that may have changed: on a tab switch, any tab update (with tabs, that includes
 // a single-page site changing its address), when the window or panel gains focus,
-// after the shortcut, and when the permission is granted.
+// after the shortcut, and when the permission is granted or removed.
 export function useCurrentTab(): CurrentTab | undefined {
   const [tab, setTab] = useState<CurrentTab | undefined>(undefined);
 
@@ -33,6 +33,7 @@ export function useCurrentTab(): CurrentTab | undefined {
     chrome.windows.onFocusChanged.addListener(read);
     chrome.commands.onCommand.addListener(read);
     chrome.permissions.onAdded.addListener(read);
+    chrome.permissions.onRemoved.addListener(read);
     window.addEventListener("focus", read);
     return () => {
       latest += 1;
@@ -41,6 +42,7 @@ export function useCurrentTab(): CurrentTab | undefined {
       chrome.windows.onFocusChanged.removeListener(read);
       chrome.commands.onCommand.removeListener(read);
       chrome.permissions.onAdded.removeListener(read);
+      chrome.permissions.onRemoved.removeListener(read);
       window.removeEventListener("focus", read);
     };
   }, []);
