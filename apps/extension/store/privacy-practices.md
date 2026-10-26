@@ -8,7 +8,7 @@ the privacy policy (`apps/web/src/marketing/legal/privacy.tsx`) together.
 ## Single purpose
 
 ```
-Save the web page in the current tab to the user's linkables account, and let the user pin that saved link or file it in one of their collections.
+Save the web page in the current tab, or a link on it, to the user's linkables account, and let the user pin, file, find and share what they saved.
 ```
 
 ## Permission justifications
@@ -16,7 +16,19 @@ Save the web page in the current tab to the user's linkables account, and let th
 ### activeTab
 
 ```
-When the user clicks the linkables toolbar button, the extension reads the address and title of the tab they are on so it can save that page. It reads nothing from the tab before the click, never reads page content, and never accesses other tabs.
+When the user clicks the linkables toolbar button, presses the side panel shortcut, or chooses "Save link to linkables" from the right-click menu, the extension reads the address and title of the tab they are on so it can save that page or show it in the side panel. It reads nothing from a tab before the user does one of these on it, never reads page content, and asks for no access to other tabs.
+```
+
+### sidePanel
+
+```
+The side panel shows the page the user is on with a Save button, and the user's recent and pinned links and collections, so they can find and share what they saved without leaving the page.
+```
+
+### contextMenus
+
+```
+Adds "Save link to linkables" to the right-click menu on links, which saves that link's address to the user's account.
 ```
 
 ### storage
@@ -34,7 +46,7 @@ Opens the Google sign-in window when the user clicks Continue with Google in the
 ### Host permission: https://linkables.app/*
 
 ```
-linkables.app hosts the linkables API. The extension sends the saved page's address there, reads the user's collections, and saves pin and collection changes the user makes in the pop-up. A content script runs only on linkables.app pages: when the user is signed in there and the extension is not, the page hands the extension a one-time sign-in token so the user doesn't have to sign in twice. It reads nothing else from the page.
+linkables.app hosts the linkables API. The extension sends the saved page's address there, sends the current page's address from the side panel to check whether it is already saved, reads the user's links and collections, and saves pin, collection and sharing changes the user makes in the pop-up and side panel. A content script runs only on linkables.app pages: when the user is signed in there and the extension is not, the page hands the extension a one-time sign-in token so the user doesn't have to sign in twice. It reads nothing else from the page.
 ```
 
 ### Host permission: https://tiechzmcvmdlceyovskg.supabase.co/*
@@ -67,7 +79,7 @@ Tick these categories; leave the rest unticked.
 | Authentication information | **Yes** | The emailed 6-digit code, the one-time token linkables.app hands over (`src/connect`) or the code Google sign-in returns (`src/auth/worker-sign-in.ts`), each sent to the sign-in service once; the session's access and refresh tokens, stored in `chrome.storage.local` and sent to linkables.app with each request (`src/auth/supabase.ts`, `src/api/api.ts`). |
 | Personal communications | No | |
 | Location | **Yes** | IP address, in the sign-in provider's logs: the extension calls Supabase directly to sign in, and Supabase keeps sign-in logs that include IP addresses (privacy policy, Where your data lives). No other location is read. |
-| Web history | **Yes** | The address of the page the user clicks to save is sent to linkables.app and stored in their account (`src/save/use-save-current-tab.ts`). It is one page per click, never a browsing history, but the store's definition covers visited addresses, so declare it. |
+| Web history | **Yes** | The address of the page the user clicks to save is sent to linkables.app and stored in their account (`src/save/use-save-current-tab.ts`). While the side panel is open, the address of a tab the user has used linkables on is sent to check whether it is saved (`src/side-panel/queries.ts`); it is not stored. A link saved from the right-click menu sends that link's address (`src/background/save-link-menu.ts`). It is never a browsing history, but the store's definition covers visited addresses, so declare it. |
 | User activity | No | No clicks, keystrokes or scrolling are monitored. Pin and collection choices are the user's own edits to their links. |
 | Website content | No | The tab's title is read but only shown in the pop-up; it is never sent. No page text, images or form data are read. |
 

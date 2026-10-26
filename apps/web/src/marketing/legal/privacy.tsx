@@ -5,7 +5,7 @@ const mail = <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>;
 
 export const PRIVACY_DOC: LongTextDoc = {
   title: "Privacy policy",
-  updated: "October 25, 2026",
+  updated: "October 26, 2026",
   short: [
     "We store the links you save, and what you add to them, so you can find them on any device.",
     "No ads, no analytics, no tracking, and we never sell your data.",
@@ -131,9 +131,11 @@ export const PRIVACY_DOC: LongTextDoc = {
       heading: "The Chrome extension (beta)",
       body: (
         <p>
-          The Chrome extension reads the address and title of a tab only when you click linkables in the toolbar on that tab. It sends the address to
-          your account to save it; the title is only shown in the pop-up. It keeps your sign-in in Chrome's storage for the extension. It doesn't read
-          what you type into pages, your passwords, or your browsing history.
+          The Chrome extension reads the address and title of a tab only after you use linkables on that tab: by clicking linkables in the toolbar,
+          pressing its side panel shortcut, or choosing Save link to linkables from the right-click menu. It sends the address to your account to save
+          it, and while its side panel is open it sends the address to check whether you've saved that page before; the title is only shown in the
+          extension. Saving a link from the right-click menu sends that link's address. It keeps your sign-in in Chrome's storage for the extension. It
+          doesn't read what you type into pages, your passwords, or your browsing history.
         </p>
       ),
     },
