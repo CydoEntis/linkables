@@ -1,6 +1,7 @@
 import type { SaveLinkResponse } from "@linkables/shared/links";
 import { ApiError } from "@linkables/shared/api-client";
 import { describe, expect, it, vi } from "vitest";
+import { NO_SESSION } from "../api/client";
 import { SAVE_MESSAGES } from "../save/save-flow";
 import { MENU_HINTS, SAVE_LINK_MENU_ID, saveFromMenu } from "./save-link-menu";
 
@@ -36,6 +37,12 @@ describe("saveFromMenu", () => {
     await saveFromMenu(click("https://example.com/linked"), { id: 7 }, d);
     expect(d.save).not.toHaveBeenCalled();
     expect(d.flash).toHaveBeenCalledWith(7, false, MENU_HINTS.signedOut);
+  });
+
+  it("asks to open linkables when the stored sign-in needs a refresh the worker won't make", async () => {
+    const d = deps({ save: vi.fn(() => Promise.reject(new ApiError(NO_SESSION, "No session to send"))) });
+    await saveFromMenu(click("https://example.com/linked"), { id: 7 }, d);
+    expect(d.flash).toHaveBeenCalledWith(7, false, MENU_HINTS.refresh);
   });
 
   it("does not call the API for a link that can't be saved", async () => {
