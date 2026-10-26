@@ -52,6 +52,8 @@ export function usePageLink(url: string) {
 export function useUpdatePageLink(url: string) {
   const queryClient = useQueryClient();
   return (update: (link: SavedLink) => SavedLink) => {
+    // A refetch already on its way read the server before this change, so it must not land.
+    void queryClient.cancelQueries({ queryKey: keys.page(url) });
     queryClient.setQueryData<PageLookup>(keys.page(url), (lookup) => (lookup?.status === "saved" ? { status: "saved", link: update(lookup.link) } : lookup));
     void queryClient.invalidateQueries({ queryKey: keys.lists });
   };
