@@ -1,7 +1,7 @@
 import type { APIRequestContext, BrowserContext, Page, TestInfo } from "@playwright/test";
 import type { TestUser } from "../../web/e2e/session";
 import { API_URL, APP_URL, SUPABASE_URL } from "./env";
-import { expect, recordCopies, test } from "./fixtures";
+import { badgeText, expect, recordCopies, tabIdOf, test } from "./fixtures";
 
 // Served by the test, on an origin the e2e build may read, so the pop-up sees its address and title.
 const ARTICLE_URL = `${APP_URL}/e2e/weeknight-pasta`;
@@ -62,6 +62,23 @@ test("signs in with an email code, then saves the tab the user is on", async ({ 
   await snap(popup, testInfo, "popup-saved");
 
   expect(await savedLinks(request, user)).toMatchObject([{ originalUrl: ARTICLE_URL, savedFrom: "extension", pinned: false, collections: [] }]);
+});
+
+test("a saved page gets a ✓ on the toolbar button until its tab moves on", async ({ context, openPopup, user }) => {
+  const article = await openArticle(context);
+  const popup = await openPopup();
+  await signIn(popup, user.email);
+  const tabId = await tabIdOf(popup, ARTICLE_URL);
+  expect(await badgeText(popup, tabId)).toBe("");
+
+  await saveFromPopup(popup, article);
+  await expect(popup.getByRole("heading", { name: "Saved", exact: true })).toBeVisible();
+  await expect.poll(() => badgeText(popup, tabId)).toBe("✓");
+
+  const next = `${APP_URL}/e2e/next-page`;
+  await context.route(next, (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Next</title>" }));
+  await article.goto(next);
+  await expect.poll(() => badgeText(popup, tabId)).toBe("");
 });
 
 test("a page saved before shows as Already saved, and can be pinned and filed", async ({ context, openPopup, request, user }, testInfo) => {
