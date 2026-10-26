@@ -16,7 +16,15 @@ Save the web page in the current tab, or a link on it, to the user's linkables a
 ### activeTab
 
 ```
-When the user clicks the linkables toolbar button, presses the side panel shortcut, or chooses "Save link to linkables" from the right-click menu, the extension reads the address and title of the tab they are on so it can save that page or show it in the side panel. It reads nothing from a tab before the user does one of these on it, never reads page content, and asks for no access to other tabs.
+When the user clicks the linkables toolbar button, presses the side panel shortcut, or chooses "Save link to linkables" from the right-click menu, the extension reads the address and title of the tab they are on so it can save that page or show it in the side panel. It reads nothing from a tab before the user does one of these on it, never reads page content, and asks for no access to other tabs unless the user turns on the optional "Follow the tab you're on" (tabs, below).
+```
+
+### tabs (optional, requested at runtime)
+
+Not asked for at install. The dashboard may list it with the others; if it asks:
+
+```
+Optional. Requested only when the user turns on "Follow the tab you're on" in the side panel, and removable there. With it, the side panel reads the address and title of the active tab while the panel is open, so it can show that page and whether it is saved as the user switches tabs. It never reads page content.
 ```
 
 ### sidePanel
@@ -79,9 +87,9 @@ Tick these categories; leave the rest unticked.
 | Authentication information | **Yes** | The emailed 6-digit code, the one-time token linkables.app hands over (`src/connect`) or the code Google sign-in returns (`src/auth/worker-sign-in.ts`), each sent to the sign-in service once; the session's access and refresh tokens, stored in `chrome.storage.local` and sent to linkables.app with each request (`src/auth/supabase.ts`, `src/api/api.ts`). |
 | Personal communications | No | |
 | Location | **Yes** | IP address, in the sign-in provider's logs: the extension calls Supabase directly to sign in, and Supabase keeps sign-in logs that include IP addresses (privacy policy, Where your data lives). No other location is read. |
-| Web history | **Yes** | The address of the page the user clicks to save is sent to linkables.app and stored in their account (`src/save/use-save-current-tab.ts`). While the side panel is open, the address of a tab the user has used linkables on is sent to check whether it is saved (`src/side-panel/queries.ts`); it is not stored. A link saved from the right-click menu sends that link's address (`src/background/save-link-menu.ts`). It is never a browsing history, but the store's definition covers visited addresses, so declare it. |
+| Web history | **Yes** | The address of the page the user clicks to save is sent to linkables.app and stored in their account (`src/save/use-save-current-tab.ts`). While the side panel is open, the address of a tab the user has used linkables on (or of the active tab, with Follow the tab you're on) is sent to check whether it is saved (`src/side-panel/queries.ts`); it is not stored. A link saved from the right-click menu sends that link's address (`src/background/save-link-menu.ts`). It is never a browsing history, but the store's definition covers visited addresses, so declare it. |
 | User activity | No | No clicks, keystrokes or scrolling are monitored. Pin and collection choices are the user's own edits to their links. |
-| Website content | No | The tab's title is read but only shown in the pop-up; it is never sent. No page text, images or form data are read. |
+| Website content | No | The tab's title is read but only shown in the pop-up and side panel; it is never sent. No page text, images or form data are read. |
 
 ## Certifications
 

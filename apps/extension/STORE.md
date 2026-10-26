@@ -75,8 +75,9 @@ Copy each answer from `store/privacy-practices.md`:
 
 1. **Single purpose description:** the Single purpose block.
 2. **Permission justification:** one box each for `activeTab`, `storage`,
-   `identity`, `sidePanel`, `contextMenus` and the host permissions
-   (`https://linkables.app/*` and the Supabase URL).
+   `identity`, `sidePanel`, `contextMenus`, the optional `tabs` (if the
+   dashboard lists it) and the host permissions (`https://linkables.app/*` and
+   the Supabase URL).
 3. **Are you using remote code?** No, I am not using remote code.
 4. **Data usage:** tick **Personally identifiable information**,
    **Authentication information**, **Location** (IP address, in the sign-in
