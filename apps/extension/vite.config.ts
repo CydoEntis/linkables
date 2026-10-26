@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { build, defineConfig, loadEnv, type Plugin } from "vite";
 import { buildManifest } from "./manifest.ts";
 import { parseExtensionEnv, type ExtensionEnv } from "./src/config/env-schema.ts";
 
@@ -35,10 +35,41 @@ function manifest(mode: string): Plugin {
   };
 }
 
+// Chrome loads a content script as a classic script, so it cannot import the chunks
+// it would share with the pop-up and worker: it gets a build of its own, as one IIFE.
+function contentScript(mode: string): Plugin {
+  let outDir = "dist";
+  return {
+    name: "linkables-content-script",
+    apply: "build",
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    async closeBundle() {
+      await build({
+        configFile: false,
+        root,
+        mode,
+        logLevel: "warn",
+        build: {
+          outDir,
+          emptyOutDir: false,
+          copyPublicDir: false,
+          lib: { entry: `${root}/src/connect/content-script.ts`, formats: ["iife"], name: "linkablesContentScript", fileName: () => "content-script.js" },
+        },
+      });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss(), manifest(mode)],
+  plugins: [react(), tailwindcss(), manifest(mode), contentScript(mode)],
   build: {
-    rolldownOptions: { input: `${root}/popup.html` },
+    rolldownOptions: {
+      input: { popup: `${root}/popup.html`, worker: `${root}/src/worker.ts` },
+      // The manifest names the worker, so its file name must not carry a hash.
+      output: { entryFileNames: (chunk) => (chunk.name === "worker" ? "worker.js" : "assets/[name]-[hash].js") },
+    },
     // MV3 allows no remote code, and an extension page loads from disk anyway.
     modulePreload: false,
     // One chunk is right here: the pop-up loads it from disk, so splitting buys nothing.

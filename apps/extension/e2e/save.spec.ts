@@ -1,10 +1,10 @@
 import type { APIRequestContext, BrowserContext, Page, TestInfo } from "@playwright/test";
 import type { TestUser } from "../../web/e2e/session";
-import { API_URL, SUPABASE_URL } from "./env";
+import { API_URL, APP_URL, SUPABASE_URL } from "./env";
 import { expect, test } from "./fixtures";
 
 // Served by the test, on an origin the e2e build may read, so the pop-up sees its address and title.
-const ARTICLE_URL = `${API_URL}/e2e/weeknight-pasta`;
+const ARTICLE_URL = `${APP_URL}/e2e/weeknight-pasta`;
 
 async function openArticle(context: BrowserContext): Promise<Page> {
   await context.route(ARTICLE_URL, (route) =>
@@ -16,6 +16,7 @@ async function openArticle(context: BrowserContext): Promise<Page> {
 }
 
 async function signIn(popup: Page, email: string) {
+  await popup.getByRole("button", { name: "Use an email code instead" }).click();
   await popup.getByLabel("Email").fill(email);
   await popup.getByRole("button", { name: "Email me a code" }).click();
   await expect(popup.getByRole("heading", { name: "Check your email" })).toBeVisible();
@@ -90,6 +91,7 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
 test("the code step survives the pop-up closing while the user reads the email", async ({ context, openPopup, request, user }) => {
   const article = await openArticle(context);
   const first = await openPopup();
+  await first.getByRole("button", { name: "Use an email code instead" }).click();
   await first.getByLabel("Email").fill(user.email);
   await first.getByRole("button", { name: "Email me a code" }).click();
   await expect(first.getByRole("heading", { name: "Check your email" })).toBeVisible();
@@ -116,6 +118,7 @@ test("an email with no invite is told so, without asking for an account", async 
     sent.push(route.request().postDataJSON());
     return route.fulfill({ status: 422, json: { code: 422, error_code: "otp_disabled", msg: "Signups not allowed for otp" } });
   });
+  await popup.getByRole("button", { name: "Use an email code instead" }).click();
   await popup.getByLabel("Email").fill("stranger@example.com");
   await popup.getByRole("button", { name: "Email me a code" }).click();
 

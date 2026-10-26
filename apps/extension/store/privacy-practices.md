@@ -22,13 +22,19 @@ When the user clicks the linkables toolbar button, the extension reads the addre
 ### storage
 
 ```
-Keeps the user signed in: the sign-in session (access and refresh tokens, and the account's email address) is stored in chrome.storage.local until the user signs out. While the user is entering the emailed sign-in code, their email address and the time the code was sent are kept in chrome.storage.session so closing the pop-up doesn't lose their place.
+Keeps the user signed in: the sign-in session (access and refresh tokens, and the account's email address) is stored in chrome.storage.local until the user signs out, with a flag that the user signed out by hand. While the user is entering the emailed sign-in code, their email address and the time the code was sent are kept in chrome.storage.session so closing the pop-up doesn't lose their place; while the extension signs in from linkables.app, a one-time random value that ties the request to its answer is kept there for up to two minutes.
+```
+
+### identity
+
+```
+Opens the Google sign-in window when the user clicks Continue with Google in the pop-up, and receives the one-time sign-in code it returns. It is not used for anything else and reads no Chrome profile or Google account data.
 ```
 
 ### Host permission: https://linkables.app/*
 
 ```
-linkables.app hosts the linkables API. The extension sends the saved page's address there, reads the user's collections, and saves pin and collection changes the user makes in the pop-up.
+linkables.app hosts the linkables API. The extension sends the saved page's address there, reads the user's collections, and saves pin and collection changes the user makes in the pop-up. A content script runs only on linkables.app pages: when the user is signed in there and the extension is not, the page hands the extension a one-time sign-in token so the user doesn't have to sign in twice. It reads nothing else from the page.
 ```
 
 ### Host permission: https://tiechzmcvmdlceyovskg.supabase.co/*
@@ -37,7 +43,7 @@ The dashboard shows host permissions together; mention both in the one box if
 it gives only one:
 
 ```
-This is linkables' sign-in service (Supabase Auth). The extension sends the user's email address to receive a 6-digit sign-in code, sends the code to sign in, and refreshes and ends the session.
+This is linkables' sign-in service (Supabase Auth). The extension sends the user's email address to receive a 6-digit sign-in code, sends the code (or the one-time token from linkables.app, or the code Google sign-in returns) to sign in, and refreshes and ends the session.
 ```
 
 ## Remote code
@@ -58,7 +64,7 @@ Tick these categories; leave the rest unticked.
 | Personally identifiable information | **Yes** | The email address, sent to the sign-in service for the code (`src/auth/email-code.ts`), held briefly in `chrome.storage.session` while the code is entered (`src/auth/pending-code.ts`), and kept in `chrome.storage.local` as part of the signed-in session (its `user.email`) until sign-out (`src/auth/supabase.ts`). |
 | Health information | No | |
 | Financial and payment information | No | |
-| Authentication information | **Yes** | The emailed 6-digit code, sent to the sign-in service once; the session's access and refresh tokens, stored in `chrome.storage.local` and sent to linkables.app with each request (`src/auth/supabase.ts`, `src/api/api.ts`). |
+| Authentication information | **Yes** | The emailed 6-digit code, the one-time token linkables.app hands over (`src/connect`) or the code Google sign-in returns (`src/auth/worker-sign-in.ts`), each sent to the sign-in service once; the session's access and refresh tokens, stored in `chrome.storage.local` and sent to linkables.app with each request (`src/auth/supabase.ts`, `src/api/api.ts`). |
 | Personal communications | No | |
 | Location | **Yes** | IP address, in the sign-in provider's logs: the extension calls Supabase directly to sign in, and Supabase keeps sign-in logs that include IP addresses (privacy policy, Where your data lives). No other location is read. |
 | Web history | **Yes** | The address of the page the user clicks to save is sent to linkables.app and stored in their account (`src/save/use-save-current-tab.ts`). It is one page per click, never a browsing history, but the store's definition covers visited addresses, so declare it. |

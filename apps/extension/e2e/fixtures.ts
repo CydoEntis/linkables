@@ -1,14 +1,21 @@
 import { chromium, test as base, expect, type BrowserContext, type Page } from "@playwright/test";
 import { createDb, type Db } from "../../api/src/db/client";
+import { testTokenHash } from "../../api/src/extension-sessions/supabase-admin";
 import { testDatabaseUrl } from "../../api/test/db-setup";
 import { truncateAll } from "../../api/test/truncate";
-import { createTestUser, sessionJson, type TestUser } from "../../web/e2e/session";
+import { createTestUser, sessionJson, signedInState, type TestUser } from "../../web/e2e/session";
 import { EXTENSION_ID } from "../manifest";
-import { EXTENSION_DIR, SUPABASE_URL } from "./env";
+import { APP_URL, EXTENSION_DIR, SUPABASE_URL } from "./env";
+
+// What the fake Supabase saw: calls it had no answer for, and each token hash verified.
+type SupabaseLog = { unexpected: string[]; verifiedTokenHashes: string[] };
 
 type Fixtures = {
   user: TestUser;
   cleanDb: undefined;
+  supabaseLog: SupabaseLog;
+  // Signs the user in to the web app on the app origin, as if they had signed in there before.
+  signInOnWeb: () => Promise<void>;
   // Opens the pop-up's page in a tab, as Chrome would open it from the toolbar.
   openPopup: () => Promise<Page>;
 };
@@ -17,19 +24,24 @@ type WorkerFixtures = { db: Db };
 
 export const POPUP_URL = `chrome-extension://${EXTENSION_ID}/popup.html`;
 
-// Supabase answers for the code sign-in; every other call to it fails the test.
-async function fakeSupabase(context: BrowserContext, user: TestUser): Promise<string[]> {
-  const unexpected: string[] = [];
+// Supabase answers for the code sign-in and for the one-time token the e2e API
+// mints for this user (testTokenHash); every other call to it fails the test.
+async function fakeSupabase(context: BrowserContext, user: TestUser, log: SupabaseLog): Promise<void> {
   await context.route(`${SUPABASE_URL}/**`, (route) => {
-    unexpected.push(route.request().url());
+    log.unexpected.push(route.request().url());
     return route.abort();
   });
   await context.route(`${SUPABASE_URL}/auth/v1/otp*`, (route) => route.fulfill({ status: 200, json: {} }));
-  await context.route(`${SUPABASE_URL}/auth/v1/verify*`, (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: sessionJson(user) }),
-  );
+  await context.route(`${SUPABASE_URL}/auth/v1/verify*`, (route) => {
+    const { token_hash: tokenHash } = route.request().postDataJSON() as { token_hash?: string };
+    if (tokenHash !== undefined) log.verifiedTokenHashes.push(tokenHash);
+    if (tokenHash !== undefined && tokenHash !== testTokenHash(user.id)) {
+      log.unexpected.push(`verify with token hash ${tokenHash}`);
+      return route.fulfill({ status: 403, json: { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" } });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: sessionJson(user) });
+  });
   await context.route(`${SUPABASE_URL}/auth/v1/logout*`, (route) => route.fulfill({ status: 204 }));
-  return unexpected;
 }
 
 export const test = base.extend<Fixtures, WorkerFixtures>({
@@ -57,16 +69,32 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
     await use(await createTestUser());
   },
 
+  // eslint-disable-next-line no-empty-pattern -- Playwright reads fixture dependencies from this pattern.
+  supabaseLog: async ({}, use) => {
+    await use({ unexpected: [], verifiedTokenHashes: [] });
+  },
+
   // Extensions load only in a persistent context, and only in the full Chromium build.
-  context: async ({ user }, use) => {
+  context: async ({ user, supabaseLog }, use) => {
     const context = await chromium.launchPersistentContext("", {
       channel: "chromium",
       args: [`--disable-extensions-except=${EXTENSION_DIR}`, `--load-extension=${EXTENSION_DIR}`],
     });
-    const unexpected = await fakeSupabase(context, user);
+    await fakeSupabase(context, user, supabaseLog);
     await use(context);
     await context.close();
-    expect(unexpected, "the extension called the fake Supabase origin unexpectedly").toEqual([]);
+    expect(supabaseLog.unexpected, "the extension called the fake Supabase origin unexpectedly").toEqual([]);
+  },
+
+  // A persistent context takes no storageState, so the session goes in before each app page loads.
+  signInOnWeb: async ({ context, user }, use) => {
+    await use(async () => {
+      const [origin] = signedInState(user, APP_URL).origins;
+      await context.addInitScript(({ appOrigin, items }) => {
+        if (window.location.origin !== appOrigin) return;
+        for (const { name, value } of items) window.localStorage.setItem(name, value);
+      }, { appOrigin: APP_URL, items: origin?.localStorage ?? [] });
+    });
   },
 
   openPopup: async ({ context }, use) => {

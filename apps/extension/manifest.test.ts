@@ -10,8 +10,20 @@ const manifest = buildManifest({
 });
 
 describe("buildManifest", () => {
-  it("asks only for the active tab and storage", () => {
-    expect(manifest.permissions).toEqual(["activeTab", "storage"]);
+  it("asks only for the active tab, storage and the Google sign-in window", () => {
+    expect(manifest.permissions).toEqual(["activeTab", "storage", "identity"]);
+  });
+
+  it("runs its worker as a module", () => {
+    expect(manifest.background).toEqual({ service_worker: "worker.js", type: "module" });
+  });
+
+  it("injects its content script on the app's pages only, before they run", () => {
+    expect(manifest.content_scripts).toEqual([{ matches: ["https://linkables.app/*"], js: ["content-script.js"], run_at: "document_start" }]);
+  });
+
+  it("does not let web pages message the extension directly, which Firefox cannot do", () => {
+    expect(manifest).not.toHaveProperty("externally_connectable");
   });
 
   it("reaches only the app and the Supabase project", () => {

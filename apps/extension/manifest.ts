@@ -27,9 +27,14 @@ export function buildManifest({ version, appUrl, supabaseUrl, store = false }: M
     description: "Save the page you're on to linkables in one click, then pin it or file it in a collection. Private beta, sign-in required.",
     version,
     ...(store ? {} : { key: MANIFEST_KEY }),
-    // activeTab reads the current tab's address only when the toolbar button is clicked.
-    permissions: ["activeTab", "storage"],
+    // activeTab reads the current tab's address only when the toolbar button is clicked;
+    // identity opens the Google sign-in window.
+    permissions: ["activeTab", "storage", "identity"],
     host_permissions: [hostPattern(appUrl), hostPattern(supabaseUrl)],
+    background: { service_worker: "worker.js", type: "module" },
+    // Signs the extension in from the app (src/connect). A content script rather than
+    // externally_connectable, which Firefox lacks.
+    content_scripts: [{ matches: [hostPattern(appUrl)], js: ["content-script.js"], run_at: "document_start" }],
     action: {
       default_title: "Save to linkables",
       default_popup: "popup.html",
