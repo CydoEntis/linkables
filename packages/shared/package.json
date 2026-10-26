@@ -9,6 +9,7 @@
     "./auth": "./src/auth/index.ts",
     "./collections": "./src/collections/index.ts",
     "./export": "./src/export/index.ts",
+    "./extension-sessions": "./src/extension-sessions/index.ts",
     "./links": "./src/links/index.ts",
     "./reader": "./src/reader/index.ts",
     "./sharing": "./src/sharing/index.ts",

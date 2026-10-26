@@ -49,7 +49,8 @@ export function resendNotifier(options: ResendNotifierOptions): NotifyOwner {
   return (notice) => send({ subject: "New linkables access request", text: noticeText(notice) });
 }
 
-// The server holds no Supabase service role key, so the owner removes the sign-in record by hand.
+// The owner removes the sign-in record by hand. SUPABASE_SECRET_KEY, when set, is
+// used only to sign the extension in, not to delete accounts.
 export function resendDeletionNotifier(options: ResendNotifierOptions): NotifyAccountDeleted {
   const send = emailOwner(options);
   return (notice) => send(deletionEmail(notice));

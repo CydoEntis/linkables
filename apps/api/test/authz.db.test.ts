@@ -99,6 +99,8 @@ const cases: Record<string, Case> = {
     idFields: ["collectionId", "linkId"],
   },
   "GET /api/v1/export": { request: () => ({ path: "/api/v1/export" }) },
+  // Mints a sign-in token for the caller only; B must get none of A's.
+  "POST /api/v1/extension-sessions": { request: () => ({ path: "/api/v1/extension-sessions" }) },
   "GET /api/v1/collections/shared": { request: () => ({ path: "/api/v1/collections/shared" }) },
   "GET /api/v1/collections/:id/share": {
     request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/share` }),

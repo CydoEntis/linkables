@@ -1,5 +1,6 @@
 import { skipNotifyAccountDeleted } from "../src/access/notify-owner";
 import { createApp, type AppDeps } from "../src/app";
+import { testSupabaseAdmin } from "../src/extension-sessions/supabase-admin";
 import { createDb } from "../src/db/client";
 import { createLogger, type LogLevel } from "../src/log/logger";
 import { FetchError } from "../src/metadata/fetcher";
@@ -33,6 +34,7 @@ export function createTestApp(deps: Partial<AppDeps> = {}) {
     auth: TEST_AUTH,
     db: unreachableDb,
     notifyAccountDeleted: skipNotifyAccountDeleted,
+    supabaseAdmin: testSupabaseAdmin,
     fetchPage: offlineFetchPage,
     ...deps,
   });

@@ -8,6 +8,8 @@ import { accountRoutes } from "./account/routes";
 import { me } from "./auth/me";
 import { collectionRoutes } from "./collections/routes";
 import { exportRoutes } from "./export/routes";
+import { extensionSessionRoutes } from "./extension-sessions/routes";
+import type { SupabaseAdmin } from "./extension-sessions/supabase-admin";
 import type { AuthConfig } from "./auth/key-source";
 import { requireAuth, type AuthEnv } from "./auth/require-auth";
 import type { Db } from "./db/client";
@@ -35,6 +37,8 @@ export type AppDeps = {
   notifyOwner?: NotifyOwner;
   // Unset when Resend is not configured; DELETE /me then answers UPSTREAM and deletes nothing.
   notifyAccountDeleted?: NotifyAccountDeleted | undefined;
+  // Unset when SUPABASE_SECRET_KEY is not configured; POST /extension-sessions then answers UPSTREAM.
+  supabaseAdmin?: SupabaseAdmin | undefined;
   // The SSRF-guarded whole-page fetch (metadata/fetcher.ts); tests pass a stub.
   fetchPage: (url: string) => Promise<HtmlPage>;
   extract?: ReaderDeps["extract"];
@@ -50,6 +54,7 @@ export function createApp({
   now = Date.now,
   notifyOwner = skipNotifyOwner,
   notifyAccountDeleted,
+  supabaseAdmin,
   fetchPage,
   // One pool per app, which is one per process, so concurrent reads share its bounds.
   extract = createExtractPool({ logger }).extract,
@@ -61,6 +66,7 @@ export function createApp({
     .use(requireAuth(auth, logger))
     .route("/", me)
     .route("/", accountRoutes({ db, logger, now, notifyAccountDeleted }))
+    .route("/", extensionSessionRoutes({ logger, now, supabaseAdmin }))
     .route("/", linkRoutes({ db, now }))
     .route("/", readerRoutes({ db, fetchPage, extract, logger, now }))
     .route("/", collectionRoutes({ db }))
