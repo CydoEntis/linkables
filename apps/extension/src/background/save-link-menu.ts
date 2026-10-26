@@ -1,5 +1,5 @@
 import type { SaveLinkResponse } from "@linkables/shared/links";
-import { saveCurrentTab, type SaveOutcome, type SaveRequest } from "../save/save-flow";
+import { SAVE_MESSAGES, saveCurrentTab, type SaveOutcome, type SaveRequest } from "../save/save-flow";
 
 export const SAVE_LINK_MENU_ID = "save-link";
 
@@ -7,6 +7,8 @@ export const SAVE_LINK_MENU_ID = "save-link";
 export const MENU_HINTS = {
   saved: "Link saved to linkables",
   signedOut: "Sign in first: click the linkables button.",
+  // The worker leaves refreshing to the pop-up and panel, which renew the session when opened.
+  refresh: "Click the linkables button to refresh your sign-in, then try again.",
 } as const;
 
 type MenuDeps = {
@@ -18,7 +20,8 @@ type MenuDeps = {
 
 function hintFor(outcome: SaveOutcome): string {
   if (outcome.status === "saved") return MENU_HINTS.saved;
-  return outcome.status === "cant" ? outcome.reason : outcome.message;
+  if (outcome.status === "cant") return outcome.reason;
+  return outcome.message === SAVE_MESSAGES.noSession ? MENU_HINTS.refresh : outcome.message;
 }
 
 // The pop-up's save flow, given the right-clicked link's address instead of the tab's.
