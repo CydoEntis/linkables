@@ -140,7 +140,9 @@ test("shares a collection from the panel: gets the link, copies it, turns it off
   await expect(sheet.getByText("only you can see it")).toBeVisible();
 
   await sheet.getByRole("button", { name: "Get share link" }).click();
-  await expect(sheet.getByText("Link is on")).toBeVisible();
+  await expect(sheet.getByText("Link is on", { exact: true })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Copy", exact: true })).toBeFocused();
+  await expect(sheet.getByRole("status").filter({ hasText: "Link is on." })).toHaveCount(1);
   const [shared] = (await callApi<{ items: { token: string }[] }>(request, user, "GET", "/collections/shared")).items;
   expect(shared).toBeDefined();
   await expect(sheet.getByLabel("Share link")).toContainText(shared?.token ?? "");
@@ -154,7 +156,8 @@ test("shares a collection from the panel: gets the link, copies it, turns it off
   await sheet.getByRole("button", { name: "Turn off link" }).click();
   await expect(sheet.getByText("The link stops working right away.", { exact: false })).toBeVisible();
   await sheet.getByRole("button", { name: "Tap again to turn off" }).click();
-  await expect(sheet.getByRole("button", { name: "Get share link" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Get share link" })).toBeFocused();
+  await expect(sheet.getByRole("status").filter({ hasText: "Link turned off. It no longer works." })).toHaveCount(1);
   expect((await callApi<{ items: unknown[] }>(request, user, "GET", "/collections/shared")).items).toEqual([]);
 });
 
