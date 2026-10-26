@@ -69,8 +69,9 @@ a new key pair, a new id and a new `CORS_ORIGINS` entry.
 
 On every push to `main`, CI builds the extension against production, zips it,
 and the web image serves the zip at
-`https://linkables.app/downloads/linkables-chrome.zip`. Friends follow the
-install guide at `https://linkables.app/extension`. The same run builds the
+`https://linkables.app/downloads/linkables-chrome.zip` for anyone who installed
+it by hand. Everyone else installs it from the Chrome Web Store, which
+`https://linkables.app/extension` links to. The same run builds the
 Web Store zip and keeps it as the `linkables-chrome-store` run artifact, which
 is not served publicly.
 

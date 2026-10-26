@@ -124,7 +124,7 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 
 ## Settings (round 2 handoff, section 2)
 
-- **No "Installed ✓" on the Chrome tile.** The web app has no reliable way to tell whether the extension is installed; the tile always offers Add to Chrome, which opens the store listing once `CHROME_WEB_STORE_URL` is set and the `/extension` guide until then.
+- **No "Installed ✓" on the Chrome tile.** The web app has no reliable way to tell whether the extension is installed; the tile always offers Add to Chrome, which opens the store listing.
 - **A puzzle-piece icon on the Chrome tile.** Lucide has no Chrome logo.
 - **The Chrome tile doesn't mention a side panel**, which the extension doesn't have yet.
 - **iPhone and Install tiles can have no button.** With no Shortcut link configured the iPhone tile says it's coming soon; where the browser offers no install dialog the app tile says how to install by hand, and in the installed app it says so.
