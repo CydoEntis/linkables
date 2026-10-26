@@ -21,6 +21,7 @@ type MenuDeps = {
 function hintFor(outcome: SaveOutcome): string {
   if (outcome.status === "saved") return MENU_HINTS.saved;
   if (outcome.status === "cant") return outcome.reason;
+  if (outcome.message === SAVE_MESSAGES.signedOut) return MENU_HINTS.signedOut;
   return outcome.message === SAVE_MESSAGES.noSession ? MENU_HINTS.refresh : outcome.message;
 }
 
