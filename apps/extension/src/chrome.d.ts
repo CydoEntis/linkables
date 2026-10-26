@@ -103,6 +103,20 @@ declare namespace chrome {
   }
 }
 
+// The optional tabs permission behind "Follow the tab you're on".
+declare namespace chrome {
+  namespace permissions {
+    interface Permissions {
+      permissions?: string[];
+    }
+    function contains(permissions: Permissions): Promise<boolean>;
+    function request(permissions: Permissions): Promise<boolean>;
+    function remove(permissions: Permissions): Promise<boolean>;
+    const onAdded: events.Event<(permissions: Permissions) => void>;
+    const onRemoved: events.Event<(permissions: Permissions) => void>;
+  }
+}
+
 // The toolbar button's saved mark.
 declare namespace chrome {
   namespace action {

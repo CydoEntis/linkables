@@ -14,18 +14,40 @@ import { Alert, PRIMARY_BUTTON, TILE } from "../ui";
 import { appUrl, usePageLink, useSavePage, useUpdatePageLink } from "./queries";
 import { LinkThumb } from "./Thumb";
 import { useCurrentTab } from "./use-current-tab";
-
-// The pop-up's reason assumes it was opened on the tab; the panel stays open across tabs it may not read.
-const UNREADABLE_HERE = "Chrome shows linkables a tab only after you use linkables on it. Click the linkables button or press the side panel shortcut on this tab.";
+import { useFollowTabs } from "./use-follow-tabs";
+import { useShortcut } from "./use-shortcut";
 
 const CARD = "flex flex-col gap-3 rounded-2xl bg-muted p-3.5";
 
 export function ThisPage() {
   const tab = useCurrentTab();
-  if (tab === undefined) return <CardSkeleton />;
+  const follow = useFollowTabs();
+  if (tab === undefined || follow.on === undefined) return <CardSkeleton />;
   const page = savablePage(tab);
-  if (!page.ok) return <CantSave reason={page.reason === CANT_SAVE_REASONS.unreadable ? UNREADABLE_HERE : page.reason} />;
+  // The panel stays open across tabs; without the tabs permission it can't read most of them.
+  if (!page.ok && page.reason === CANT_SAVE_REASONS.unreadable && !follow.on) return <CantSeeTab onFollow={follow.turnOn} />;
+  if (!page.ok) return <CantSave reason={page.reason} />;
   return <PageCard key={page.url} tabId={tab.id} url={page.url} title={page.title} />;
+}
+
+function CantSeeTab({ onFollow }: { onFollow: () => void }) {
+  const shortcut = useShortcut();
+  return (
+    <Section>
+      <div className="flex flex-col gap-0.5">
+        <h2 className="text-[14px] font-bold">linkables can't see this tab yet</h2>
+        <p className="text-[12.5px] leading-snug text-muted-foreground">Chrome shows linkables a tab only after you use linkables on it.</p>
+      </div>
+      <button type="button" onClick={onFollow} className={PRIMARY_BUTTON}>
+        Follow the tab you're on
+      </button>
+      {shortcut && shortcut !== "Not set" ? (
+        <p className="text-[12.5px] leading-snug text-muted-foreground">
+          Or press <kbd className="rounded-md bg-accent px-1.5 py-0.5 font-mono text-[11.5px] text-foreground">{shortcut}</kbd> to use linkables on just this page.
+        </p>
+      ) : null}
+    </Section>
+  );
 }
 
 // Keeps the toolbar's ✓ in step with what the panel found for the tab.
