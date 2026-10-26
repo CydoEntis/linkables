@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { openLinkPage } from "./open-link-page";
 
 const TWO_LINKS = [
   { url: "https://example.com/older", resource: { title: "Older link", fetchStatus: "fetched" as const } },
@@ -8,14 +9,14 @@ const TWO_LINKS = [
 test.describe("at 2560 px", () => {
   test.use({ viewport: { width: 2560, height: 1440 } });
 
-  test("the list opens as a grid across the whole column, and a card opens its link's page", async ({ page, seedLinks }) => {
+  test("the list opens as a grid across the whole column, and a card's Read opens its link's page", async ({ page, seedLinks }) => {
     const [, newer] = await seedLinks(TWO_LINKS);
     await page.goto("/");
     const grid = page.getByRole("list", { name: "Links" });
     await expect(grid.getByRole("link", { name: /^Newer link/ })).toBeVisible();
     expect((await page.getByRole("main").boundingBox())?.width).toBe(1900);
 
-    await grid.getByRole("link", { name: /^Newer link/ }).click();
+    await openLinkPage(page, grid.getByRole("link", { name: /^Newer link/ }));
     await expect(page).toHaveURL(new RegExp(`/l/${newer?.id ?? ""}$`));
   });
 });
