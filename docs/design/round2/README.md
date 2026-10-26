@@ -151,7 +151,7 @@ A **full page** at `/l/:id/read`, with no sidebar. On phone it's full screen. Th
 ---
 
 ## 5. Chrome extension side panel
-"Extension" screen in the prototype: the browser at 1440 with the side panel open, 380 wide. It uses the same tokens and components as the app.
+"Extension" screen in the prototype (opens first): the browser at 1440 with the side panel open, 380 wide. It uses the same tokens and components as the app.
 - **Header:** logo, plus a gear that opens extension settings.
 - **This page card:**
   - **Status:** thumbnail, `✓ Saved to your links`, title, collection chip, `+ Add to`.
@@ -166,6 +166,12 @@ A **full page** at `/l/:id/read`, with no sidebar. On phone it's full screen. Th
   - Open side panel: Alt+Shift+L. Always show the current keys, since they can be changed at chrome://extensions/shortcuts.
   - account and Sign out
   - All settings in linkables ↗
+- **Built with Chrome's own features:**
+  - **Side panel:** `chrome.sidePanel`, Chrome 114 and up. In Chrome 116 and up, the pop-up's "All links" button calls `chrome.sidePanel.open()` on click. The panel stays open across tabs and people can drag its width, so lay it out for 320–600 px.
+  - **Shortcuts:** `commands`.
+  - **Right-click "Save link to linkables":** `contextMenus`.
+- **The lime "✓ Saved" pill in the mock's toolbar isn't possible.** Chrome toolbar buttons are only an icon plus a badge of up to 4 characters. Show saved with `chrome.action.setBadgeText({text:'✓'})` and `setBadgeBackgroundColor` set to the lime, or swap to a lime icon with `setIcon`. Clear the badge on tabs that aren't saved.
+- **The toolbar pop-up you have today** (Already saved, Pin, All links, collections, Done) stays as it is. Add a Share button next to Pin.
 - **Web app:** when the extension is detected, hide the sidebar's "Add to Chrome" card and show `Installed ✓` on the Settings tile.
 
 ## Motion
