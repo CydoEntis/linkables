@@ -26,17 +26,16 @@ test.describe("at 1280 px", () => {
 
   test("a row's Read opens the link's own page, and Back returns to the list where it was, on that row", async ({ page, seedLinks }) => {
     const filler = Array.from({ length: 24 }, (_, index) => ({ url: `https://example.com/filler-${String(index)}`, resource: { title: `Filler ${String(index)}`, kind: "video" as const, fetchStatus: "fetched" as const } }));
-    const [tokyo] = await seedLinks([TOKYO, ...filler]);
+    const [rust] = await seedLinks([RUST, ...filler]);
     await page.goto("/");
-    const row = page.getByRole("link", { name: /^Tokyo night walk/ });
+    const row = page.getByRole("link", { name: /^Rust by Example/ });
     await row.scrollIntoViewIfNeeded();
     const scrolled = await page.evaluate(() => window.scrollY);
     expect(scrolled).toBeGreaterThan(0);
 
     await openLinkPage(page, row);
-    await expect(page).toHaveURL(new RegExp(`/l/${tokyo?.id ?? ""}$`));
-    await expect(page.getByRole("heading", { level: 1, name: /Tokyo night walk/ })).toBeFocused();
-    await expect(page.getByRole("main").getByRole("link", { name: /^Watch on YouTube/ })).toHaveAttribute("href", TOKYO.url);
+    await expect(page).toHaveURL(new RegExp(`/l/${rust?.id ?? ""}$`));
+    await expect(page.getByRole("heading", { level: 1, name: /Rust by Example/ })).toBeFocused();
 
     await page.getByRole("banner").getByRole("button", { name: "Back" }).click();
     await expect(page).toHaveURL(/\/$/);
@@ -52,6 +51,16 @@ test.describe("at 1280 px", () => {
     await expect(row).toHaveAttribute("target", "_blank");
     await row.hover();
     await expect(page.getByRole("link", { name: "Read", exact: true })).toHaveAttribute("href", `/l/${rust?.id ?? ""}`);
+  });
+
+  test("a video's row has no Read, but its page still opens from the address", async ({ page, seedLinks }) => {
+    const [tokyo] = await seedLinks([TOKYO]);
+    await page.goto("/");
+    const row = page.getByRole("link", { name: /^Tokyo night walk/ });
+    await row.hover();
+    await expect(page.getByRole("link", { name: "Read", exact: true })).toHaveCount(0);
+    await page.goto(`/l/${tokyo?.id ?? ""}`);
+    await expect(page.getByRole("main").getByRole("link", { name: /^Watch on YouTube/ })).toHaveAttribute("href", TOKYO.url);
   });
 
   test("a row found by a search opens its page, and Back keeps the search", async ({ page, seedLinks }) => {

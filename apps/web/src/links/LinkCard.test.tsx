@@ -25,6 +25,19 @@ describe("LinkCard", () => {
     expect(router.state.location.pathname).toBe(`/l/${link.id}`);
   });
 
+  it("leaves Read out of a video card", async () => {
+    await renderWithRouter(<LinkCard link={savedLink({ resource: { kind: "video" } })} now={now} />);
+    expect(screen.queryByRole("link", { name: "Read" })).not.toBeInTheDocument();
+  });
+
+  it("keeps a card with an unsafe URL focusable without making it navigate", async () => {
+    const { container } = await renderWithRouter(<LinkCard link={savedLink({ originalUrl: "javascript:alert(1)" })} now={now} />);
+    const card = container.querySelector<HTMLElement>("[data-row-link]");
+    expect(card).toHaveAttribute("tabindex", "0");
+    expect(card).toHaveAttribute("aria-disabled", "true");
+    expect(card).not.toHaveAttribute("href");
+  });
+
   it("shows the title, the page's description and where it is filed", async () => {
     const link = savedLink({
       originalUrl: "https://www.japan-guide.com/fushimi",

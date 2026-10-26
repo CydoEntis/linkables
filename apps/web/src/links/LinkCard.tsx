@@ -13,6 +13,7 @@ import { usePinLink } from "./use-pin-link";
 // It keeps the row's data attributes so focus hand-offs treat both alike.
 export function LinkCard({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
+  const href = safeHref(link.originalUrl);
 
   return (
     <div
@@ -23,7 +24,9 @@ export function LinkCard({ link, now, inCollection = false, highlight, belongs =
       )}
     >
       <a
-        href={safeHref(link.originalUrl)}
+        href={href}
+        tabIndex={href === undefined ? 0 : undefined}
+        aria-disabled={href === undefined ? true : undefined}
         target="_blank"
         rel="noopener noreferrer"
         draggable

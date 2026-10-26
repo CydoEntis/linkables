@@ -1,4 +1,4 @@
-import type { SavedLink } from "@linkables/shared/links";
+import { canRead, type SavedLink } from "@linkables/shared/links";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, Pin, Plus, Share, Trash2 } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
@@ -18,8 +18,16 @@ export type RowHighlight = "hop" | "flash";
 
 export const LINK_DRAG_TYPE = "application/x-linkables-link";
 
-// Five 60 px tiles, 6 px apart, inside 6 px of padding.
-const TILES_WIDTH = 5 * 60 + 4 * 6 + 2 * 6;
+// 56 px tiles, 4 px apart, inside 6 px of padding: all five fit a 320 px screen.
+const TILE_PX = 56;
+const TILE_GAP_PX = 4;
+const TILES_PADDING_PX = 6;
+const TILE_COUNT = 5;
+
+function tilesWidth(readable: boolean): number {
+  const tiles = readable ? TILE_COUNT : TILE_COUNT - 1;
+  return tiles * TILE_PX + (tiles - 1) * TILE_GAP_PX + 2 * TILES_PADDING_PX;
+}
 const TEXT_FADE_PX = 120;
 
 export type LinkRowProps = {
@@ -42,8 +50,10 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
   const deleteLink = useDeleteLink();
   const swipeOpen = useLinksUi((state) => state.swipeOpenId === link.id);
   const setSwipeOpenId = useLinksUi((state) => state.setSwipeOpenId);
+  const readable = canRead(link);
+  const href = safeHref(link.originalUrl);
   const swipe = useSwipe({
-    width: TILES_WIDTH,
+    width: tilesWidth(readable),
     open: swipeOpen,
     onOpenChange: (open) => { setSwipeOpenId(open ? link.id : null); },
   });
@@ -53,7 +63,10 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
   return (
     <div ref={rowRef} data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
       <a
-        href={safeHref(link.originalUrl)}
+        href={href}
+        // Without an href the anchor cannot take focus, so focus hand-offs would have nowhere to land.
+        tabIndex={href === undefined ? 0 : undefined}
+        aria-disabled={href === undefined ? true : undefined}
         target="_blank"
         rel="noopener noreferrer"
         draggable
@@ -78,6 +91,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
         animate={!swipe.dragging}
         pinned={pin.pinned}
         linkId={link.id}
+        readable={readable}
         onRead={() => { setSwipeOpenId(null); }}
         onFocus={() => { setSwipeOpenId(link.id); }}
         onAddTo={() => {
@@ -209,9 +223,11 @@ export function RowActions({ link, belongs, pinned, onPin, placement = "row" }: 
           "group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 data-open:pointer-events-auto data-open:opacity-100",
       )}
     >
-      <Link to="/l/$linkId" params={{ linkId: link.id }} className={cn(ACTION, "px-3.5")}>
-        Read
-      </Link>
+      {canRead(link) ? (
+        <Link to="/l/$linkId" params={{ linkId: link.id }} className={cn(ACTION, "px-3.5")}>
+          Read
+        </Link>
+      ) : null}
       <AddToPopover
         link={link}
         open={pickerOpen}
@@ -258,6 +274,7 @@ type SwipeTilesProps = {
   animate: boolean;
   pinned: boolean;
   linkId: string;
+  readable: boolean;
   onRead: () => void;
   onFocus: () => void;
   onAddTo: () => void;
@@ -266,22 +283,24 @@ type SwipeTilesProps = {
   onDelete: () => void;
 };
 
-const TILE = "flex w-[60px] flex-col items-center justify-center gap-[3px] rounded-[11px] text-[11px] font-semibold";
+const TILE = "flex w-14 flex-col items-center justify-center gap-[3px] rounded-[11px] text-[11px] font-semibold";
 
 // The phone's swipe-left actions. Keyboard focus opens them as a swipe would.
-function SwipeTiles({ label, offset, animate, pinned, linkId, onRead, onFocus, onAddTo, onShare, onPin, onDelete }: SwipeTilesProps) {
+function SwipeTiles({ label, offset, animate, pinned, linkId, readable, onRead, onFocus, onAddTo, onShare, onPin, onDelete }: SwipeTilesProps) {
   return (
     <div
       role="group"
       aria-label={label}
       onFocus={onFocus}
-      style={{ transform: `translateX(${String(TILES_WIDTH + offset)}px)`, opacity: offset === 0 ? 0 : 1 }}
-      className={cn("absolute inset-y-0 right-0 z-10 flex gap-1.5 p-1.5 md:hidden", animate && "transition-transform duration-300 ease-out-soft")}
+      style={{ transform: `translateX(${String(tilesWidth(readable) + offset)}px)`, opacity: offset === 0 ? 0 : 1 }}
+      className={cn("absolute inset-y-0 right-0 z-10 flex gap-1 p-1.5 md:hidden", animate && "transition-transform duration-300 ease-out-soft")}
     >
-      <Link to="/l/$linkId" params={{ linkId }} onClick={onRead} className={cn(TILE, "bg-accent")}>
-        <BookOpen aria-hidden strokeWidth={2.2} className="size-4" />
-        Read
-      </Link>
+      {readable ? (
+        <Link to="/l/$linkId" params={{ linkId }} onClick={onRead} className={cn(TILE, "bg-accent")}>
+          <BookOpen aria-hidden strokeWidth={2.2} className="size-4" />
+          Read
+        </Link>
+      ) : null}
       <button type="button" onClick={onAddTo} className={cn(TILE, "bg-primary text-primary-foreground")}>
         <Plus aria-hidden strokeWidth={2.4} className="size-4" />
         Add to

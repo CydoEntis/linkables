@@ -55,6 +55,7 @@ test("saves the page the user is on from the side panel, then pins it", async ({
   await expect(panel.getByText("Saved to your links")).toBeVisible();
   await expect.poll(() => badgeText(panel, tabId)).toBe("✓");
   await expect(panel.getByText("In New")).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Read" })).toBeVisible();
 
   await panel.getByRole("button", { name: "Pin", exact: true }).click();
   await expect(panel.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
