@@ -1,10 +1,10 @@
 import type { APIRequestContext, BrowserContext, Page, TestInfo } from "@playwright/test";
 import type { TestUser } from "../../web/e2e/session";
-import { API_URL } from "./env";
+import { API_URL, APP_URL } from "./env";
 import { badgeText, expect, PANEL_URL, recordCopies, tabIdOf, test } from "./fixtures";
 
 // Served by the test, on an origin the e2e build may read, so the panel sees its address and title.
-const ARTICLE_URL = `${API_URL}/e2e/kyoto-slow-days`;
+const ARTICLE_URL = `${APP_URL}/e2e/kyoto-slow-days`;
 
 async function openArticle(context: BrowserContext): Promise<Page> {
   await context.route(ARTICLE_URL, (route) =>
@@ -19,6 +19,7 @@ async function openArticle(context: BrowserContext): Promise<Page> {
 async function openPanel(context: BrowserContext, email: string): Promise<Page> {
   const panel = await context.newPage();
   await panel.goto(PANEL_URL);
+  await panel.getByRole("button", { name: "Use an email code instead" }).click();
   await panel.getByLabel("Email").fill(email);
   await panel.getByRole("button", { name: "Email me a code" }).click();
   await panel.getByLabel("6-digit code").fill("123456");
@@ -150,7 +151,7 @@ test("shares a collection from the panel: gets the link, copies it, turns it off
   const copies = await recordCopies(panel);
   await sheet.getByRole("button", { name: "Copy", exact: true }).click();
   await expect(sheet.getByRole("button", { name: "Copied ✓" })).toBeVisible();
-  expect(await copies()).toEqual([`${API_URL}/s/${shared?.token ?? ""}`]);
+  expect(await copies()).toEqual([`${APP_URL}/s/${shared?.token ?? ""}`]);
   await snap(panel, testInfo, "panel-share-on");
 
   await sheet.getByRole("button", { name: "Turn off link" }).click();
