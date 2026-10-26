@@ -13,6 +13,9 @@ export const GHOST_BUTTON = cn(
   "flex h-[34px] items-center justify-center rounded-[10px] bg-accent px-4 text-[13px] font-bold text-foreground hover:bg-muted disabled:cursor-default disabled:opacity-50",
 );
 
+// The quick-action tiles under a saved page: icon over a short label.
+export const TILE = cn(BUTTON_DARK, "flex h-14 flex-col items-center justify-center gap-1 rounded-xl text-[12px]");
+
 export const QUIET_LINK = "rounded-md px-1 text-[12.5px] text-muted-foreground hover:text-foreground";
 
 export const FILLED_FIELD =
