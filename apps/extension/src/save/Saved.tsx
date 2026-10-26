@@ -4,9 +4,8 @@ import { Check, LibraryBig, Link2, Pin } from "lucide-react";
 import { CollectionPicker } from "../collections/CollectionPicker";
 import { locationLabel } from "../collections/picker";
 import { useFiling } from "../collections/use-collections";
-import { env } from "../config/env";
 import { useCopy, type CopyState } from "../copy/use-copy";
-import { canOpenSidePanel, openSidePanel } from "../side-panel/open-side-panel";
+import { openSidePanelOrApp } from "../side-panel/open-side-panel";
 import { useWindowId } from "../side-panel/use-window-id";
 import { Alert, TILE } from "../ui";
 import { savedTitle } from "./save-flow";
@@ -71,12 +70,6 @@ export function Saved({ link, pageTitle }: SavedProps) {
   );
 }
 
-function openApp() {
-  return chrome.tabs.create({ url: env.VITE_APP_URL });
-}
-
-// The side panel where the browser has one and opens it, else the web app in a new tab.
 function openAllLinks(windowId: number | undefined) {
-  const opened = windowId !== undefined && canOpenSidePanel() ? openSidePanel(windowId).catch(openApp) : openApp();
-  void opened.then(() => { window.close(); });
+  void openSidePanelOrApp(windowId).then(() => { window.close(); });
 }
