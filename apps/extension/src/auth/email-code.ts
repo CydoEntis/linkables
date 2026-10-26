@@ -1,4 +1,5 @@
 import { isAuthApiError, isAuthRetryableFetchError, type AuthError } from "@supabase/supabase-js";
+import { resumeAutoConnect } from "../connect/auto-connect";
 import { supabase } from "./supabase";
 
 export const CODE_LENGTH = 6;
@@ -28,7 +29,10 @@ export async function sendCode(email: string): Promise<Result<SendCodeProblem>> 
 export async function verifyCode(email: string, token: string): Promise<Result<VerifyCodeProblem>> {
   if (!navigator.onLine) return { ok: false, problem: "offline" };
   const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-  return error ? { ok: false, problem: verifyCodeProblem(error) } : { ok: true };
+  if (error) return { ok: false, problem: verifyCodeProblem(error) };
+  // A sign-out by hand paused the sign-in from linkables.app; signing in again ends that.
+  await resumeAutoConnect(chrome.storage.local);
+  return { ok: true };
 }
 
 // Status 0 is no response at all; 502-504 are retryable too but did reach Supabase.

@@ -1,3 +1,4 @@
+import { resumeAutoConnect } from "../connect/auto-connect";
 import type { GoogleAnswer } from "../connect/worker-messages";
 import { AUTH_STORAGE_KEY, createSupabase } from "./create-supabase";
 import { readGoogleRedirect } from "./google-redirect";
@@ -17,13 +18,17 @@ export async function verifyTokenHash(tokenHash: string): Promise<boolean> {
   return error === null;
 }
 
-// The user closing the Google window rejects the flow; nothing else does.
-async function runAuthFlow(url: string): Promise<string | undefined | null> {
+// Chrome rejects with this when the user closes the Google window.
+const USER_CLOSED = /did not approve/i;
+
+type AuthFlow = { redirect: string | undefined } | { problem: "cancelled" | "failed" };
+
+async function runAuthFlow(url: string): Promise<AuthFlow> {
   try {
-    return await chrome.identity.launchWebAuthFlow({ url, interactive: true });
+    return { redirect: await chrome.identity.launchWebAuthFlow({ url, interactive: true }) };
   } catch (error) {
-    if (error instanceof Error) return null;
-    throw error;
+    if (!(error instanceof Error)) throw error;
+    return { problem: USER_CLOSED.test(error.message) ? "cancelled" : "failed" };
   }
 }
 
@@ -34,10 +39,13 @@ export async function signInWithGoogle(): Promise<GoogleAnswer> {
     options: { redirectTo: chrome.identity.getRedirectURL(), skipBrowserRedirect: true },
   });
   if (error !== null || !data.url) return { ok: false, problem: "failed" };
-  const redirect = await runAuthFlow(data.url);
-  if (redirect === null) return { ok: false, problem: "cancelled" };
-  const returned = readGoogleRedirect(redirect);
+  const flow = await runAuthFlow(data.url);
+  if ("problem" in flow) return { ok: false, problem: flow.problem };
+  const returned = readGoogleRedirect(flow.redirect);
   if (returned.kind === "error") return { ok: false, problem: returned.error === "access_denied" ? "cancelled" : "failed" };
   const exchanged = await supabase.auth.exchangeCodeForSession(returned.code);
-  return exchanged.error === null ? { ok: true } : { ok: false, problem: "failed" };
+  if (exchanged.error !== null) return { ok: false, problem: "failed" };
+  // A sign-out by hand paused the sign-in from linkables.app; signing in again ends that.
+  await resumeAutoConnect(chrome.storage.local);
+  return { ok: true };
 }

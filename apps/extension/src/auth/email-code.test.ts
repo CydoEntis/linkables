@@ -1,18 +1,45 @@
 import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isAutoConnectPaused, pauseAutoConnect } from "../connect/auto-connect";
+import { memoryStorageArea } from "../test/memory-storage-area";
 import { sendCode, toCodeDigits, verifyCode } from "./email-code";
 
 const signInWithOtp = vi.hoisted(() => vi.fn());
 const verifyOtp = vi.hoisted(() => vi.fn());
 vi.mock("./supabase", () => ({ supabase: { auth: { signInWithOtp, verifyOtp } } }));
 
+let local: chrome.storage.StorageArea;
+
 beforeEach(() => {
   signInWithOtp.mockReset();
   verifyOtp.mockReset();
+  local = memoryStorageArea();
+  vi.stubGlobal("chrome", { storage: { local } });
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe("verifyCode and the sign-in from linkables.app", () => {
+  it("resumes it once the code signs in", async () => {
+    await pauseAutoConnect(local);
+    verifyOtp.mockResolvedValue({ data: {}, error: null });
+
+    await verifyCode("friend@example.com", "123456");
+
+    await expect(isAutoConnectPaused(local)).resolves.toBe(false);
+  });
+
+  it("leaves it paused when the code is wrong", async () => {
+    await pauseAutoConnect(local);
+    verifyOtp.mockResolvedValue(apiError(403, "otp_expired"));
+
+    await verifyCode("friend@example.com", "000000");
+
+    await expect(isAutoConnectPaused(local)).resolves.toBe(true);
+  });
 });
 
 const apiError = (status: number, code: string) => ({ data: {}, error: new AuthApiError("Nope", status, code) });
