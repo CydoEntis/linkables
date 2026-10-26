@@ -23,6 +23,22 @@ type Fixtures = {
 type WorkerFixtures = { db: Db };
 
 export const POPUP_URL = `chrome-extension://${EXTENSION_ID}/popup.html`;
+type CopyLog = { copied: string[] };
+
+// Chromium won't grant clipboard-read to an extension origin, so the page's
+// writes are recorded on their way to the real clipboard.
+export async function recordCopies(page: Page): Promise<() => Promise<string[]>> {
+  await page.evaluate(() => {
+    const log = window as unknown as CopyLog;
+    const write = navigator.clipboard.writeText.bind(navigator.clipboard);
+    log.copied = [];
+    navigator.clipboard.writeText = (text: string) => {
+      log.copied.push(text);
+      return write(text);
+    };
+  });
+  return () => page.evaluate(() => (window as unknown as CopyLog).copied);
+}
 
 // Supabase answers for the code sign-in and for the one-time token the e2e API
 // mints for this user (testTokenHash); every other call to it fails the test.

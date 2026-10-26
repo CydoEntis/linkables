@@ -1,7 +1,7 @@
 import type { APIRequestContext, BrowserContext, Page, TestInfo } from "@playwright/test";
 import type { TestUser } from "../../web/e2e/session";
 import { API_URL, APP_URL, SUPABASE_URL } from "./env";
-import { expect, test } from "./fixtures";
+import { expect, recordCopies, test } from "./fixtures";
 
 // Served by the test, on an origin the e2e build may read, so the pop-up sees its address and title.
 const ARTICLE_URL = `${APP_URL}/e2e/weeknight-pasta`;
@@ -81,6 +81,10 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
 
   await popup.getByRole("button", { name: "Pin", exact: true }).click();
   await expect(popup.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
+  const copies = await recordCopies(popup);
+  await popup.getByRole("button", { name: "Share" }).click();
+  await expect(popup.getByRole("button", { name: "Copied ✓" })).toBeVisible();
+  expect(await copies()).toEqual([ARTICLE_URL]);
   await snap(popup, testInfo, "popup-already-saved-filed");
 
   await expect
