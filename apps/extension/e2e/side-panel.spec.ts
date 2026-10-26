@@ -66,6 +66,25 @@ test("saves the page the user is on from the side panel, then pins it", async ({
     .toMatchObject({ items: [{ originalUrl: ARTICLE_URL, savedFrom: "extension", pinned: true }] });
 });
 
+test("the page card keeps a pin and a collection made in the panel after switching tabs", async ({ context, user }) => {
+  const article = await openArticle(context);
+  const panel = await openPanel(context, user.email);
+  await article.bringToFront();
+  await panel.getByRole("button", { name: "Save this page" }).click();
+  await panel.getByRole("button", { name: "Pin", exact: true }).click();
+  await panel.getByRole("button", { name: "+ Add to" }).click();
+  await panel.getByLabel("Search collections").fill("Recipes");
+  await panel.getByRole("button", { name: "+ Create “Recipes”" }).click();
+  await expect(panel.getByText("In Recipes", { exact: true })).toBeVisible();
+  await panel.keyboard.press("Escape");
+
+  await panel.bringToFront();
+  await expect(panel.getByRole("heading", { name: "This page can't be saved" })).toBeVisible();
+  await article.bringToFront();
+  await expect(panel.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
+  await expect(panel.getByText("In Recipes", { exact: true })).toBeVisible();
+});
+
 test("shows a page saved before as saved, and switches between Recent, Pinned and Collections", async ({ context, request, user }, testInfo) => {
   const pinned = await callApi<{ id: string }>(request, user, "POST", "/links", { url: "https://example.com/pinned-one" });
   await callApi(request, user, "PATCH", `/links/${pinned.id}`, { pinned: true });
