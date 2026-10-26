@@ -18,7 +18,10 @@ type Step = { title: ReactNode; detail?: ReactNode };
 
 const AFTER_INSTALL: Step[] = [
   { title: "Pin linkables to the toolbar", detail: "Click the puzzle piece next to the address bar, then the pin beside linkables." },
-  { title: "Sign in with your email code", detail: "Click linkables on any page. We email you a 6-digit code; after that, one click saves the page." },
+  {
+    title: "Sign in",
+    detail: "Signed in here on linkables.app, the extension signs itself in. Or click linkables and sign in with Google or a 6-digit email code. After that, one click saves the page.",
+  },
 ];
 
 const BY_HAND_STEPS: Step[] = [
