@@ -35,8 +35,15 @@ async function passSession(nonce: string, tokenHash: string): Promise<void> {
   postToPage({ type: "linkables:extension-connected", ok: answer.success && answer.data.result === "signed-in" });
 }
 
+// Reloading or updating the extension leaves this script running on pages already
+// open, cut off from the worker. Those pages just get no hand-off; anything else still surfaces.
+function unlessExtensionReloaded(error: unknown): void {
+  if (error instanceof Error && error.message.includes("Extension context invalidated")) return;
+  throw error;
+}
+
 window.addEventListener("message", (event) => {
   const message = readPageMessage(event);
-  if (message?.type === "linkables:extension-ping") void answerPing();
-  if (message?.type === "linkables:extension-session") void passSession(message.nonce, message.tokenHash);
+  if (message?.type === "linkables:extension-ping") answerPing().catch(unlessExtensionReloaded);
+  if (message?.type === "linkables:extension-session") passSession(message.nonce, message.tokenHash).catch(unlessExtensionReloaded);
 });
