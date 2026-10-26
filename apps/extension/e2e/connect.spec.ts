@@ -63,8 +63,9 @@ test("signed in on linkables.app, a visit signs the extension in with no typing"
 
   await visitApp(context);
 
-  // The open pop-up notices the session the worker wrote.
+  // The open pop-up notices the session the worker wrote, and says whose it is.
   await expect(signedIn(popup)).toBeVisible();
+  await expect(popup.getByText(`Signed in as ${user.email}`)).toBeVisible();
   expect(supabaseLog.verifiedTokenHashes).toEqual([testTokenHash(user.id)]);
 });
 
