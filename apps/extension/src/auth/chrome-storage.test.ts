@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { memoryStorageArea } from "../test/memory-storage-area";
-import { chromeStorage } from "./chrome-storage";
+import { authStorage, chromeStorage } from "./chrome-storage";
 
 describe("chromeStorage", () => {
   it("reads a missing key as null", async () => {
@@ -30,5 +30,21 @@ describe("chromeStorage", () => {
     const area = memoryStorageArea();
     await chromeStorage(area).setItem("sb-auth", "session");
     await expect(chromeStorage(area).getItem("sb-auth")).resolves.toBe("session");
+  });
+});
+
+describe("authStorage", () => {
+  it("keeps the session in the persistent area and the PKCE verifier only in memory", async () => {
+    const [local, session] = [memoryStorageArea(), memoryStorageArea()];
+    const storage = authStorage(local, session);
+
+    await storage.setItem("sb-auth", "session");
+    await storage.setItem("sb-auth-code-verifier", "verifier");
+
+    await expect(local.get("sb-auth")).resolves.toEqual({ "sb-auth": "session" });
+    await expect(local.get("sb-auth-code-verifier")).resolves.toEqual({});
+    await expect(storage.getItem("sb-auth-code-verifier")).resolves.toBe("verifier");
+    await storage.removeItem("sb-auth-code-verifier");
+    await expect(session.get("sb-auth-code-verifier")).resolves.toEqual({});
   });
 });
