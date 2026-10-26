@@ -72,7 +72,7 @@ export default defineConfig(({ mode }) => ({
     },
     // MV3 allows no remote code, and an extension page loads from disk anyway.
     modulePreload: false,
-    // One chunk is right here: the pop-up loads it from disk, so splitting buys nothing.
+    // The shared chunks (React, supabase-js) load from disk, so their size costs little.
     chunkSizeWarningLimit: 800,
   },
 }));
