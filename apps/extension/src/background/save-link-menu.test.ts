@@ -45,6 +45,12 @@ describe("saveFromMenu", () => {
     expect(d.flash).toHaveBeenCalledWith(7, false, MENU_HINTS.refresh);
   });
 
+  it("tells the user to sign in when the API turns the stored sign-in away", async () => {
+    const d = deps({ save: vi.fn(() => Promise.reject(new ApiError("UNAUTHENTICATED", "Invalid token"))) });
+    await saveFromMenu(click("https://example.com/linked"), { id: 7 }, d);
+    expect(d.flash).toHaveBeenCalledWith(7, false, MENU_HINTS.signedOut);
+  });
+
   it("does not call the API for a link that can't be saved", async () => {
     const d = deps();
     await saveFromMenu(click("javascript:void(0)"), { id: 7 }, d);

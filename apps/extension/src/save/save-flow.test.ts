@@ -69,6 +69,14 @@ describe("saveCurrentTab", () => {
     });
   });
 
+  it("asks to sign in again when the API turns the sign-in away", async () => {
+    const save = () => Promise.reject(new ApiError("UNAUTHENTICATED", "Invalid token"));
+    await expect(saveCurrentTab({ readTab: tab("https://example.com/a"), save })).resolves.toEqual({
+      status: "error",
+      message: SAVE_MESSAGES.signedOut,
+    });
+  });
+
   it("reports the rate limit when saving too fast", async () => {
     const save = () => Promise.reject(new ApiError("RATE_LIMIT", "Slow down"));
     await expect(saveCurrentTab({ readTab: tab("https://example.com/a"), save })).resolves.toEqual({
