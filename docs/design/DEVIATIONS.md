@@ -133,3 +133,4 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **The delete list doesn't count links or collections** ("Your links, collections and every note…"): Settings doesn't load the counts.
 - **Export keeps its toasts** ("Preparing your export…", then "Export downloaded"), since the same export runs from the delete dialog where there is no button to show progress.
 - **The goodbye has its own address**, `/account-deleted`, so it stays on screen after the sign-out lands. It opens only after a delete in this tab. Back to linkables.app appears once no session is left, and reloads the landing page.
+- **Read is hidden for videos and files.** A link whose kind is video or other shows no Read action (hover, swipe tile, extension panel); its link page still opens by address. A page, or a link still fetching, keeps Read. A page can still turn out not to be an article, which only the reader fetch shows.

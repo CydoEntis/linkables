@@ -1,4 +1,4 @@
-import type { SavedLink } from "@linkables/shared/links";
+import { canRead, type SavedLink } from "@linkables/shared/links";
 import { cn } from "cn";
 import { Ban, BookOpen, Check, ExternalLink, Link2, LoaderCircle, Pin } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -147,7 +147,7 @@ function SavedPage({ link, pageTitle, onSaved }: SavedPageProps) {
         </span>
         <AddTo filedIds={new Set(filing.filed.map((collection) => collection.id))} onFile={filing.setFiledIn} />
       </div>
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className={cn("grid gap-1.5", canRead(link) ? "grid-cols-4" : "grid-cols-3")}>
         <button
           type="button"
           aria-pressed={pin.pinned}
@@ -157,9 +157,11 @@ function SavedPage({ link, pageTitle, onSaved }: SavedPageProps) {
           <Pin aria-hidden strokeWidth={2.2} className={cn("size-4", pin.pinned && "animate-pin-pop fill-current")} />
           {pin.pinned ? "Pinned" : "Pin"}
         </button>
-        <TileLink href={appUrl(`/l/${link.id}/read`)} icon={<BookOpen aria-hidden className="size-4" />}>
-          Read
-        </TileLink>
+        {canRead(link) ? (
+          <TileLink href={appUrl(`/l/${link.id}/read`)} icon={<BookOpen aria-hidden className="size-4" />}>
+            Read
+          </TileLink>
+        ) : null}
         <button type="button" onClick={() => void share.copy(link.originalUrl)} className={cn(TILE, "h-[52px] bg-accent text-[11.5px] hover:bg-line-strong")}>
           <Link2 aria-hidden className="size-4" />
           {SHARE_LABELS[share.state]}

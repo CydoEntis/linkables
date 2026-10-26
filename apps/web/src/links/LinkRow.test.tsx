@@ -45,6 +45,43 @@ describe("LinkRow", () => {
     expect(router.state.location.pathname).toBe(`/l/${link.id}`);
   });
 
+  it("leaves Read out of a video's actions and swipe tiles", async () => {
+    await renderRow(savedLink({ originalUrl: "https://www.youtube.com/watch?v=1", resource: { kind: "video" } }));
+    expect(screen.queryByRole("link", { name: "Read" })).not.toBeInTheDocument();
+  });
+
+  it("leaves Read out of a file's actions", async () => {
+    await renderRow(savedLink({ resource: { kind: "other" } }));
+    expect(screen.queryByRole("link", { name: "Read" })).not.toBeInTheDocument();
+  });
+
+  it("still offers Read while the kind is unknown", async () => {
+    await renderRow(savedLink({ resource: { kind: null, title: null, fetchStatus: "pending" } }));
+    expect(screen.getAllByRole("link", { name: "Read" })).toHaveLength(2);
+  });
+
+  it("slides the swipe tiles in by exactly their width, one less without Read", async () => {
+    const tilesOf = () => screen.getAllByRole("group", { name: "Some title" }).at(-1);
+    const { unmount } = await renderRow(savedLink({ resource: { title: "Some title" } }));
+    expect(tilesOf()?.style.transform).toBe("translateX(308px)");
+    unmount();
+    await renderRow(savedLink({ resource: { title: "Some title", kind: "video" } }));
+    expect(tilesOf()?.style.transform).toBe("translateX(248px)");
+  });
+
+  it("keeps a row with an unsafe URL focusable without making it navigate", async () => {
+    const { container } = await renderRow(savedLink({ originalUrl: "javascript:alert(1)" }));
+    const row = container.querySelector<HTMLElement>("[data-row-link]");
+    expect(row).toHaveAttribute("tabindex", "0");
+    expect(row).toHaveAttribute("aria-disabled", "true");
+    expect(row).not.toHaveAttribute("href");
+  });
+
+  it("leaves a row with a safe URL out of the tab order it already has", async () => {
+    const { container } = await renderRow(savedLink());
+    expect(container.querySelector("[data-row-link]")).not.toHaveAttribute("tabindex");
+  });
+
   it("shows the user's title over the fetched one", async () => {
     await renderRow(savedLink({ titleOverride: "My name for it", resource: { title: "Fetched title" } }));
     expect(screen.getByText("My name for it")).toBeInTheDocument();
