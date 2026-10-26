@@ -165,7 +165,7 @@ describe("LinkList", () => {
     });
     renderList();
     const grid = await screen.findByRole("list", { name: "Links" });
-    const [first, second] = within(grid).getAllByRole("link");
+    const [first, second] = within(grid).getAllByRole("link", { name: /^(Kept|Fresh)/ });
     expect(first).toHaveAccessibleName(/^Kept/);
     expect(second).toHaveAccessibleName(/^Fresh/);
     expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);

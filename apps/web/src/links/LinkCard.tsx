@@ -1,9 +1,8 @@
 import type { SavedLink } from "@linkables/shared/links";
-import { Link } from "@tanstack/react-router";
 import { Pin } from "lucide-react";
 import { cn } from "cn";
 import { MatchedText } from "../search/MatchedText";
-import { displayTitle, domainOf, filedLabel, relativeTime } from "./link-display";
+import { displayTitle, domainOf, filedLabel, relativeTime, safeHref } from "./link-display";
 import { RowActions, startDrag, type LinkRowProps } from "./LinkRow";
 import { LinkThumb } from "./LinkThumb";
 import { useLinksUi } from "./links-ui-store";
@@ -23,9 +22,10 @@ export function LinkCard({ link, now, inCollection = false, highlight, belongs =
         leaving && "pointer-events-none animate-leave",
       )}
     >
-      <Link
-        to="/l/$linkId"
-        params={{ linkId: link.id }}
+      <a
+        href={safeHref(link.originalUrl)}
+        target="_blank"
+        rel="noopener noreferrer"
         draggable
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
@@ -43,7 +43,7 @@ export function LinkCard({ link, now, inCollection = false, highlight, belongs =
         </span>
         <CardText link={link} now={now} inCollection={inCollection} query={query} />
         {pin.pinned ? <span className="sr-only">Pinned</span> : null}
-      </Link>
+      </a>
       <RowActions link={link} belongs={belongs} pinned={pin.pinned} onPin={pin.toggle} placement="card" />
     </div>
   );

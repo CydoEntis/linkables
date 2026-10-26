@@ -11,13 +11,17 @@ vi.mock("../api/api", () => ({ api: { request } }));
 const now = new Date(2026, 9, 22, 12, 0).getTime();
 
 describe("LinkCard", () => {
-  it("opens the link's own page, like a row", async () => {
-    const link = savedLink();
+  it("opens the saved URL in a new tab, and Read opens the link's own page", async () => {
+    const link = savedLink({ originalUrl: "https://example.com/a" });
     const { router } = await renderWithRouter(<LinkCard link={link} now={now} />);
-    const card = screen.getByRole("link");
-    expect(card).toHaveAttribute("href", `/l/${link.id}`);
+    const card = screen.getAllByRole("link").find((anchor) => anchor.hasAttribute("data-row-link"));
+    expect(card).toHaveAttribute("href", "https://example.com/a");
+    expect(card).toHaveAttribute("target", "_blank");
+    expect(card).toHaveAttribute("rel", "noopener noreferrer");
     expect(card).toHaveAttribute("draggable", "true");
-    await userEvent.click(card);
+    const read = screen.getByRole("link", { name: "Read" });
+    expect(read).toHaveAttribute("href", `/l/${link.id}`);
+    await userEvent.click(read);
     expect(router.state.location.pathname).toBe(`/l/${link.id}`);
   });
 
@@ -42,7 +46,7 @@ describe("LinkCard", () => {
 
   it("marks a pinned link and a link in no collection", async () => {
     await renderWithRouter(<LinkCard link={savedLink({ pinned: true })} now={now} />);
-    expect(screen.getByRole("link")).toHaveAccessibleName(/Pinned/);
+    expect(screen.getByRole("link", { name: /Pinned/ })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Not in a collection" })).toBeInTheDocument();
   });
 
