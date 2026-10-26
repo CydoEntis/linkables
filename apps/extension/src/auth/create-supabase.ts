@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { env } from "../config/env";
-import { chromeStorage } from "./chrome-storage";
+import { authStorage } from "./chrome-storage";
 
 // supabase-js's own default key, named here so the pop-up can watch it for a
 // session the worker writes. Changing it would sign every user out.
@@ -12,7 +12,7 @@ type ClientOptions = { autoRefreshToken: boolean; flowType: "implicit" | "pkce" 
 export function createSupabase({ autoRefreshToken, flowType }: ClientOptions) {
   return createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
     auth: {
-      storage: chromeStorage(chrome.storage.local),
+      storage: authStorage(chrome.storage.local, chrome.storage.session),
       storageKey: AUTH_STORAGE_KEY,
       persistSession: true,
       autoRefreshToken,
