@@ -80,6 +80,7 @@ test.describe("at 1280 px", () => {
     await page.goto("/?view=inbox");
     await page.getByRole("link", { name: /^First link/ }).focus();
     await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
     const addTo = rowButton(page, /^First link/, "Add to…");
     await expect(addTo).toBeFocused();
     await page.keyboard.press("Enter");

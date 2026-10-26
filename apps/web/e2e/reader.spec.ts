@@ -6,6 +6,7 @@ import { resourceReader } from "../../api/src/db/schema";
 import { extractArticle } from "../../api/src/reader/extract-article";
 import { API_URL } from "./env";
 import { expect, test } from "./fixtures";
+import { openLinkPage } from "./open-link-page";
 import { stubReader } from "./reader-stub";
 import { seedLinks as seedLinksFor } from "./seed";
 
@@ -38,11 +39,11 @@ function cssOf(locator: Locator, property: string) {
 test.describe("at 1280 px", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("a row opens its saved article on the link's page, and Back returns to the list", async ({ page, db, seedLinks }) => {
+  test("a row's Read opens its saved article on the link's page, and Back returns to the list", async ({ page, db, seedLinks }) => {
     const [link] = await seedLinks([ARTICLE]);
     await storeReadableCopy(db, link?.resourceId ?? "");
     await page.goto("/");
-    await page.getByRole("link", { name: /^Build times/ }).click();
+    await openLinkPage(page, page.getByRole("link", { name: /^Build times/ }));
 
     await expect(page).toHaveURL(new RegExp(`/l/${link?.id ?? ""}$`));
     await expect(page.getByRole("heading", { level: 1, name: "How We Cut Build Times in Half" })).toBeFocused();

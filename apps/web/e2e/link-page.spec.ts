@@ -2,6 +2,7 @@ import { LIST_LIMIT_DEFAULT } from "@linkables/shared/links";
 import type { Page } from "@playwright/test";
 import { API_URL } from "./env";
 import { expect, test } from "./fixtures";
+import { openLinkPage } from "./open-link-page";
 import { stubReader } from "./reader-stub";
 
 const RUST = { url: "https://doc.rust-lang.org/rust-by-example/", resource: { title: "Rust by Example", fetchStatus: "fetched" as const } };
@@ -23,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 test.describe("at 1280 px", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("a row opens the link's own page, and Back returns to the list where it was, on that row", async ({ page, seedLinks }) => {
+  test("a row's Read opens the link's own page, and Back returns to the list where it was, on that row", async ({ page, seedLinks }) => {
     const filler = Array.from({ length: 24 }, (_, index) => ({ url: `https://example.com/filler-${String(index)}`, resource: { title: `Filler ${String(index)}`, kind: "video" as const, fetchStatus: "fetched" as const } }));
     const [tokyo] = await seedLinks([TOKYO, ...filler]);
     await page.goto("/");
@@ -32,7 +33,7 @@ test.describe("at 1280 px", () => {
     const scrolled = await page.evaluate(() => window.scrollY);
     expect(scrolled).toBeGreaterThan(0);
 
-    await row.click();
+    await openLinkPage(page, row);
     await expect(page).toHaveURL(new RegExp(`/l/${tokyo?.id ?? ""}$`));
     await expect(page.getByRole("heading", { level: 1, name: /Tokyo night walk/ })).toBeFocused();
     await expect(page.getByRole("main").getByRole("link", { name: /^Watch on YouTube/ })).toHaveAttribute("href", TOKYO.url);
@@ -43,17 +44,21 @@ test.describe("at 1280 px", () => {
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrolled);
   });
 
-  test("a row is a real link, so a modified click can open the page in a new tab", async ({ page, seedLinks }) => {
+  test("a row opens the saved URL in a new tab, and Read is a real link to the page", async ({ page, seedLinks }) => {
     const [rust] = await seedLinks([RUST]);
     await page.goto("/");
-    await expect(page.getByRole("link", { name: /^Rust by Example/ })).toHaveAttribute("href", `/l/${rust?.id ?? ""}`);
+    const row = page.getByRole("link", { name: /^Rust by Example/ });
+    await expect(row).toHaveAttribute("href", RUST.url);
+    await expect(row).toHaveAttribute("target", "_blank");
+    await row.hover();
+    await expect(page.getByRole("link", { name: "Read", exact: true })).toHaveAttribute("href", `/l/${rust?.id ?? ""}`);
   });
 
   test("a row found by a search opens its page, and Back keeps the search", async ({ page, seedLinks }) => {
     await seedLinks([RUST, TOKYO]);
     await page.goto("/?q=rust");
     await expect(page.getByRole("link", { name: /^Tokyo night walk/ })).toHaveCount(0);
-    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    await openLinkPage(page, page.getByRole("link", { name: /^Rust by Example/ }));
     await expect(page.getByRole("heading", { level: 1, name: /Rust by Example/ })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page).toHaveURL(/\/\?q=rust$/);
@@ -95,7 +100,7 @@ test.describe("at 1280 px", () => {
   test("pinning from the bar pins the link", async ({ page, seedLinks }) => {
     await seedLinks([RUST]);
     await page.goto("/");
-    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    await openLinkPage(page, page.getByRole("link", { name: /^Rust by Example/ }));
     const pinned = linkRequest(page, "PATCH");
     await bar(page).getByRole("button", { name: "Pin" }).click();
     expect((await pinned).status()).toBe(200);
@@ -107,7 +112,7 @@ test.describe("at 1280 px", () => {
   test("a new title shows in the row, and clearing it brings back the fetched one", async ({ page, seedLinks }) => {
     const [rust] = await seedLinks([RUST]);
     await page.goto("/");
-    await page.getByRole("link", { name: /^Rust by Example/ }).click();
+    await openLinkPage(page, page.getByRole("link", { name: /^Rust by Example/ }));
     await page.getByRole("button", { name: /Rust by Example/ }).click();
     const title = page.getByRole("textbox", { name: "Title" });
     await title.fill("Rust, the good parts");
@@ -158,7 +163,7 @@ test.describe("at 1280 px", () => {
     await page.goto("/");
     const row = page.getByRole("link", { name: /^Rust by Example/ });
 
-    await row.click();
+    await openLinkPage(page, row);
     await bar(page).getByRole("button", { name: "Delete" }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(row).toHaveCount(0);
@@ -167,7 +172,7 @@ test.describe("at 1280 px", () => {
     await expect(row).toBeVisible();
     await expect(row).toBeFocused();
 
-    await row.click();
+    await openLinkPage(page, row);
     const deleted = page.waitForResponse(
       (response) => response.url().startsWith(`${API_URL}/api/v1/links/`) && response.request().method() === "DELETE",
       { timeout: 10_000 },
@@ -186,7 +191,7 @@ test.describe("at 360 px", () => {
   test("the page fits without scrolling sideways, with Share and Open original on the bar and the rest under More", async ({ page, seedLinks }) => {
     await seedLinks([{ ...RUST, resource: { ...RUST.resource, title: `Rust ${"by example ".repeat(30)}` } }]);
     await page.goto("/");
-    await page.getByRole("link", { name: /^Rust by example/ }).click();
+    await openLinkPage(page, page.getByRole("link", { name: /^Rust by example/ }));
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBe(0);
