@@ -1,4 +1,4 @@
-import type { SaveLinkResponse } from "@linkables/shared/links";
+import type { SavedLink, SaveLinkResponse } from "@linkables/shared/links";
 import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { NO_SESSION } from "../api/client";
 import { savablePage } from "./savable";
@@ -45,6 +45,6 @@ function saveErrorMessage(error: ApiError): string {
 }
 
 // A new link's own title arrives only after the metadata fetch, so the tab's title stands in.
-export function savedTitle(link: SaveLinkResponse, pageTitle: string | null): string {
+export function savedTitle(link: SavedLink, pageTitle: string | null): string {
   return link.titleOverride ?? link.resource.title ?? pageTitle ?? link.originalUrl;
 }

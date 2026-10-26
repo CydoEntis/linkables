@@ -27,9 +27,9 @@ export function buildManifest({ version, appUrl, supabaseUrl, store = false }: M
     description: "Save the page you're on to linkables in one click, then pin it or file it in a collection. Private beta, sign-in required.",
     version,
     ...(store ? {} : { key: MANIFEST_KEY }),
-    // activeTab reads the current tab's address only when the toolbar button is clicked;
-    // identity opens the Google sign-in window.
-    permissions: ["activeTab", "storage", "identity"],
+    // activeTab reads the current tab's address only when the toolbar button or the
+    // side panel shortcut is used on it; identity opens the Google sign-in window.
+    permissions: ["activeTab", "storage", "identity", "sidePanel"],
     host_permissions: [hostPattern(appUrl), hostPattern(supabaseUrl)],
     background: { service_worker: "worker.js", type: "module" },
     // Signs the extension in from the app (src/connect). A content script rather than
@@ -42,5 +42,11 @@ export function buildManifest({ version, appUrl, supabaseUrl, store = false }: M
     },
     // Drawn at each size by store/render.ts, so Chrome never scales one.
     icons: { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" },
+    // A plain extension page, so Firefox's sidebar_action can load the same file.
+    side_panel: { default_path: "sidepanel.html" },
+    // Chrome has no built-in command for the side panel, so the worker opens it.
+    commands: {
+      "open-side-panel": { suggested_key: { default: "Alt+Shift+L" }, description: "Open the linkables side panel" },
+    },
   };
 }

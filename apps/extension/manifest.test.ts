@@ -10,8 +10,8 @@ const manifest = buildManifest({
 });
 
 describe("buildManifest", () => {
-  it("asks only for the active tab, storage and the Google sign-in window", () => {
-    expect(manifest.permissions).toEqual(["activeTab", "storage", "identity"]);
+  it("asks only for the active tab, storage, the Google sign-in window and the side panel", () => {
+    expect(manifest.permissions).toEqual(["activeTab", "storage", "identity", "sidePanel"]);
   });
 
   it("runs its worker as a module", () => {
@@ -55,6 +55,16 @@ describe("buildManifest", () => {
   it("drops a trailing slash from the configured origins", () => {
     const built = buildManifest({ version: "0.1.0", appUrl: "http://127.0.0.1:3261/", supabaseUrl: "http://dummy.test/" });
     expect(built.host_permissions).toEqual(["http://127.0.0.1:3261/*", "http://dummy.test/*"]);
+  });
+});
+
+describe("side panel", () => {
+  it("opens the side panel page", () => {
+    expect(manifest.side_panel).toEqual({ default_path: "sidepanel.html" });
+  });
+
+  it("suggests Alt+Shift+L to open the side panel", () => {
+    expect(manifest.commands["open-side-panel"].suggested_key).toEqual({ default: "Alt+Shift+L" });
   });
 });
 

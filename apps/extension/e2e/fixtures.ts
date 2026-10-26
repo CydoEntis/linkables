@@ -23,6 +23,9 @@ type Fixtures = {
 type WorkerFixtures = { db: Db };
 
 export const POPUP_URL = `chrome-extension://${EXTENSION_ID}/popup.html`;
+
+export const PANEL_URL = `chrome-extension://${EXTENSION_ID}/sidepanel.html`;
+
 type CopyLog = { copied: string[] };
 
 // Chromium won't grant clipboard-read to an extension origin, so the page's

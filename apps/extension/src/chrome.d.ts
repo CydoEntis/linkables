@@ -50,3 +50,39 @@ declare namespace chrome {
     function launchWebAuthFlow(details: { url: string; interactive: boolean }): Promise<string | undefined>;
   }
 }
+
+// The side panel and its shortcut.
+declare namespace chrome {
+  namespace tabs {
+    interface Tab {
+      windowId?: number;
+    }
+    // Fire without the tabs permission; only the url and title are withheld.
+    const onActivated: events.Event<(activeInfo: { tabId: number; windowId: number }) => void>;
+    const onUpdated: events.Event<(tabId: number, changeInfo: { status?: string }) => void>;
+  }
+
+  namespace events {
+    interface Event<T extends (...args: never[]) => void> {
+      addListener(callback: T): void;
+      removeListener(callback: T): void;
+    }
+  }
+
+  namespace windows {
+    function getCurrent(): Promise<{ id?: number }>;
+    const onFocusChanged: events.Event<(windowId: number) => void>;
+  }
+
+  // Undefined where the browser has no side panel (before Chrome 116, Firefox).
+  const sidePanel: { open(options: { windowId: number }): Promise<void> } | undefined;
+
+  namespace commands {
+    interface Command {
+      name?: string;
+      shortcut?: string;
+    }
+    function getAll(): Promise<Command[]>;
+    const onCommand: events.Event<(command: string, tab?: tabs.Tab) => void>;
+  }
+}
