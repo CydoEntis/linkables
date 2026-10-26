@@ -10,8 +10,8 @@ const manifest = buildManifest({
 });
 
 describe("buildManifest", () => {
-  it("asks only for the active tab, storage, the Google sign-in window and the side panel", () => {
-    expect(manifest.permissions).toEqual(["activeTab", "storage", "identity", "sidePanel"]);
+  it("asks only for the active tab, storage, the Google sign-in window, the side panel and the right-click menu", () => {
+    expect(manifest.permissions).toEqual(["activeTab", "storage", "identity", "sidePanel", "contextMenus"]);
   });
 
   it("runs its worker as a module", () => {

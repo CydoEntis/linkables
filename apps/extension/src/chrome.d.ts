@@ -87,6 +87,22 @@ declare namespace chrome {
   }
 }
 
+// The right-click "Save link to linkables".
+declare namespace chrome {
+  namespace contextMenus {
+    interface OnClickData {
+      menuItemId: string | number;
+      linkUrl?: string;
+    }
+    function create(properties: { id: string; title: string; contexts: "link"[] }): void;
+    const onClicked: events.Event<(info: OnClickData, tab?: tabs.Tab) => void>;
+  }
+
+  namespace runtime {
+    const onInstalled: events.Event<() => void>;
+  }
+}
+
 // The toolbar button's saved mark.
 declare namespace chrome {
   namespace action {

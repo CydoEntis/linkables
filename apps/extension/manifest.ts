@@ -27,9 +27,10 @@ export function buildManifest({ version, appUrl, supabaseUrl, store = false }: M
     description: "Save the page you're on to linkables in one click, then pin it or file it in a collection. Private beta, sign-in required.",
     version,
     ...(store ? {} : { key: MANIFEST_KEY }),
-    // activeTab reads the current tab's address only when the toolbar button or the
-    // side panel shortcut is used on it; identity opens the Google sign-in window.
-    permissions: ["activeTab", "storage", "identity", "sidePanel"],
+    // activeTab reads the current tab's address only when the toolbar button, the side
+    // panel shortcut or the right-click menu is used on it; identity opens the Google
+    // sign-in window.
+    permissions: ["activeTab", "storage", "identity", "sidePanel", "contextMenus"],
     host_permissions: [hostPattern(appUrl), hostPattern(supabaseUrl)],
     background: { service_worker: "worker.js", type: "module" },
     // Signs the extension in from the app (src/connect). A content script rather than

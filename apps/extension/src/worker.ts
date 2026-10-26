@@ -1,4 +1,5 @@
 import "./background/side-panel-command";
+import "./background/context-menu";
 import { hasSession, signInWithGoogle, verifyTokenHash } from "./auth/worker-sign-in";
 import { env } from "./config/env";
 import { acceptSession, wantsSession, type HandoffDeps } from "./connect/handoff";
