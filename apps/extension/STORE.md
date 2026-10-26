@@ -141,7 +141,7 @@ Claude then:
 2. sets `CHROME_WEB_STORE_URL` in `apps/web/src/extension-guide/path.ts`, which
    switches `/extension` and the landing page's Chrome card to **Add to Chrome**.
 
-Until step 7 ships, keep sending friends to `https://linkables.app/extension`.
+Step 7 is done: the listing id is in `CORS_ORIGINS` and `CHROME_WEB_STORE_URL` is set.
 
 ## Updating later
 

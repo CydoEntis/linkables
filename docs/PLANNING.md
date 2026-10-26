@@ -119,6 +119,9 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
   collection; sign-in is the 6-digit email code with the session in
   `chrome.storage.local`. The zip is served at `/downloads/linkables-chrome.zip`
   with an install guide at `/extension`. Everything else in Phase 2 stays there.
+  Since 2026-10-26 it is in the Chrome Web Store (unlisted), which `/extension`
+  links to; the zip stays for existing by-hand installs. The side panel and
+  sign-in from linkables.app or Google (LNK-55, LNK-56) were pulled forward.
 - Deferred: the rest of the browser extension (Phase 2), any sharing.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
