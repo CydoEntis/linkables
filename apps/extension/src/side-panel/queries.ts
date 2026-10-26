@@ -6,7 +6,7 @@ import { env } from "../config/env";
 import { saveCurrentTab } from "../save/save-flow";
 import { saveLink } from "../save/save-link";
 import { linksPath, pinnedFirst, type LinkTab } from "./link-list";
-import { lookupQuery, savedMatch } from "./this-page";
+import { findPageLink, lookupQuery, type PageLookup } from "./this-page";
 
 const keys = {
   lists: ["panel", "links"] as const,
@@ -34,18 +34,27 @@ export function usePanelLinks(tab: LinkTab, query: string) {
   });
 }
 
-// null: this page is not saved, or its address is too long to look up.
+function searchPage(query: string, cursor: string | undefined) {
+  const params = new URLSearchParams({ q: query, limit: String(LIST_LIMIT_MAX) });
+  if (cursor !== undefined) params.set("cursor", cursor);
+  return api.request(`/links?${params.toString()}`, listLinksResponseSchema);
+}
+
 export function usePageLink(url: string) {
-  const query = lookupQuery(url);
   return useQuery({
     queryKey: keys.page(url),
-    enabled: query !== null,
-    queryFn: async (): Promise<SavedLink | null> => {
-      const params = new URLSearchParams({ q: query ?? "", limit: String(LIST_LIMIT_MAX) });
-      const { items } = await api.request(`/links?${params.toString()}`, listLinksResponseSchema);
-      return savedMatch(url, items);
-    },
+    queryFn: () => findPageLink(url, (cursor) => searchPage(lookupQuery(url) ?? "", cursor)),
   });
+}
+
+// Keeps the page's cached link in step with a pin or filing change made in the
+// panel, so the card shows it again after a tab switch, and the lists refetch.
+export function useUpdatePageLink(url: string) {
+  const queryClient = useQueryClient();
+  return (update: (link: SavedLink) => SavedLink) => {
+    queryClient.setQueryData<PageLookup>(keys.page(url), (lookup) => (lookup?.status === "saved" ? { status: "saved", link: update(lookup.link) } : lookup));
+    void queryClient.invalidateQueries({ queryKey: keys.lists });
+  };
 }
 
 export function useSavePage(url: string, title: string | null) {
@@ -54,7 +63,8 @@ export function useSavePage(url: string, title: string | null) {
     mutationFn: () => saveCurrentTab({ readTab: () => Promise.resolve({ url, title: title ?? undefined }), save: saveLink }),
     onSuccess: (outcome) => {
       if (outcome.status !== "saved") return;
-      queryClient.setQueryData(keys.page(url), outcome.link);
+      const saved: PageLookup = { status: "saved", link: outcome.link };
+      queryClient.setQueryData(keys.page(url), saved);
       void queryClient.invalidateQueries({ queryKey: keys.lists });
     },
   });

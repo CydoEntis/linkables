@@ -9,9 +9,9 @@ import { useFiling } from "../collections/use-collections";
 import { useCopy, type CopyState } from "../copy/use-copy";
 import { CANT_SAVE_REASONS, savablePage } from "../save/savable";
 import { SAVE_MESSAGES, savedTitle } from "../save/save-flow";
-import { usePin } from "../save/use-pin";
+import { usePin, type LinkUpdate } from "../save/use-pin";
 import { Alert, PRIMARY_BUTTON, TILE } from "../ui";
-import { appUrl, usePageLink, useSavePage } from "./queries";
+import { appUrl, usePageLink, useSavePage, useUpdatePageLink } from "./queries";
 import { LinkThumb } from "./Thumb";
 import { useCurrentTab } from "./use-current-tab";
 
@@ -73,10 +73,13 @@ function PageCard({ tabId, url, title }: PageCardProps) {
   const lookup = usePageLink(url);
   const save = useSavePage(url, title);
   const outcome = save.data;
-  const link = outcome?.status === "saved" ? outcome.link : lookup.data;
-  useBadge(tabId, Boolean(link), Boolean(link) || lookup.isSuccess);
-  if (lookup.isLoading) return <CardSkeleton />;
-  if (link) return <SavedPage key={link.id} link={link} pageTitle={title} />;
+  const updatePage = useUpdatePageLink(url);
+  const found = lookup.data?.status === "saved" ? lookup.data.link : null;
+  const link = found ?? (outcome?.status === "saved" ? outcome.link : null);
+  // Only a finished lookup that found nothing may clear the ✓.
+  useBadge(tabId, link !== null, link !== null || lookup.data?.status === "not-saved");
+  if (lookup.isPending) return <CardSkeleton />;
+  if (link) return <SavedPage key={link.id} link={link} pageTitle={title} onSaved={updatePage} />;
   const problem = save.isError ? SAVE_MESSAGES.failed : outcome?.status === "error" ? outcome.message : outcome?.status === "cant" ? outcome.reason : null;
 
   return (
@@ -96,9 +99,11 @@ function PageCard({ tabId, url, title }: PageCardProps) {
 
 const SHARE_LABELS: Record<CopyState, string> = { idle: "Share", copied: "Copied ✓", failed: "Couldn't copy" };
 
-function SavedPage({ link, pageTitle }: { link: SavedLink; pageTitle: string | null }) {
-  const filing = useFiling(link.id, link.collections);
-  const pin = usePin(link.id, link.pinned);
+type SavedPageProps = { link: SavedLink; pageTitle: string | null; onSaved: LinkUpdate };
+
+function SavedPage({ link, pageTitle, onSaved }: SavedPageProps) {
+  const filing = useFiling(link.id, link.collections, onSaved);
+  const pin = usePin(link.id, link.pinned, onSaved);
   const share = useCopy();
   const problem = pin.problem ?? filing.problem;
 
