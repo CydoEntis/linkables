@@ -43,6 +43,8 @@ export function buildManifest({ version, appUrl, supabaseUrl, store = false }: M
     },
     // Drawn at each size by store/render.ts, so Chrome never scales one.
     icons: { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" },
+    // Requested from the side panel's "Follow the tab you're on", never at install.
+    optional_permissions: ["tabs"],
     // A plain extension page, so Firefox's sidebar_action can load the same file.
     side_panel: { default_path: "sidepanel.html" },
     // Chrome has no built-in command for the side panel, so the worker opens it.

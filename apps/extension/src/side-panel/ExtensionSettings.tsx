@@ -1,20 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
-import type { ReactNode } from "react";
+import { cn } from "cn";
+import { useId, type ReactNode } from "react";
 import { signOut, supabase } from "../auth/supabase";
 import { GHOST_BUTTON } from "../ui";
-import { OPEN_SIDE_PANEL_COMMAND } from "./open-side-panel";
 import { appUrl } from "./queries";
-import { shortcutLabel } from "./shortcut";
-
-// Read each time the view opens: people change keys at chrome://extensions/shortcuts.
-function useShortcut() {
-  return useQuery({
-    queryKey: ["panel", "shortcut"],
-    queryFn: async () => shortcutLabel(await chrome.commands.getAll(), OPEN_SIDE_PANEL_COMMAND),
-    staleTime: 0,
-  }).data;
-}
+import { useFollowTabs } from "./use-follow-tabs";
+import { useShortcut } from "./use-shortcut";
 
 function useAccountEmail() {
   return useQuery({
@@ -35,6 +27,7 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
         </button>
         <h1 className="text-[16px] font-bold">Extension settings</h1>
       </header>
+      <FollowTabsSetting />
       <Group title="Shortcuts">
         <Row label="Open side panel">
           <kbd className="rounded-md bg-accent px-2 py-1 font-mono text-[12px]">{shortcut ?? "…"}</kbd>
@@ -58,6 +51,32 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
         All settings in linkables ↗
       </a>
     </main>
+  );
+}
+
+function FollowTabsSetting() {
+  const follow = useFollowTabs();
+  const descriptionId = useId();
+  return (
+    <Group title="Side panel">
+      <Row label="Follow the tab you're on">
+        <button
+          type="button"
+          role="switch"
+          aria-label="Follow the tab you're on"
+          aria-checked={follow.on === true}
+          aria-describedby={descriptionId}
+          disabled={follow.on === undefined}
+          onClick={follow.on ? follow.turnOff : follow.turnOn}
+          className={cn("flex h-6 w-10 shrink-0 items-center rounded-full p-0.5", follow.on ? "bg-primary" : "bg-line-strong")}
+        >
+          <span aria-hidden className={cn("size-5 rounded-full bg-foreground transition-transform", follow.on && "translate-x-4 bg-primary-foreground")} />
+        </button>
+      </Row>
+      <p id={descriptionId} className="text-[12px] leading-snug text-muted-foreground">
+        The panel shows each tab you switch to. Chrome asks you to let linkables read your tabs' addresses and titles.
+      </p>
+    </Group>
   );
 }
 

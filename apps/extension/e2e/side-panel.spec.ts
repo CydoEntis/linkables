@@ -144,6 +144,27 @@ test("shares a collection from the panel: gets the link, copies it, turns it off
   expect((await callApi<{ items: unknown[] }>(request, user, "GET", "/collections/shared")).items).toEqual([]);
 });
 
+// Chrome's permission prompt can't be answered from Playwright, so this covers the
+// state before Follow the tab you're on is granted.
+test("on a tab it may not read, the panel offers Follow the tab you're on and the shortcut", async ({ context, user }, testInfo) => {
+  const elsewhere = "http://unlisted.test/article";
+  await context.route(elsewhere, (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Elsewhere</title>" }));
+  const article = await context.newPage();
+  await article.goto(elsewhere);
+  const panel = await openPanel(context, user.email);
+
+  await article.bringToFront();
+  const card = panel.getByRole("region", { name: "This page" });
+  await expect(card.getByRole("heading", { name: "linkables can't see this tab yet" })).toBeVisible();
+  await expect(card.getByRole("button", { name: "Follow the tab you're on" })).toBeVisible();
+  await expect(card).toContainText("Or press Alt+Shift+L to use linkables on just this page.");
+  await expect(card).not.toContainText("linkables button");
+  await snap(panel, testInfo, "panel-cant-see-tab");
+
+  await panel.getByRole("button", { name: "Extension settings" }).click();
+  await expect(panel.getByRole("switch", { name: "Follow the tab you're on" })).toHaveAttribute("aria-checked", "false");
+});
+
 test("the gear opens extension settings with the shortcut and the account", async ({ context, user }) => {
   const panel = await openPanel(context, user.email);
   await panel.getByRole("button", { name: "Extension settings" }).click();

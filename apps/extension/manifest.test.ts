@@ -59,6 +59,10 @@ describe("buildManifest", () => {
 });
 
 describe("side panel", () => {
+  it("asks for tabs only when the user turns on Follow the tab you're on", () => {
+    expect(manifest.optional_permissions).toEqual(["tabs"]);
+  });
+
   it("opens the side panel page", () => {
     expect(manifest.side_panel).toEqual({ default_path: "sidepanel.html" });
   });
