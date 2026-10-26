@@ -1,3 +1,4 @@
+import { EXTENSION_CONNECT_PATH } from "@linkables/shared/extension-sessions";
 import { createRootRoute, createRoute, createRouter, redirect, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
 import { RequestAccessPage } from "./access/RequestAccessPage";
@@ -6,6 +7,7 @@ import { REQUEST_ACCESS_PATH } from "./config/access";
 import { LinkPage } from "./link-page/LinkPage";
 import { oldLinkSearchShape, redirectOldLinkAddress } from "./link-page/old-link-address";
 import { CollectionPage } from "./collections/CollectionPage";
+import { ExtensionConnectPage } from "./extension-connect/ExtensionConnectPage";
 import { ExtensionGuidePage } from "./extension-guide/ExtensionGuidePage";
 import { EXTENSION_GUIDE_PATH } from "./extension-guide/path";
 import { SignInPage } from "./auth/SignInScreen";
@@ -107,6 +109,13 @@ const extensionGuideRoute = createRoute({
   component: ExtensionGuidePage,
 });
 
+// Signed in only: the AuthGate sends a signed-out visit through sign-in and back here.
+const extensionConnectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: EXTENSION_CONNECT_PATH,
+  component: ExtensionConnectPage,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: SETTINGS_PATH,
@@ -122,7 +131,7 @@ const accountDeletedRoute = createRoute({
 // Restoring scroll brings a list back where it was when Back leaves a link's page.
 export const router = createRouter({
   scrollRestoration: true,
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, linkRoute, oldReaderRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, accountDeletedRoute, extensionGuideRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, linkRoute, oldReaderRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, accountDeletedRoute, extensionGuideRoute, extensionConnectRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {

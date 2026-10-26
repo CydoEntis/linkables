@@ -28,6 +28,7 @@ const auth = vi.hoisted(() => {
   };
 });
 vi.mock("./supabase", () => ({ returningFromSignIn: false, supabase: { auth } }));
+vi.mock("../api/api", () => ({ api: { request: vi.fn() } }));
 
 function renderApp(path: string) {
   const rootRoute = createRootRoute({ component: AuthGate });
