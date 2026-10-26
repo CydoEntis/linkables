@@ -95,6 +95,7 @@ declare namespace chrome {
       linkUrl?: string;
     }
     function create(properties: { id: string; title: string; contexts: "link"[] }): void;
+    function removeAll(callback: () => void): void;
     const onClicked: events.Event<(info: OnClickData, tab?: tabs.Tab) => void>;
   }
 
@@ -124,5 +125,7 @@ declare namespace chrome {
     function getBadgeText(details: { tabId: number }): Promise<string>;
     function setBadgeBackgroundColor(details: { tabId: number; color: string }): Promise<void>;
     function setBadgeTextColor(details: { tabId: number; color: string }): Promise<void>;
+    function getTitle(details: { tabId: number }): Promise<string>;
+    function setTitle(details: { tabId: number; title: string }): Promise<void>;
   }
 }

@@ -13,6 +13,8 @@ const INK = "#16200a";
 const RED = "#f97770";
 
 const FLASH_MS = 2000;
+// Long enough to hover the button and read why.
+const FAILED_FLASH_MS = 6000;
 
 async function setBadge(tabId: number, text: string, color: string): Promise<void> {
   await Promise.all([
@@ -28,9 +30,12 @@ export async function markSaved(tabId: number, saved: boolean): Promise<void> {
 }
 
 // Answers a save made away from any linkables page (the right-click menu): a ✓ or
-// a red ! for two seconds, then the tab's own mark again.
-export async function flashSaveResult(tabId: number, ok: boolean): Promise<void> {
-  const before = await chrome.action.getBadgeText({ tabId });
-  await setBadge(tabId, ok ? "✓" : "!", ok ? LIME : RED);
-  setTimeout(() => void markSaved(tabId, before === "✓"), FLASH_MS);
+// a red !, with the hint as the button's tooltip, then the tab's own mark and title again.
+export async function flashSaveResult(tabId: number, ok: boolean, hint: string): Promise<void> {
+  const [before, title] = await Promise.all([chrome.action.getBadgeText({ tabId }), chrome.action.getTitle({ tabId })]);
+  await Promise.all([setBadge(tabId, ok ? "✓" : "!", ok ? LIME : RED), chrome.action.setTitle({ tabId, title: hint })]);
+  setTimeout(() => {
+    void markSaved(tabId, before === "✓");
+    void chrome.action.setTitle({ tabId, title });
+  }, ok ? FLASH_MS : FAILED_FLASH_MS);
 }
