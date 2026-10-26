@@ -66,7 +66,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss(), manifest(mode), contentScript(mode)],
   build: {
     rolldownOptions: {
-      input: { popup: `${root}/popup.html`, worker: `${root}/src/worker.ts` },
+      input: { popup: `${root}/popup.html`, sidepanel: `${root}/sidepanel.html`, worker: `${root}/src/worker.ts` },
       // The manifest names the worker, so its file name must not carry a hash.
       output: { entryFileNames: (chunk) => (chunk.name === "worker" ? "worker.js" : "assets/[name]-[hash].js") },
     },

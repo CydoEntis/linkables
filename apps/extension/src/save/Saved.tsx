@@ -6,6 +6,8 @@ import { locationLabel } from "../collections/picker";
 import { useFiling } from "../collections/use-collections";
 import { env } from "../config/env";
 import { useCopy, type CopyState } from "../copy/use-copy";
+import { canOpenSidePanel, openSidePanel } from "../side-panel/open-side-panel";
+import { useWindowId } from "../side-panel/use-window-id";
 import { Alert, TILE } from "../ui";
 import { savedTitle } from "./save-flow";
 import { usePin } from "./use-pin";
@@ -18,6 +20,7 @@ export function Saved({ link, pageTitle }: SavedProps) {
   const filing = useFiling(link.id, link.collections);
   const pin = usePin(link.id, link.pinned);
   const share = useCopy();
+  const windowId = useWindowId();
   const location = locationLabel(filing.filed.map((collection) => collection.name));
   const problem = pin.problem ?? filing.problem;
 
@@ -54,7 +57,7 @@ export function Saved({ link, pageTitle }: SavedProps) {
           <Link2 aria-hidden strokeWidth={2} className="size-[15px]" />
           {SHARE_LABELS[share.state]}
         </button>
-        <button type="button" onClick={() => void openLinkables()} className={cn(TILE, "bg-muted hover:bg-accent")}>
+        <button type="button" onClick={() => { openAllLinks(windowId); }} className={cn(TILE, "bg-muted hover:bg-accent")}>
           <LibraryBig aria-hidden strokeWidth={2} className="size-[15px]" />
           All links
         </button>
@@ -68,7 +71,8 @@ export function Saved({ link, pageTitle }: SavedProps) {
   );
 }
 
-async function openLinkables() {
-  await chrome.tabs.create({ url: env.VITE_APP_URL });
-  window.close();
+// The side panel where the browser has one, else the web app in a new tab.
+function openAllLinks(windowId: number | undefined) {
+  const opened = windowId !== undefined && canOpenSidePanel() ? openSidePanel(windowId) : chrome.tabs.create({ url: env.VITE_APP_URL });
+  void opened.then(() => { window.close(); });
 }
