@@ -234,7 +234,7 @@ describe("the link page's bar", () => {
   it("goes back to the list it came from, and the list gets focus back on the row", async () => {
     const link = savedLink({ resource: { title: "Rust by Example", kind: "video" } });
     const { router } = await renderPage(link, { path: "/" });
-    await userEvent.click(screen.getByRole("link", { name: /^Rust by Example/ }));
+    await userEvent.click(screen.getAllByRole("link", { name: "Read" })[0] as HTMLElement);
     await userEvent.click(await within(bar()).findByRole("button", { name: "Back" }));
     await waitFor(() => { expect(router.state.location.pathname).toBe("/"); });
     expect(router.history.canGoBack()).toBe(false);

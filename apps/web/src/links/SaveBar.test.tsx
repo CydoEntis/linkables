@@ -153,7 +153,7 @@ describe("SaveBar", () => {
     await user.type(field, "https://example.com/old{Enter}");
     expect(await screen.findByText("Already saved", { selector: "[data-sonner-toast] *" })).toBeInTheDocument();
     expect(screen.getByText("Already saved", { selector: "p[role=status]" })).toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: /^Old favourite/ })).toHaveLength(1);
   });
 
   it("puts a link the API rejects back in the bar with the reason", async () => {

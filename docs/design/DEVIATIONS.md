@@ -24,7 +24,7 @@ The owner chose a page of its own for every link instead of the details panel: t
 
 | What | Handoff | Build | Why |
 |---|---|---|---|
-| Opening a link | Details panel beside the list (web), full-screen sheet (phone); Read in it opens the reader | A row or card is a real link to `/l/<id>`, the link's own page; a modified or middle click opens it in a new tab | The owner chose one page per link; the panel only repeated the row's actions. |
+| Opening a link | Details panel beside the list (web), full-screen sheet (phone); Read in it opens the reader | A row or card is a real link to the saved URL and opens it in a new tab. The link's own page, `/l/<id>`, is behind Read, the first hover action on a big screen and the first swipe tile on a phone | The owner chose one page per link; the panel only repeated the row's actions. A click should just open the link, with Read on hover for the page (owner, 2026-10-26). |
 | Docked details at ≥2200 px | A 480 px third column open on the newest link, its card ringed | Gone; the grid and the list use the whole column (1900 px) | Nothing to dock once links open on their own page. |
 | Reader address | `/l/:id/read`, with the details panel as the quick look | The reader is the link page's body at `/l/:id`; `/l/:id/read` and the old `?link=<id>` on any list redirect there, so old bookmarks and shares still work | One address per link. |
 | Reader top bar | Back, site and reading time, A A A, Open original | Sticky on every size, and it also holds Pin, Add to, Share, Note (a lime dot when there is one) and Delete. On phones Share and Open original stay and the rest go under More (⋯), so the bar fits 360 px | The link's actions stay in reach wherever the article is scrolled to. |

@@ -1,10 +1,10 @@
 import type { SavedLink } from "@linkables/shared/links";
 import { Link } from "@tanstack/react-router";
-import { Pin, Plus, Share, Trash2 } from "lucide-react";
+import { BookOpen, Pin, Plus, Share, Trash2 } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import { cn } from "cn";
 import { AddToPopover } from "../collections/AddToPopover";
-import { displayTitle, domainOf, filedLabel, relativeTime, savedFromLabel } from "./link-display";
+import { displayTitle, domainOf, filedLabel, relativeTime, safeHref, savedFromLabel } from "./link-display";
 import { MatchedText } from "../search/MatchedText";
 import { LinkThumb } from "./LinkThumb";
 import { useLinksUi } from "./links-ui-store";
@@ -18,8 +18,8 @@ export type RowHighlight = "hop" | "flash";
 
 export const LINK_DRAG_TYPE = "application/x-linkables-link";
 
-// Four 60 px tiles, 6 px apart, inside 6 px of padding.
-const TILES_WIDTH = 4 * 60 + 3 * 6 + 2 * 6;
+// Five 60 px tiles, 6 px apart, inside 6 px of padding.
+const TILES_WIDTH = 5 * 60 + 4 * 6 + 2 * 6;
 const TEXT_FADE_PX = 120;
 
 export type LinkRowProps = {
@@ -35,8 +35,8 @@ export type LinkRowProps = {
   query?: string | undefined;
 };
 
-// The row is a real link to the link's own page, so a modified click opens it
-// in a new tab; the saved URL itself opens from that page.
+// The row is a real link to the saved URL, opened in a new tab; the link's own
+// page (the reader) opens from its Read action.
 export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
   const deleteLink = useDeleteLink();
@@ -52,9 +52,10 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
 
   return (
     <div ref={rowRef} data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
-      <Link
-        to="/l/$linkId"
-        params={{ linkId: link.id }}
+      <a
+        href={safeHref(link.originalUrl)}
+        target="_blank"
+        rel="noopener noreferrer"
         draggable
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
@@ -69,13 +70,15 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
       >
         <LinkThumb link={link} />
         <RowText link={link} now={now} inCollection={inCollection} pinned={pin.pinned} opacity={textOpacity} query={query} />
-      </Link>
+      </a>
       <RowActions link={link} belongs={belongs} pinned={pin.pinned} onPin={pin.toggle} />
       <SwipeTiles
         label={displayTitle(link).text}
         offset={swipe.offset}
         animate={!swipe.dragging}
         pinned={pin.pinned}
+        linkId={link.id}
+        onRead={() => { setSwipeOpenId(null); }}
         onFocus={() => { setSwipeOpenId(link.id); }}
         onAddTo={() => {
           setSwipeOpenId(null);
@@ -101,7 +104,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
   );
 }
 
-// Dragged out of the app, the row carries the saved URL, not the link page's address.
+// Dragged out of the app, the row carries the saved URL.
 export function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
   event.dataTransfer.setData("text/uri-list", link.originalUrl);
   event.dataTransfer.setData("text/plain", link.originalUrl);
@@ -206,6 +209,9 @@ export function RowActions({ link, belongs, pinned, onPin, placement = "row" }: 
           "group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 data-open:pointer-events-auto data-open:opacity-100",
       )}
     >
+      <Link to="/l/$linkId" params={{ linkId: link.id }} className={cn(ACTION, "px-3.5")}>
+        Read
+      </Link>
       <AddToPopover
         link={link}
         open={pickerOpen}
@@ -251,6 +257,8 @@ type SwipeTilesProps = {
   offset: number;
   animate: boolean;
   pinned: boolean;
+  linkId: string;
+  onRead: () => void;
   onFocus: () => void;
   onAddTo: () => void;
   onShare: () => void;
@@ -261,7 +269,7 @@ type SwipeTilesProps = {
 const TILE = "flex w-[60px] flex-col items-center justify-center gap-[3px] rounded-[11px] text-[11px] font-semibold";
 
 // The phone's swipe-left actions. Keyboard focus opens them as a swipe would.
-function SwipeTiles({ label, offset, animate, pinned, onFocus, onAddTo, onShare, onPin, onDelete }: SwipeTilesProps) {
+function SwipeTiles({ label, offset, animate, pinned, linkId, onRead, onFocus, onAddTo, onShare, onPin, onDelete }: SwipeTilesProps) {
   return (
     <div
       role="group"
@@ -270,6 +278,10 @@ function SwipeTiles({ label, offset, animate, pinned, onFocus, onAddTo, onShare,
       style={{ transform: `translateX(${String(TILES_WIDTH + offset)}px)`, opacity: offset === 0 ? 0 : 1 }}
       className={cn("absolute inset-y-0 right-0 z-10 flex gap-1.5 p-1.5 md:hidden", animate && "transition-transform duration-300 ease-out-soft")}
     >
+      <Link to="/l/$linkId" params={{ linkId }} onClick={onRead} className={cn(TILE, "bg-accent")}>
+        <BookOpen aria-hidden strokeWidth={2.2} className="size-4" />
+        Read
+      </Link>
       <button type="button" onClick={onAddTo} className={cn(TILE, "bg-primary text-primary-foreground")}>
         <Plus aria-hidden strokeWidth={2.4} className="size-4" />
         Add to
