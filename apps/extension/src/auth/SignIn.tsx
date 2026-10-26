@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { EXTENSION_CONNECT_PATH } from "@linkables/shared/extension-sessions";
 import { BUTTON_DARK } from "@linkables/shared/ui";
 import { useMutation } from "@tanstack/react-query";
 import { cn } from "cn";
@@ -6,8 +7,11 @@ import { LoaderCircle } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useController, useForm } from "react-hook-form";
 import { z } from "zod";
+import { env } from "../config/env";
 import { Alert, FILLED_FIELD, OfflineNote, PRIMARY_BUTTON, QUIET_LINK, Wordmark } from "../ui";
 import { CODE_LENGTH, sendCode, SIGN_IN_MESSAGES, toCodeDigits, verifyCode, type SendCodeProblem, type VerifyCodeProblem } from "./email-code";
+import { askWorkerForGoogle, GOOGLE_MESSAGES } from "./google-sign-in";
+import { GoogleMark } from "./GoogleMark";
 import { forgetCode, pendingCode, rememberCodeSent, type PendingCode } from "./pending-code";
 import { useCountdown } from "./use-countdown";
 import { useOnline } from "./use-online";
@@ -56,12 +60,17 @@ function usePendingCode() {
 export function SignIn() {
   const offline = !useOnline();
   const { pending, sent, signedIn, startOver } = usePendingCode();
+  const [useEmail, setUseEmail] = useState(false);
   return (
     <main className="flex flex-col gap-4 p-5">
       <Wordmark />
       {offline ? <OfflineNote /> : null}
       {pending === undefined ? null : pending === null ? (
-        <EmailStep offline={offline} onSent={sent} />
+        useEmail ? (
+          <EmailStep offline={offline} onSent={sent} onOtherWays={() => { setUseEmail(false); }} />
+        ) : (
+          <ChooseStep offline={offline} onUseEmail={() => { setUseEmail(true); }} />
+        )
       ) : (
         <CodeStep pending={pending} offline={offline} onSent={sent} onSignedIn={signedIn} onUseDifferentEmail={startOver} />
       )}
@@ -78,7 +87,43 @@ function Heading({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function EmailStep({ offline, onSent }: { offline: boolean; onSent: (email: string) => void }) {
+// The connect page signs the extension in with the account already signed in on
+// linkables.app (src/connect); the worker closes its tab once that is done.
+function openConnectPage() {
+  void chrome.tabs.create({ url: env.VITE_APP_URL.replace(/\/+$/, "") + EXTENSION_CONNECT_PATH });
+}
+
+const GOOGLE_BUTTON = cn(
+  BUTTON_DARK,
+  "flex h-11 w-full items-center justify-center gap-2.5 rounded-xl bg-foreground text-[14.5px] font-bold text-background hover:brightness-95 disabled:cursor-default disabled:opacity-50",
+);
+
+function ChooseStep({ offline, onUseEmail }: { offline: boolean; onUseEmail: () => void }) {
+  const google = useMutation({ mutationFn: askWorkerForGoogle });
+  const result = google.isError ? ({ ok: false, problem: "failed" } as const) : google.data;
+  return (
+    <>
+      <Heading title="Sign in to save this page">Use the account you have on linkables.app.</Heading>
+      <div className="flex flex-col gap-2">
+        <button type="button" disabled={offline} onClick={openConnectPage} className={PRIMARY_BUTTON}>
+          Sign in with linkables.app
+        </button>
+        <button type="button" disabled={offline || google.isPending} onClick={() => { google.mutate(); }} className={GOOGLE_BUTTON}>
+          {google.isPending ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <GoogleMark />}
+          Continue with Google
+        </button>
+        {result && !result.ok ? <Alert>{GOOGLE_MESSAGES[result.problem]}</Alert> : null}
+      </div>
+      <button type="button" onClick={onUseEmail} className={cn(QUIET_LINK, "self-start")}>
+        Use an email code instead
+      </button>
+    </>
+  );
+}
+
+type EmailStepProps = { offline: boolean; onSent: (email: string) => void; onOtherWays: () => void };
+
+function EmailStep({ offline, onSent, onOtherWays }: EmailStepProps) {
   const [problem, setProblem] = useState<SendCodeProblem | null>(null);
   const send = useMutation({ mutationFn: sendCode });
   const form = useForm({ resolver: zodResolver(emailSchema), defaultValues: { email: "" } });
@@ -121,6 +166,9 @@ function EmailStep({ offline, onSent }: { offline: boolean; onSent: (email: stri
           {send.isPending ? "Sending…" : "Email me a code"}
         </button>
       </form>
+      <button type="button" onClick={onOtherWays} className={cn(QUIET_LINK, "self-start")}>
+        Other ways to sign in
+      </button>
     </>
   );
 }

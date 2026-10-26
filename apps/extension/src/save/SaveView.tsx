@@ -1,6 +1,6 @@
 import { AlertCircle, Ban, LoaderCircle } from "lucide-react";
 import type { ReactNode } from "react";
-import { signOut } from "../auth/supabase";
+import { signOutByHand } from "../auth/supabase";
 import { GHOST_BUTTON, PRIMARY_BUTTON, QUIET_LINK } from "../ui";
 import { SAVE_MESSAGES } from "./save-flow";
 import { Saved } from "./Saved";
@@ -75,7 +75,7 @@ function SaveFailed({ message, onRetry }: { message: string; onRetry: () => void
 function Footer() {
   return (
     <footer className="flex items-center justify-between border-t border-border py-2.5 pr-3 pl-3">
-      <button type="button" onClick={() => void signOut()} className={QUIET_LINK}>
+      <button type="button" onClick={() => void signOutByHand()} className={QUIET_LINK}>
         Sign out
       </button>
       <button type="button" onClick={() => { window.close(); }} className={GHOST_BUTTON}>
