@@ -26,6 +26,31 @@ export const POPUP_URL = `chrome-extension://${EXTENSION_ID}/popup.html`;
 
 export const PANEL_URL = `chrome-extension://${EXTENSION_ID}/sidepanel.html`;
 
+// The two extension APIs the badge checks call from an extension page.
+type ChromeBadgeApis = {
+  tabs: { query(info: { url: string }): Promise<{ id?: number }[]> };
+  action: { getBadgeText(details: { tabId: number }): Promise<string> };
+};
+
+// The e2e build may read the test's own origin, so its tabs can be found by address.
+export async function tabIdOf(extensionPage: Page, url: string): Promise<number> {
+  const id = await extensionPage.evaluate(async (address) => {
+    const { chrome } = globalThis as unknown as { chrome: ChromeBadgeApis };
+    const [tab] = await chrome.tabs.query({ url: address });
+    return tab?.id ?? null;
+  }, url);
+  if (id === null) throw new Error(`No tab at ${url}`);
+  return id;
+}
+
+// What the toolbar button's badge says on that tab.
+export function badgeText(extensionPage: Page, tabId: number): Promise<string> {
+  return extensionPage.evaluate((id) => {
+    const { chrome } = globalThis as unknown as { chrome: ChromeBadgeApis };
+    return chrome.action.getBadgeText({ tabId: id });
+  }, tabId);
+}
+
 type CopyLog = { copied: string[] };
 
 // Chromium won't grant clipboard-read to an extension origin, so the page's

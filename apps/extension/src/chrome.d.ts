@@ -86,3 +86,13 @@ declare namespace chrome {
     const onCommand: events.Event<(command: string, tab?: tabs.Tab) => void>;
   }
 }
+
+// The toolbar button's saved mark.
+declare namespace chrome {
+  namespace action {
+    function setBadgeText(details: { tabId: number; text: string }): Promise<void>;
+    function getBadgeText(details: { tabId: number }): Promise<string>;
+    function setBadgeBackgroundColor(details: { tabId: number; color: string }): Promise<void>;
+    function setBadgeTextColor(details: { tabId: number; color: string }): Promise<void>;
+  }
+}

@@ -1,7 +1,7 @@
 import type { APIRequestContext, BrowserContext, Page, TestInfo } from "@playwright/test";
 import type { TestUser } from "../../web/e2e/session";
 import { API_URL } from "./env";
-import { expect, PANEL_URL, recordCopies, test } from "./fixtures";
+import { badgeText, expect, PANEL_URL, recordCopies, tabIdOf, test } from "./fixtures";
 
 // Served by the test, on an origin the e2e build may read, so the panel sees its address and title.
 const ARTICLE_URL = `${API_URL}/e2e/kyoto-slow-days`;
@@ -48,8 +48,11 @@ test("saves the page the user is on from the side panel, then pins it", async ({
   // Switching tabs is what the panel follows, as it stays open beside every tab.
   await article.bringToFront();
   await expect(panel.getByText("Kyoto in two slow days")).toBeVisible();
+  const tabId = await tabIdOf(panel, ARTICLE_URL);
+  expect(await badgeText(panel, tabId)).toBe("");
   await panel.getByRole("button", { name: "Save this page" }).click();
   await expect(panel.getByText("Saved to your links")).toBeVisible();
+  await expect.poll(() => badgeText(panel, tabId)).toBe("✓");
   await expect(panel.getByText("In New")).toBeVisible();
 
   await panel.getByRole("button", { name: "Pin", exact: true }).click();
@@ -73,6 +76,7 @@ test("shows a page saved before as saved, and switches between Recent, Pinned an
 
   await article.bringToFront();
   await expect(panel.getByText("Saved to your links")).toBeVisible();
+  await expect.poll(async () => badgeText(panel, await tabIdOf(panel, ARTICLE_URL))).toBe("✓");
 
   const recent = panel.getByRole("list", { name: "Recent links" });
   await expect(recent.getByRole("link")).toHaveCount(2);

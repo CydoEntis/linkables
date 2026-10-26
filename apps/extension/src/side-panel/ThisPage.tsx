@@ -2,6 +2,7 @@ import type { SavedLink } from "@linkables/shared/links";
 import { cn } from "cn";
 import { Ban, BookOpen, Check, ExternalLink, Link2, LoaderCircle, Pin } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { markSaved } from "../badge/saved-badge";
 import { CollectionPicker } from "../collections/CollectionPicker";
 import { locationLabel } from "../collections/picker";
 import { useFiling } from "../collections/use-collections";
@@ -24,7 +25,14 @@ export function ThisPage() {
   if (tab === undefined) return <CardSkeleton />;
   const page = savablePage(tab);
   if (!page.ok) return <CantSave reason={page.reason === CANT_SAVE_REASONS.unreadable ? UNREADABLE_HERE : page.reason} />;
-  return <PageCard key={page.url} url={page.url} title={page.title} />;
+  return <PageCard key={page.url} tabId={tab.id} url={page.url} title={page.title} />;
+}
+
+// Keeps the toolbar's ✓ in step with what the panel found for the tab.
+function useBadge(tabId: number | undefined, saved: boolean, known: boolean) {
+  useEffect(() => {
+    if (tabId !== undefined && known) void markSaved(tabId, saved);
+  }, [tabId, saved, known]);
 }
 
 function Section({ children }: { children: ReactNode }) {
@@ -59,11 +67,14 @@ function CantSave({ reason }: { reason: string }) {
   );
 }
 
-function PageCard({ url, title }: { url: string; title: string | null }) {
+type PageCardProps = { tabId: number | undefined; url: string; title: string | null };
+
+function PageCard({ tabId, url, title }: PageCardProps) {
   const lookup = usePageLink(url);
   const save = useSavePage(url, title);
   const outcome = save.data;
   const link = outcome?.status === "saved" ? outcome.link : lookup.data;
+  useBadge(tabId, Boolean(link), Boolean(link) || lookup.isSuccess);
   if (lookup.isLoading) return <CardSkeleton />;
   if (link) return <SavedPage key={link.id} link={link} pageTitle={title} />;
   const problem = save.isError ? SAVE_MESSAGES.failed : outcome?.status === "error" ? outcome.message : outcome?.status === "cant" ? outcome.reason : null;
