@@ -3,13 +3,16 @@ import { expect, it } from "vitest";
 import { renderWithRouter } from "../test/render-with-router";
 import { ExtensionGuidePage } from "./ExtensionGuidePage";
 
+// The page treats an empty store address as "not listed", the by-hand install.
+const NOT_LISTED = "";
+
 it("offers the extension zip from its stable download address", async () => {
-  await renderWithRouter(<ExtensionGuidePage />);
+  await renderWithRouter(<ExtensionGuidePage storeUrl={NOT_LISTED} />);
   expect(screen.getByRole("link", { name: "Download for Chrome" })).toHaveAttribute("href", "/downloads/linkables-chrome.zip");
 });
 
 it("walks through loading the unzipped folder in Chrome", async () => {
-  await renderWithRouter(<ExtensionGuidePage />);
+  await renderWithRouter(<ExtensionGuidePage storeUrl={NOT_LISTED} />);
   const steps = screen.getAllByRole("listitem").map((step) => step.textContent);
   expect(steps).toEqual([
     expect.stringContaining("Download"),
