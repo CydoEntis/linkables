@@ -75,6 +75,28 @@ describe("acceptSession", () => {
     expect(d.verify).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the nonce when a token fails, so a newer token for it still signs in", async () => {
+    // Two app tabs answer one hello; minting the second token makes Supabase drop the first.
+    const d = deps({ verify: vi.fn((tokenHash: string) => Promise.resolve(tokenHash === "second")) });
+    const nonce = await helloNonce(d);
+
+    await expect(acceptSession({ nonce, tokenHash: "first", explicit: false, tabId: 7 }, d)).resolves.toEqual({ result: "failed" });
+    await expect(acceptSession({ nonce, tokenHash: "second", explicit: false, tabId: 8 }, d)).resolves.toEqual({ result: "signed-in" });
+  });
+
+  it("ignores a token that fails after another one for its nonce signed in", async () => {
+    let finishFirst: (ok: boolean) => void = () => undefined;
+    const verify = vi.fn((tokenHash: string) => (tokenHash === "first" ? new Promise<boolean>((resolve) => { finishFirst = resolve; }) : Promise.resolve(true)));
+    const d = deps({ verify });
+    const nonce = await helloNonce(d);
+
+    const first = acceptSession({ nonce, tokenHash: "first", explicit: false, tabId: 7 }, d);
+    await expect(acceptSession({ nonce, tokenHash: "second", explicit: false, tabId: 8 }, d)).resolves.toEqual({ result: "signed-in" });
+    finishFirst(false);
+
+    await expect(first).resolves.toEqual({ result: "ignored" });
+  });
+
   it("ignores a nonce that expired", async () => {
     let at = AT;
     const d = deps({ now: () => at });

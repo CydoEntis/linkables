@@ -1,7 +1,7 @@
 import { NONCE_HEX_LENGTH } from "@linkables/shared/extension-sessions";
 import { describe, expect, it } from "vitest";
 import { memoryStorageArea } from "../test/memory-storage-area";
-import { pendingNonce, randomNonce, takeNonce } from "./nonce";
+import { isPendingNonce, pendingNonce, randomNonce, spendNonce } from "./nonce";
 
 const AT = Date.parse("2026-10-26T10:00:00Z");
 const seconds = (n: number) => AT + n * 1000;
@@ -14,30 +14,32 @@ describe("connect nonce", () => {
     expect(randomNonce()).not.toBe(nonce);
   });
 
-  it("is taken once", async () => {
+  it("stays pending until it is spent", async () => {
     const area = memoryStorageArea();
     const nonce = await pendingNonce(area, AT);
 
-    await expect(takeNonce(area, nonce, seconds(5))).resolves.toBe(true);
-    await expect(takeNonce(area, nonce, seconds(6))).resolves.toBe(false);
+    await expect(isPendingNonce(area, nonce, seconds(5))).resolves.toBe(true);
+    await spendNonce(area, nonce);
+    await expect(isPendingNonce(area, nonce, seconds(6))).resolves.toBe(false);
   });
 
-  it("refuses a wrong nonce and keeps the right one", async () => {
+  it("is not a wrong nonce, and a wrong one leaves it pending", async () => {
     const area = memoryStorageArea();
     const nonce = await pendingNonce(area, AT);
 
-    await expect(takeNonce(area, randomNonce(), seconds(5))).resolves.toBe(false);
-    await expect(takeNonce(area, nonce, seconds(6))).resolves.toBe(true);
+    await expect(isPendingNonce(area, randomNonce(), seconds(5))).resolves.toBe(false);
+    await spendNonce(area, randomNonce());
+    await expect(isPendingNonce(area, nonce, seconds(6))).resolves.toBe(true);
   });
 
   it("expires after two minutes", async () => {
     const area = memoryStorageArea();
     const nonce = await pendingNonce(area, AT);
 
-    await expect(takeNonce(area, nonce, seconds(120))).resolves.toBe(false);
+    await expect(isPendingNonce(area, nonce, seconds(120))).resolves.toBe(false);
   });
 
-  it("is handed out again while it is pending, so two asks share one hand-off", async () => {
+  it("is handed out again while it is pending", async () => {
     const area = memoryStorageArea();
     const nonce = await pendingNonce(area, AT);
 
@@ -51,7 +53,7 @@ describe("connect nonce", () => {
     await expect(pendingNonce(area, seconds(121))).resolves.not.toBe(nonce);
   });
 
-  it("refuses everything when none was handed out", async () => {
-    await expect(takeNonce(memoryStorageArea(), randomNonce(), AT)).resolves.toBe(false);
+  it("is never pending when none was handed out", async () => {
+    await expect(isPendingNonce(memoryStorageArea(), randomNonce(), AT)).resolves.toBe(false);
   });
 });

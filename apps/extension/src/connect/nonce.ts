@@ -18,8 +18,9 @@ async function stored(area: chrome.storage.StorageArea, now: number) {
   return parsed.success && parsed.data.expiresAt > now ? parsed.data : null;
 }
 
-// One hand-off at a time: a second ask while one is pending gets the same nonce,
-// so two pages pinging at once cannot spend each other's.
+// One hand-off at a time: a second ask while one is pending gets the same nonce.
+// Each page that gets it may mint a token for it; acceptSession keeps the nonce
+// until one of those tokens signs in.
 export async function pendingNonce(area: chrome.storage.StorageArea, now: number): Promise<string> {
   const current = await stored(area, now);
   if (current) return current.nonce;
@@ -28,10 +29,11 @@ export async function pendingNonce(area: chrome.storage.StorageArea, now: number
   return nonce;
 }
 
-// true once for the pending, unexpired nonce; a wrong one leaves it pending.
-export async function takeNonce(area: chrome.storage.StorageArea, nonce: string, now: number): Promise<boolean> {
-  const current = await stored(area, now);
-  if (current?.nonce !== nonce) return false;
-  await area.remove(NONCE_KEY);
-  return true;
+export async function isPendingNonce(area: chrome.storage.StorageArea, nonce: string, now: number): Promise<boolean> {
+  return (await stored(area, now))?.nonce === nonce;
+}
+
+// Spent only by a token that signed in; any other value leaves the pending one alone.
+export async function spendNonce(area: chrome.storage.StorageArea, nonce: string): Promise<void> {
+  if ((await stored(area, 0))?.nonce === nonce) await area.remove(NONCE_KEY);
 }
