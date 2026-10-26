@@ -1,7 +1,7 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { cn } from "cn";
 import { Check, EyeOff, LoaderCircle, X } from "lucide-react";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { displayName } from "../collections/picker";
 import { useCopy, type CopyState } from "../copy/use-copy";
 import { Alert, PRIMARY_BUTTON } from "../ui";
@@ -47,6 +47,15 @@ function ShareContent({ collection, titleId, onDone }: ShareContentProps) {
   const tokens = useShareTokens();
   const token = tokens.data?.get(collection.id);
   const name = displayName(collection.name);
+  const on = token !== undefined;
+  // Turning the link on or off swaps the button that was pressed for another, so
+  // focus moves to the new one and the change is announced; opening the sheet does neither.
+  const [shownOn, setShownOn] = useState<boolean | null>(null);
+  const [changed, setChanged] = useState(false);
+  if (!tokens.isPending && shownOn !== on) {
+    if (shownOn !== null) setChanged(true);
+    setShownOn(on);
+  }
 
   return (
     <div className="flex flex-col gap-4 p-5">
@@ -67,15 +76,20 @@ function ShareContent({ collection, titleId, onDone }: ShareContentProps) {
       {tokens.isPending ? (
         <div aria-busy className="h-24 animate-pulse rounded-xl bg-muted" />
       ) : token ? (
-        <LinkOn collectionId={collection.id} token={token} />
+        <LinkOn collectionId={collection.id} token={token} focusFirst={changed} />
       ) : (
-        <LinkOff collectionId={collection.id} />
+        <LinkOff collectionId={collection.id} focusFirst={changed} />
       )}
+      <p role="status" className="sr-only">
+        {changed ? (on ? "Link is on. Anyone with it can view." : "Link turned off. It no longer works.") : null}
+      </p>
     </div>
   );
 }
 
-function LinkOff({ collectionId }: { collectionId: string }) {
+type LinkStateProps = { collectionId: string; focusFirst: boolean };
+
+function LinkOff({ collectionId, focusFirst }: LinkStateProps) {
   const setSharing = useSetSharing(collectionId);
   return (
     <>
@@ -93,6 +107,7 @@ function LinkOff({ collectionId }: { collectionId: string }) {
       {/* aria-disabled, not disabled, so focus stays on the button while it works. */}
       <button
         type="button"
+        autoFocus={focusFirst}
         aria-disabled={setSharing.isPending || undefined}
         onClick={() => {
           if (!setSharing.isPending) setSharing.mutate(true);
@@ -107,7 +122,7 @@ function LinkOff({ collectionId }: { collectionId: string }) {
   );
 }
 
-function LinkOn({ collectionId, token }: { collectionId: string; token: string }) {
+function LinkOn({ collectionId, token, focusFirst }: LinkStateProps & { token: string }) {
   const setSharing = useSetSharing(collectionId);
   const copy = useCopy();
   const turnOff = useTwoTap(() => { setSharing.mutate(false); }, setSharing.isPending);
@@ -124,7 +139,7 @@ function LinkOn({ collectionId, token }: { collectionId: string; token: string }
         <span className="shrink-0 text-muted-foreground">{prefix}</span>
         <span className="truncate">{token}</span>
       </p>
-      <button type="button" onClick={() => void copy.copy(url)} className={PRIMARY_BUTTON}>
+      <button type="button" autoFocus={focusFirst} onClick={() => void copy.copy(url)} className={PRIMARY_BUTTON}>
         {COPY_LABELS[copy.state]}
       </button>
       <p role="status" className="sr-only">
