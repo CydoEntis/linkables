@@ -55,7 +55,7 @@ test("the request access form loads the app for a visitor who is not signed in",
 test("the extension install guide is open to a visitor who is not signed in", async ({ page }) => {
   await page.goto("/extension");
   await expect(page.getByRole("heading", { name: "linkables for Chrome" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Download for Chrome" })).toHaveAttribute("href", "/downloads/linkables-chrome.zip");
+  await expect(page.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", "https://chromewebstore.google.com/detail/linkables/dckjkoommfddaimpjbghbomojdkhaoai");
 });
 
 test.describe("the extension download", () => {

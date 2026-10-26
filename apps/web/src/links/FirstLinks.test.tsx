@@ -1,3 +1,4 @@
+import { CHROME_WEB_STORE_URL } from "../extension-guide/path";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
@@ -18,7 +19,7 @@ describe("FirstLinks on a computer", () => {
     onDesktop();
     await renderWithRouter(<FirstLinks />);
     expect(screen.getByRole("heading", { name: "Save your first link" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Add to Chrome" })).toHaveAttribute("href", "/extension");
+    expect(screen.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", CHROME_WEB_STORE_URL);
     expect(screen.getByRole("link", { name: "Set up your phone" })).toHaveAttribute("href", "/save-from-anywhere");
   });
 
@@ -49,10 +50,10 @@ describe("FirstLinks on a phone", () => {
     expect(useLinksUi.getState().saveSheetOpen).toBe(true);
   });
 
-  it("emails the extension's address for later on a computer", async () => {
+  it("emails the extension's store address for later on a computer", async () => {
     await renderWithRouter(<FirstLinks />);
     const email = screen.getByRole("link", { name: "Email me the link" }).getAttribute("href") ?? "";
     expect(email).toMatch(/^mailto:\?subject=/);
-    expect(decodeURIComponent(email)).toContain(`${window.location.origin}/extension`);
+    expect(decodeURIComponent(email)).toContain(CHROME_WEB_STORE_URL);
   });
 });

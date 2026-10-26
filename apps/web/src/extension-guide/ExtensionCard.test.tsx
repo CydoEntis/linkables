@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { renderWithRouter } from "../test/render-with-router";
 import { EXTENSION_CARD_DISMISSED_KEY } from "./extension-card";
 import { ExtensionCard } from "./ExtensionCard";
+import { CHROME_WEB_STORE_URL } from "./path";
 
 beforeEach(() => {
   localStorage.clear();
@@ -11,10 +12,10 @@ beforeEach(() => {
 
 // The card remembers a dismissal for the rest of the visit too, so the test that dismisses it runs last.
 describe("ExtensionCard", () => {
-  it("offers the extension through the install guide while the store listing is not live", async () => {
+  it("offers the extension from the Chrome Web Store", async () => {
     await renderWithRouter(<ExtensionCard />);
     expect(screen.getByRole("region", { name: "Chrome extension" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Add to Chrome" })).toHaveAttribute("href", "/extension");
+    expect(screen.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", CHROME_WEB_STORE_URL);
   });
 
   it("stays dismissed on this device once dismissed", async () => {
