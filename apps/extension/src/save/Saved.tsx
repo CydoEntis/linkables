@@ -71,8 +71,12 @@ export function Saved({ link, pageTitle }: SavedProps) {
   );
 }
 
-// The side panel where the browser has one, else the web app in a new tab.
+function openApp() {
+  return chrome.tabs.create({ url: env.VITE_APP_URL });
+}
+
+// The side panel where the browser has one and opens it, else the web app in a new tab.
 function openAllLinks(windowId: number | undefined) {
-  const opened = windowId !== undefined && canOpenSidePanel() ? openSidePanel(windowId) : chrome.tabs.create({ url: env.VITE_APP_URL });
+  const opened = windowId !== undefined && canOpenSidePanel() ? openSidePanel(windowId).catch(openApp) : openApp();
   void opened.then(() => { window.close(); });
 }
