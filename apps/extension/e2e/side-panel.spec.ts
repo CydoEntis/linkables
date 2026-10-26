@@ -66,6 +66,20 @@ test("saves the page the user is on from the side panel, then pins it", async ({
     .toMatchObject({ items: [{ originalUrl: ARTICLE_URL, savedFrom: "extension", pinned: true }] });
 });
 
+// The e2e build may read the article's origin, as a granted Follow the tab you're on would let it.
+test("a single-page address change on a readable tab updates the card and the ✓", async ({ context, user }) => {
+  const article = await openArticle(context);
+  const panel = await openPanel(context, user.email);
+  await article.bringToFront();
+  await panel.getByRole("button", { name: "Save this page" }).click();
+  const tabId = await tabIdOf(panel, ARTICLE_URL);
+  await expect.poll(() => badgeText(panel, tabId)).toBe("✓");
+
+  await article.evaluate(() => { history.pushState({}, "", "/e2e/another-dish"); });
+  await expect(panel.getByRole("button", { name: "Save this page" })).toBeVisible();
+  await expect.poll(() => badgeText(panel, tabId)).toBe("");
+});
+
 test("the page card keeps a pin and a collection made in the panel after switching tabs", async ({ context, user }) => {
   const article = await openArticle(context);
   const panel = await openPanel(context, user.email);

@@ -1,7 +1,10 @@
 // A toolbar button is only an icon and a badge of up to 4 characters, so the
 // handoff's lime "✓ Saved" pill becomes a lime ✓ badge on the tab's button.
-// The badge is set per tab, and Chrome clears a tab's badge when it navigates,
-// so a mark never outlives the page it was set for.
+// The badge is set per tab, and Chrome clears it when the tab loads a new document.
+// A same-document navigation (a single-page site's pushState) keeps it: while the
+// side panel is open and can read the tab (Follow the tab you're on, or a tab
+// linkables was used on), it re-checks on the address change and corrects the
+// mark; otherwise the ✓ can stay on such a page until the tab loads another one.
 
 // --primary, oklch(0.89 0.19 125), and --primary-foreground in hex: the badge takes no oklch.
 const LIME = "#bef050";
