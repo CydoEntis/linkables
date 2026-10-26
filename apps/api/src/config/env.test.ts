@@ -34,6 +34,8 @@ describe("parseEnv", () => {
           testJwks: undefined,
         },
         resendApiKey: undefined,
+        supabaseUrl: "https://ref.supabase.co",
+        supabaseSecretKey: undefined,
       },
     });
   });
@@ -75,6 +77,18 @@ describe("parseEnv", () => {
     const result = parseEnv({ ...VALID, RESEND_API_KEY: "" });
 
     expect(result.ok && result.config.resendApiKey).toBeUndefined();
+  });
+
+  it("reads the optional Supabase secret key", () => {
+    const result = parseEnv({ ...VALID, SUPABASE_SECRET_KEY: "sb_secret_123" });
+
+    expect(result.ok && result.config.supabaseSecretKey).toBe("sb_secret_123");
+  });
+
+  it("treats an empty Supabase secret key as unset", () => {
+    const result = parseEnv({ ...VALID, SUPABASE_SECRET_KEY: "" });
+
+    expect(result.ok && result.config.supabaseSecretKey).toBeUndefined();
   });
 
   it("rejects a CORS entry that is not a bare origin", () => {

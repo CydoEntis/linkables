@@ -75,9 +75,12 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - Anything that fetches a user-supplied URL goes through the SSRF-guarded
   fetcher (ADR-0003, `apps/api/src/metadata/fetcher.ts`). Never call `fetch` on a
   saved URL directly; never weaken the guard to make a test pass. The fetcher
-  never forwards `X-Request-Id` or `traceparent` to saved URLs. The one other
-  outbound client is `apps/api/src/access/notify-owner.ts`, which posts to
-  Resend's fixed API host; it is allowlisted by path in `eslint.config.js`.
+  never forwards `X-Request-Id` or `traceparent` to saved URLs. The two other
+  outbound clients are `apps/api/src/access/notify-owner.ts`, which posts to
+  Resend's fixed API host, and `apps/api/src/extension-sessions/supabase-admin.ts`,
+  which calls only the configured `SUPABASE_URL`'s auth admin API with the
+  optional `SUPABASE_SECRET_KEY` (never logged), never a saved URL. Both are
+  allowlisted by path in `eslint.config.js`.
 - Logs never contain personal data such as a requester's email address.
 - The test auth path (`AUTH_TEST_JWKS`, the committed test key pair) works only
   with `NODE_ENV=test`. Never add another way around token verification.

@@ -9,6 +9,7 @@ import {
 import { createApp } from "./app";
 import { parseEnv } from "./config/env";
 import { createDb } from "./db/client";
+import { supabaseAdmin as createSupabaseAdmin, testSupabaseAdmin, type SupabaseAdmin } from "./extension-sessions/supabase-admin";
 import { createLogger } from "./log/logger";
 import { fetchHtml, fetchJson, fetchPage } from "./metadata/fetcher";
 import { startWorker } from "./metadata/worker";
@@ -21,7 +22,7 @@ if (!env.ok) {
 
 const logger = createLogger(env.config.logLevel);
 
-const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey } = env.config;
+const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey, supabaseUrl, supabaseSecretKey } = env.config;
 const { db, close } = createDb(databaseUrl);
 const notifyOwner = resendApiKey === undefined ? skipNotifyOwner : resendNotifier({ apiKey: resendApiKey });
 // Without Resend no account can be deleted, except under NODE_ENV=test, where the
@@ -31,8 +32,24 @@ function deletionNotifier(): NotifyAccountDeleted | undefined {
   return nodeEnv === "test" ? skipNotifyAccountDeleted : undefined;
 }
 
+// Without the secret key the extension cannot sign in from linkables.app, except
+// under NODE_ENV=test, where the e2e suites sign it in with no Supabase.
+function extensionSignIn(): SupabaseAdmin | undefined {
+  if (supabaseSecretKey !== undefined) return createSupabaseAdmin({ url: supabaseUrl, secretKey: supabaseSecretKey });
+  return nodeEnv === "test" ? testSupabaseAdmin : undefined;
+}
+
 const notifyAccountDeleted = deletionNotifier();
-const app = createApp({ logger, corsOrigins, auth: { ...auth, nodeEnv }, db, notifyOwner, notifyAccountDeleted, fetchPage });
+const app = createApp({
+  logger,
+  corsOrigins,
+  auth: { ...auth, nodeEnv },
+  db,
+  notifyOwner,
+  notifyAccountDeleted,
+  supabaseAdmin: extensionSignIn(),
+  fetchPage,
+});
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
   logger.info("api listening", { port: info.port });
