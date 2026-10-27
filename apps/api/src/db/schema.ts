@@ -46,12 +46,16 @@ export const savedLink = sqliteTable(
       .references(() => resource.id),
     originalUrl: text("original_url").notNull(),
     titleOverride: text("title_override"),
+    titleSortKey: text("title_sort_key").notNull().default(""),
     note: text("note"),
     pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
     savedAt: timestamp("saved_at").notNull().default(databaseNow),
     savedFrom: text("saved_from").$type<LinkSource>(),
   },
-  (table) => [unique().on(table.userId, table.resourceId)],
+  (table) => [
+    unique().on(table.userId, table.resourceId),
+    index("saved_link_title_order_idx").on(table.userId, sql`${table.pinned} desc`, table.titleSortKey, table.id),
+  ],
 );
 
 export const collection = sqliteTable(

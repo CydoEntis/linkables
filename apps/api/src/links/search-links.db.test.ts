@@ -54,6 +54,79 @@ async function ids(user: TestUser, q: string) {
 }
 
 describe("GET /links?q=", () => {
+  it("ignores English stop words while stemming the remaining words", async () => {
+    const hit = await seed(a, { url: "https://example.com/run", title: "How to run faster" });
+    await seed(a, { url: "https://example.com/bread", title: "Baking bread" });
+
+    expect(await ids(a, "the running")).toEqual([hit]);
+  });
+
+  it.each(["OR", "or", "oR"])("finds either alternative with %s", async (operator) => {
+    const run = await seed(a, { url: "https://example.com/one", title: "How to run faster" });
+    const bake = await seed(a, { url: "https://example.com/two", title: "Baking bread" });
+    await seed(a, { url: "https://example.com/three", title: "Climbing mountains" });
+
+    expect(new Set(await ids(a, `running ${operator} baking`))).toEqual(new Set([run, bake]));
+  });
+
+  it("excludes a negated term from positive search matches", async () => {
+    const hit = await seed(a, { url: "https://example.com/one", title: "How to run faster" });
+    await seed(a, { url: "https://example.com/two", title: "Run while baking bread" });
+
+    expect(await ids(a, "run -baking")).toEqual([hit]);
+  });
+
+  it("combines OR alternatives with their own excluded terms", async () => {
+    const run = await seed(a, { url: "https://example.com/one", title: "Run faster" });
+    const bake = await seed(a, { url: "https://example.com/two", title: "Baking bread" });
+    await seed(a, { url: "https://example.com/three", title: "Run while baking" });
+
+    expect(new Set(await ids(a, "running -baking OR baking -running"))).toEqual(new Set([run, bake]));
+  });
+
+  it("matches quoted words in order with no intervening words", async () => {
+    const hit = await seed(a, { url: "https://example.com/one", title: "How to run faster" });
+    await seed(a, { url: "https://example.com/two", title: "How to run much faster" });
+    await seed(a, { url: "https://example.com/three", title: "Faster runners" });
+
+    expect(await ids(a, '"running faster"')).toEqual([hit]);
+  });
+
+  it("ignores stop words at the ends of a quoted phrase", async () => {
+    const hit = await seed(a, { url: "https://example.com/one", title: "Run faster" });
+
+    expect(await ids(a, '"the running faster"')).toEqual([hit]);
+  });
+
+  it("excludes a negated quoted phrase", async () => {
+    const hit = await seed(a, { url: "https://example.com/one", title: "Run much faster" });
+    await seed(a, { url: "https://example.com/two", title: "Run faster" });
+
+    expect(await ids(a, 'running -"run faster"')).toEqual([hit]);
+  });
+
+  it("keeps exclusion-only queries scoped to the signed-in user", async () => {
+    const hit = await seed(a, { url: "https://example.com/one", title: "Run faster" });
+    await seed(a, { url: "https://example.com/two", title: "Baking bread" });
+    await seed(b, { url: "https://example.com/private", title: "Confidential research" });
+
+    expect(await ids(a, "-baking")).toEqual([hit]);
+  });
+
+  it("keeps every OR alternative scoped to the signed-in user", async () => {
+    const hit = await seed(a, { url: "https://example.com/one", title: "Run faster" });
+    await seed(b, { url: "https://example.com/private", title: "Confidential research" });
+
+    expect(await ids(a, "running OR confidential")).toEqual([hit]);
+  });
+
+  it("ignores punctuation without giving it FTS operator meaning", async () => {
+    const hit = await seed(a, { url: "https://example.com/one", title: "Run while baking" });
+    await seed(a, { url: "https://example.com/two", title: "Run faster" });
+
+    expect(await ids(a, "(running) & baking")).toEqual([hit]);
+  });
+
   it("finds a link by a word in its title", async () => {
     const hit = await seed(a, { url: "https://example.com/1", title: "Postgres internals explained" });
     await seed(a, { url: "https://example.com/2", title: "Baking bread" });

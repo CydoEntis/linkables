@@ -2,32 +2,15 @@ import { createHash } from "node:crypto";
 import type { LinkSort } from "@linkables/shared/links";
 import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { resource, savedLink } from "../db/schema";
+import { savedLink } from "../db/schema";
 import { ValidationError } from "../http/errors";
 import type { Cursor } from "./cursor";
 
 const cursorSavedAt = sql<string>`${savedLink.savedAt}`;
 
-// ORDER BY, the cursor row's key lookup and the page comparison all use this
-// expression in the database's default collation, so a page boundary never skips
-// or repeats a row.
-const rawTitle = sql<string>`lower(coalesce(${savedLink.titleOverride}, ${resource.title}, ${resource.canonicalUrl}))`;
-
-// SQLite's default collation is binary. Translate accented Latin characters
-// without deeply nested replace() expressions, which exceed its parser stack.
-const accented = Array.from({ length: 0x180 - 0xc0 }, (_, index) => String.fromCharCode(index + 0xc0)).filter((char) => char.normalize("NFD").length > 1).join("");
-const folded = accented.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-const lowercase = Array.from(accented).map((char) => char.toLowerCase().slice(0, 1)).join("");
-const titleKey = sql<string>`(with recursive title_chars(i, base, spelling) as (
-  select 1, '', ''
-  union all
-  select i + 1,
-    base || case when instr(${accented}, substr(${rawTitle}, i, 1)) > 0
-      then substr(${folded}, instr(${accented}, substr(${rawTitle}, i, 1)), 1) else substr(${rawTitle}, i, 1) end,
-    spelling || case when instr(${accented}, substr(${rawTitle}, i, 1)) > 0
-      then substr(${lowercase}, instr(${accented}, substr(${rawTitle}, i, 1)), 1) else substr(${rawTitle}, i, 1) end
-  from title_chars where i <= length(${rawTitle})
-) select base || char(1) || spelling from title_chars order by i desc limit 1)`;
+// Triggers maintain this key on title changes; sorting and cursor comparisons
+// share the persisted value so listing never normalizes every title again.
+const titleKey = sql<string>`${savedLink.titleSortKey}`;
 
 export function orderBy(sort: LinkSort): SQL[] {
   switch (sort) {
@@ -56,7 +39,6 @@ async function titleKeyOf(db: Db, userId: string, cursor: { id: string; k: strin
   const [row] = await db
     .select({ titleKey })
     .from(savedLink)
-    .innerJoin(resource, eq(resource.id, savedLink.resourceId))
     .where(and(eq(savedLink.id, cursor.id), eq(savedLink.userId, userId)));
   if (row === undefined || fingerprint(row.titleKey) !== cursor.k) {
     throw new ValidationError("Cursor is no longer valid", { fieldErrors: { cursor: "Cursor is no longer valid" } });

@@ -2,8 +2,39 @@ import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { expect, it } from "vitest";
 import { createDb } from "../src/db/client";
+import { readMigrationFiles } from "drizzle-orm/migrator";
+import { migrationsFolder } from "../src/db/migrate";
 import { migrateDb } from "../src/db/migrate";
 import { collection, collectionGroup, collectionItem, resource, savedLink } from "../src/db/schema";
+
+it("backfills existing title order and keeps it current after metadata changes", async () => {
+  const connection = createDb("file::memory:");
+  const client = connection.db.$client;
+  const resourceId = randomUUID();
+  const linkId = randomUUID();
+  try {
+    await connection.ready;
+    await client.execute('create table __drizzle_migrations (id integer primary key, hash text not null, created_at numeric)');
+    const migrations = readMigrationFiles({ migrationsFolder });
+    const keyMigration = migrations.findIndex((entry) => entry.sql.some((statement) => statement.includes("ADD `title_sort_key`")));
+    if (keyMigration < 0) throw new Error("Missing title key migration");
+    for (const migration of migrations.slice(0, keyMigration)) {
+      for (const statement of migration.sql) await client.executeMultiple(statement);
+      await client.execute({ sql: 'insert into __drizzle_migrations (hash, created_at) values (?, ?)', args: [migration.hash, migration.folderMillis] });
+    }
+    await client.execute({ sql: 'insert into resource (id, canonical_url, title) values (?, ?, ?)', args: [resourceId, "https://example.com/source", "Original title"] });
+    await client.execute({ sql: 'insert into saved_link (id, user_id, resource_id, original_url) values (?, ?, ?, ?)', args: [linkId, randomUUID(), resourceId, "https://example.com/source"] });
+
+    await migrateDb(connection.db);
+    const before = await connection.db.select({ key: savedLink.titleSortKey }).from(savedLink);
+    await connection.db.update(resource).set({ title: "Updated title" }).where(eq(resource.id, resourceId));
+    const after = await connection.db.select({ key: savedLink.titleSortKey }).from(savedLink);
+
+    expect(before[0]?.key).toContain("original title");
+    expect(after[0]?.key).toContain("updated title");
+    expect(after[0]?.key).not.toEqual(before[0]?.key);
+  } finally { await connection.close(); }
+});
 
 it("reapplying SQLite migrations preserves existing library rows", async () => {
   const connection = createDb("file::memory:");
