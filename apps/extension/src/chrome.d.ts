@@ -33,9 +33,10 @@ declare namespace chrome {
 
   namespace runtime {
     const id: string;
+    function getURL(path: string): string;
     interface MessageSender {
       id?: string;
-      origin?: string;
+      url?: string;
       tab?: chrome.tabs.Tab;
     }
     function sendMessage(message: unknown): Promise<unknown>;
@@ -76,6 +77,8 @@ declare namespace chrome {
 
   // Undefined where the browser has no side panel (before Chrome 116, Firefox).
   const sidePanel: { open(options: { windowId: number }): Promise<void> } | undefined;
+  // Firefox's sidebar; undefined in Chrome. open() needs a user gesture, like sidePanel.open.
+  const sidebarAction: { open(): Promise<void> } | undefined;
 
   namespace commands {
     interface Command {
@@ -109,6 +112,7 @@ declare namespace chrome {
   namespace permissions {
     interface Permissions {
       permissions?: string[];
+      origins?: string[];
     }
     function contains(permissions: Permissions): Promise<boolean>;
     function request(permissions: Permissions): Promise<boolean>;

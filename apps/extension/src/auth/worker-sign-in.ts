@@ -18,8 +18,8 @@ export async function verifyTokenHash(tokenHash: string): Promise<boolean> {
   return error === null;
 }
 
-// Chrome rejects with this when the user closes the Google window.
-const USER_CLOSED = /did not approve/i;
+// Chrome rejects with "did not approve" when the user closes the Google window, Firefox with "cancelled".
+const USER_CLOSED = /did not approve|cancel/i;
 
 type AuthFlow = { redirect: string | undefined } | { problem: "cancelled" | "failed" };
 
