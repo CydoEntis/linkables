@@ -1,10 +1,10 @@
 import type { APIRequestContext, BrowserContext, Page, TestInfo } from "@playwright/test";
 import type { TestUser } from "../../web/e2e/session";
-import { API_URL, SUPABASE_URL } from "./env";
-import { expect, test } from "./fixtures";
+import { API_URL, APP_URL, SUPABASE_URL } from "./env";
+import { badgeText, expect, recordCopies, tabIdOf, test } from "./fixtures";
 
 // Served by the test, on an origin the e2e build may read, so the pop-up sees its address and title.
-const ARTICLE_URL = `${API_URL}/e2e/weeknight-pasta`;
+const ARTICLE_URL = `${APP_URL}/e2e/weeknight-pasta`;
 
 async function openArticle(context: BrowserContext): Promise<Page> {
   await context.route(ARTICLE_URL, (route) =>
@@ -16,6 +16,7 @@ async function openArticle(context: BrowserContext): Promise<Page> {
 }
 
 async function signIn(popup: Page, email: string) {
+  await popup.getByRole("button", { name: "Use an email code instead" }).click();
   await popup.getByLabel("Email").fill(email);
   await popup.getByRole("button", { name: "Email me a code" }).click();
   await expect(popup.getByRole("heading", { name: "Check your email" })).toBeVisible();
@@ -38,6 +39,12 @@ async function savedLinks(request: APIRequestContext, user: TestUser): Promise<L
   const response = await request.get(`${API_URL}/api/v1/links`, { headers: { Authorization: `Bearer ${user.accessToken}` } });
   const body = (await response.json()) as { data: { items: ListedLink[] } };
   return body.data.items;
+}
+
+async function seed<T>(request: APIRequestContext, user: TestUser, path: string, data: unknown): Promise<T> {
+  const response = await request.post(`${API_URL}/api/v1${path}`, { headers: { Authorization: `Bearer ${user.accessToken}` }, data });
+  expect(response.ok(), path).toBe(true);
+  return ((await response.json()) as { data: T }).data;
 }
 
 async function snap(popup: Page, testInfo: TestInfo, name: string) {
@@ -63,6 +70,23 @@ test("signs in with an email code, then saves the tab the user is on", async ({ 
   expect(await savedLinks(request, user)).toMatchObject([{ originalUrl: ARTICLE_URL, savedFrom: "extension", pinned: false, collections: [] }]);
 });
 
+test("a saved page gets a ✓ on the toolbar button until its tab moves on", async ({ context, openPopup, user }) => {
+  const article = await openArticle(context);
+  const popup = await openPopup();
+  await signIn(popup, user.email);
+  const tabId = await tabIdOf(popup, ARTICLE_URL);
+  expect(await badgeText(popup, tabId)).toBe("");
+
+  await saveFromPopup(popup, article);
+  await expect(popup.getByRole("heading", { name: "Saved", exact: true })).toBeVisible();
+  await expect.poll(() => badgeText(popup, tabId)).toBe("✓");
+
+  const next = `${APP_URL}/e2e/next-page`;
+  await context.route(next, (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Next</title>" }));
+  await article.goto(next);
+  await expect.poll(() => badgeText(popup, tabId)).toBe("");
+});
+
 test("a page saved before shows as Already saved, and can be pinned and filed", async ({ context, openPopup, request, user }, testInfo) => {
   const article = await openArticle(context);
   const popup = await openPopup();
@@ -80,6 +104,11 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
 
   await popup.getByRole("button", { name: "Pin", exact: true }).click();
   await expect(popup.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
+  const copies = await recordCopies(popup);
+  await popup.getByRole("button", { name: "Share link" }).click();
+  await expect(popup.getByRole("button", { name: "Copied ✓" })).toBeVisible();
+  expect(await copies()).toEqual([ARTICLE_URL]);
+  await expect(popup.getByText("Alt+Shift+S saves quietly")).toBeVisible();
   await snap(popup, testInfo, "popup-already-saved-filed");
 
   await expect
@@ -87,9 +116,36 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
     .toMatchObject([{ originalUrl: ARTICLE_URL, pinned: true, collections: [{ name: "Recipes" }] }]);
 });
 
+test("a saved page can be filed in a group of its collection", async ({ context, openPopup, request, user }) => {
+  const collection = await seed<{ id: string }>(request, user, "/collections", { name: "Dinners" });
+  const mains = await seed<{ id: string }>(request, user, `/collections/${collection.id}/groups`, { name: "Mains" });
+  const article = await openArticle(context);
+  const popup = await openPopup();
+  await signIn(popup, user.email);
+  await saveFromPopup(popup, article);
+  await expect(popup.getByRole("heading", { name: "Saved", exact: true })).toBeVisible();
+  await expect(popup.getByRole("group", { name: /^Group in/ })).toHaveCount(0);
+
+  await popup.getByRole("button", { name: "Dinners", exact: true }).click();
+  const choice = popup.getByRole("group", { name: "Group in Dinners" });
+  await expect(choice.getByRole("button", { name: "Ungrouped" })).toHaveAttribute("aria-pressed", "true");
+  await choice.getByRole("button", { name: "Mains" }).click();
+  await expect(choice.getByRole("button", { name: "Mains" })).toHaveAttribute("aria-pressed", "true");
+
+  await expect
+    .poll(async () => {
+      const response = await request.get(`${API_URL}/api/v1/links?collectionId=${collection.id}&groupId=${mains.id}`, {
+        headers: { Authorization: `Bearer ${user.accessToken}` },
+      });
+      return ((await response.json()) as { data: { items: { originalUrl: string }[] } }).data.items.map((link) => link.originalUrl);
+    })
+    .toEqual([ARTICLE_URL]);
+});
+
 test("the code step survives the pop-up closing while the user reads the email", async ({ context, openPopup, request, user }) => {
   const article = await openArticle(context);
   const first = await openPopup();
+  await first.getByRole("button", { name: "Use an email code instead" }).click();
   await first.getByLabel("Email").fill(user.email);
   await first.getByRole("button", { name: "Email me a code" }).click();
   await expect(first.getByRole("heading", { name: "Check your email" })).toBeVisible();
@@ -116,6 +172,7 @@ test("an email with no invite is told so, without asking for an account", async 
     sent.push(route.request().postDataJSON());
     return route.fulfill({ status: 422, json: { code: 422, error_code: "otp_disabled", msg: "Signups not allowed for otp" } });
   });
+  await popup.getByRole("button", { name: "Use an email code instead" }).click();
   await popup.getByLabel("Email").fill("stranger@example.com");
   await popup.getByRole("button", { name: "Email me a code" }).click();
 

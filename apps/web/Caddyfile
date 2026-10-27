@@ -1,12 +1,22 @@
 {
 	admin off
+	# Only the host's Caddy reaches this one, over Docker's private network, and
+	# it sets X-Forwarded-For from the real peer. Trusting private ranges makes
+	# {client_ip} the visitor's address, which the API rate-limits on.
+	servers {
+		trusted_proxies static private_ranges
+		trusted_proxies_strict
+	}
 }
 
 :8080 {
 	encode zstd gzip
 
 	handle /api/* {
-		reverse_proxy api:3000
+		# Overwrites any X-Real-IP the client sent.
+		reverse_proxy api:3000 {
+			header_up X-Real-IP {client_ip}
+		}
 	}
 	handle /health {
 		reverse_proxy api:3000
@@ -17,6 +27,35 @@
 	handle /assets/* {
 		root * /srv
 		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# shared.html is only the shell for /s/*; on its own it is no page.
+	@sharedShell path /shared /shared.html
+	handle @sharedShell {
+		redir * / 302
+	}
+
+	# A shared collection gets the app shell with its own link preview tags
+	# (shared.html). Its address holds the token: keep it out of search
+	# engines and out of the Referer of anything the page loads or opens.
+	handle /s/* {
+		root * /srv
+		header Cache-Control "no-cache"
+		header X-Robots-Tag "noindex, nofollow"
+		header Referrer-Policy "no-referrer"
+		rewrite * /shared.html
+		file_server
+	}
+
+	# Firefox installs an add-on on click only when it is served as this type;
+	# file_server would guess application/zip. The file is signed, so it never
+	# changes between releases: re-check it each time.
+	@xpi path /downloads/*.xpi
+	handle @xpi {
+		root * /srv
+		header Content-Type application/x-xpinstall
+		header Cache-Control "no-cache"
 		file_server
 	}
 

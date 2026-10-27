@@ -9,6 +9,8 @@ import "@fontsource-variable/familjen-grotesk/wght.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/unbounded/600.css";
+import "@fontsource-variable/newsreader/wght.css";
+import "@fontsource-variable/newsreader/wght-italic.css";
 import "./index.css";
 import { queryClient } from "./query-client";
 import { router } from "./router";

@@ -13,6 +13,11 @@ Paste each file's HTML into **Supabase → Authentication → Emails → Templat
 
 Placeholders used: `{{ .Token }}`, `{{ .ConfirmationURL }}`, `{{ .SiteURL }}`. No `{{ .Email }}` or other user-supplied values.
 
+## Sign-in flow (PKCE)
+The web app signs in with Supabase's PKCE flow. `{{ .ConfirmationURL }}` in the Magic Link and Confirm signup templates already lands on `?code=`, and the app exchanges it only in the browser that asked for the link, so those two templates need no change. Do not switch them to `token_hash` links: those sign in whoever opens them, which is the attack PKCE closes. The typed code (`{{ .Token }}`) works in any browser.
+
+An Invite user link carries tokens in the URL fragment, which the app now refuses; the invited person signs in with their email code instead.
+
 ## Image
 - `linkables-logo-2x.png`: 64×64 PNG, the app logo (white and lime squares) on a dark rounded tile, so it reads on light and dark backgrounds. **Display size 32×32.** Host at `https://linkables.app/email/linkables-logo-2x.png`.
 - With images off, the alt text "linkables" shows, and the wordmark next to it is live text, so the header still reads "linkables".

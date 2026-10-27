@@ -9,13 +9,12 @@ const PUBLIC_PAGES = [
 test.describe("signed out", () => {
   test.use({ signedIn: false });
 
-  test("the landing page asks for access by email during the private beta", async ({ page }) => {
+  test("every Request access link on the landing page leads to the form during the private beta", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("Private beta").first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Request access" }).first()).toHaveAttribute(
-      "href",
-      "mailto:support@linkables.app?subject=linkables%20beta%20access",
-    );
+    const links = page.getByRole("link", { name: "Request access", includeHidden: true });
+    await expect(links).toHaveCount(4);
+    for (const link of await links.all()) await expect(link).toHaveAttribute("href", "/request-access");
     await expect(page.getByRole("link", { name: /Get started/ })).toHaveCount(0);
   });
 
@@ -26,12 +25,11 @@ test.describe("signed out", () => {
     await expect(page.getByText("linkables is invite-only for now")).toBeVisible();
   });
 
-  test("the landing page's Chrome extension card leads to the install guide", async ({ page }) => {
+  test("the landing page's Chrome extension card links to the Chrome Web Store listing", async ({ page }) => {
     await page.goto("/");
     const chrome = page.locator("article", { has: page.getByRole("heading", { name: "Chrome extension" }) });
     await expect(chrome.getByText("Available now")).toBeVisible();
-    await chrome.getByRole("link", { name: "Get the extension" }).click();
-    await expect(page.getByRole("heading", { name: "linkables for Chrome" })).toBeVisible();
+    await expect(chrome.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", "https://chromewebstore.google.com/detail/linkables/dckjkoommfddaimpjbghbomojdkhaoai");
   });
 
   test("the landing page has no horizontal scroll on a 360 px phone", async ({ page }) => {

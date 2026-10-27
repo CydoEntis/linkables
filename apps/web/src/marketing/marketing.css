@@ -30,21 +30,6 @@
         mask-image: radial-gradient(ellipse 65% 60% at 50% 30%, #000 20%, transparent 75%);
     }
 
-    .lp-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        transition: transform 0.18s var(--ease-out-soft), background-color 0.2s ease, filter 0.2s ease;
-    }
-    .lp-btn:hover { transform: translateY(-1px); }
-    .lp-btn:active { transform: scale(0.97); transition-duration: 0.06s; }
-    .lp-btn-primary { box-shadow: inset 0 -3px 0 rgb(22 32 10 / 0.18); }
-    .lp-btn-primary:hover { filter: brightness(1.05); }
-    .lp-btn-ghost { box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.35); }
-    .lp-btn .lp-arrow { transition: transform 0.25s var(--ease-out-soft); }
-    .lp-btn:hover .lp-arrow { transform: translateX(4px); }
-
     .lp-store-row { transition: background-color 0.2s ease, padding 0.25s var(--ease-out-soft); }
     .lp-store-row:hover { background: rgb(22 32 10 / 0.07); padding-inline: 14px; }
 
@@ -59,7 +44,8 @@
     .lp-rise { animation: lp-rise-in 1s 0.5s var(--ease-out-soft) both; }
     .lp-chip-in { animation: lp-chip-in 0.8s var(--ease-out-soft) both; }
     .lp-bob { animation: lp-bob 7s 1.5s ease-in-out infinite; }
-    .lp-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: lp-draw 0.7s 0.75s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
+    /* A rounded line cap still paints a dot where the hidden line starts, so it stays invisible until the stroke begins. */
+    .lp-draw { stroke-dasharray: 1 2; stroke-dashoffset: 1; opacity: 0; animation: lp-draw 0.7s 0.75s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
     .lp-drop { animation: lp-drop 0.7s 1.6s var(--ease-out-soft) both; }
     .lp-fade-actions { animation: lp-fade-actions 0.35s 2.4s ease-out both; }
     .lp-swipe { animation: lp-swipe 6s 1s var(--ease-out-soft) infinite; }
@@ -93,7 +79,8 @@
         50% { translate: 0 -10px; }
     }
     @keyframes lp-draw {
-        to { stroke-dashoffset: 0; }
+        from { stroke-dashoffset: 1; opacity: 1; }
+        to { stroke-dashoffset: 0; opacity: 1; }
     }
     @keyframes lp-drop {
         from { opacity: 0; max-height: 0; transform: translateY(-8px); }
@@ -119,7 +106,7 @@
             animation: none !important;
             transition: none !important;
         }
-        .lp-draw { stroke-dashoffset: 0; }
+        .lp-draw { stroke-dashoffset: 0; opacity: 1; }
         html { scroll-behavior: auto !important; }
     }
 

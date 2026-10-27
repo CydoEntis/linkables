@@ -29,6 +29,48 @@
       "when": 1792719661319,
       "tag": "0003_saved_link_saved_from",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792893872771,
+      "tag": "0004_access_request",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792942380298,
+      "tag": "0005_collection_share_token",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792948493112,
+      "tag": "0006_resource_reader",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793060813117,
+      "tag": "0007_collection_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793064720677,
+      "tag": "0008_collection_share_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793094063804,
+      "tag": "0009_private_shares",
+      "breakpoints": true
     }
   ]
 }

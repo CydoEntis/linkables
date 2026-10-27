@@ -13,16 +13,18 @@ import type { AuthEnv } from "../auth/require-auth";
 import type { Db } from "../db/client";
 import { ok } from "../http/envelope";
 import { ValidationError } from "../http/errors";
+import { rateLimit } from "../http/rate-limit";
 import { parseWith } from "../http/validate";
 import { decodeCursor } from "./cursor";
 import { deleteLink } from "./delete-link";
 import { getLink } from "./get-link";
 import { listLinks } from "./list-links";
-import { rateLimitPerUser } from "./rate-limit";
 import { saveLink } from "./save-link";
 import { updateLink } from "./update-link";
 
 const SAVES_PER_MINUTE = 60;
+// Keys are signed-in users, so this only guards memory; no beta comes close.
+const SAVERS_TRACKED = 100_000;
 
 const CANONICALIZE_ERRORS = {
   invalid_url: "url must be a valid URL",
@@ -61,7 +63,14 @@ export function linkRoutes({ db, now }: LinkRoutesDeps) {
     })
     .post(
       "/links",
-      rateLimitPerUser({ limit: SAVES_PER_MINUTE, windowMs: 60_000, now }),
+      rateLimit<AuthEnv>({
+        limit: SAVES_PER_MINUTE,
+        windowMs: 60_000,
+        maxKeys: SAVERS_TRACKED,
+        now,
+        key: (c) => c.get("userId"),
+        message: "Too many saves, try again shortly",
+      }),
       validator("json", parseWith(saveLinkRequestSchema, "Invalid request body")),
       async (c) => {
         const { url, collectionId, source } = c.req.valid("json");

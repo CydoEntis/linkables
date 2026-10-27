@@ -1,8 +1,13 @@
-import { createRootRoute, createRoute, createRouter, stripSearchParams } from "@tanstack/react-router";
+import { EXTENSION_CONNECT_PATH } from "@linkables/shared/extension-sessions";
+import { createRootRoute, createRoute, createRouter, redirect, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
+import { RequestAccessPage } from "./access/RequestAccessPage";
 import { AuthGate } from "./auth/AuthGate";
-import { linkDetailsSearchShape } from "./link-details/details-search";
+import { REQUEST_ACCESS_PATH } from "./config/access";
+import { LinkPage } from "./link-page/LinkPage";
+import { oldLinkSearchShape, redirectOldLinkAddress } from "./link-page/old-link-address";
 import { CollectionPage } from "./collections/CollectionPage";
+import { ExtensionConnectPage } from "./extension-connect/ExtensionConnectPage";
 import { ExtensionGuidePage } from "./extension-guide/ExtensionGuidePage";
 import { EXTENSION_GUIDE_PATH } from "./extension-guide/path";
 import { SignInPage } from "./auth/SignInScreen";
@@ -14,7 +19,12 @@ import { SAVE_PATH } from "./save/pending-save";
 import { SavePage } from "./save/SavePage";
 import { saveSearchSchema } from "./save/save-search";
 import { SAVE_ANYWHERE_PATH, SaveAnywherePage, saveAnywhereSearchSchema } from "./save-anywhere/SaveAnywherePage";
+import { AccountDeletedPage } from "./settings/AccountDeletedPage";
+import { ACCOUNT_DELETED_PATH, SETTINGS_PATH } from "./settings/path";
+import { SettingsPage } from "./settings/SettingsPage";
 import { listFiltersShape, orderRange } from "./search/list-filters";
+import { SHARED_PATH_PREFIX } from "./sharing/path";
+import { SharedCollectionPage } from "./sharing/SharedCollectionPage";
 import { NotFoundPage } from "./shell/NotFoundPage";
 
 const rootRoute = createRootRoute({ component: AuthGate, notFoundComponent: NotFoundPage });
@@ -24,6 +34,7 @@ const linksRoute = createRoute({
   path: "/",
   validateSearch: linksSearchSchema,
   search: { middlewares: [stripSearchParams(DEFAULT_LINKS_SEARCH)] },
+  beforeLoad: redirectOldLinkAddress,
   component: LinksPage,
 });
 
@@ -31,8 +42,24 @@ const linksRoute = createRoute({
 const collectionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/c/$collectionId",
-  validateSearch: z.object({ ...listFiltersShape, ...linkDetailsSearchShape }).transform(orderRange),
+  validateSearch: z.object({ ...listFiltersShape, ...oldLinkSearchShape }).transform(orderRange),
+  beforeLoad: redirectOldLinkAddress,
   component: CollectionPage,
+});
+
+// Signed in only: the page reads the owner's own saved link, so a shared
+// collection never links here.
+const linkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/l/$linkId",
+  component: LinkPage,
+});
+
+// The reader had its own address before it became the link page's body.
+const oldReaderRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/l/$linkId/read",
+  beforeLoad: ({ params }) => redirect({ to: "/l/$linkId", params, replace: true, throw: true }),
 });
 
 const signInRoute = createRoute({
@@ -62,14 +89,49 @@ const legalRoutes = [
   createRoute({ getParentRoute: () => rootRoute, path: SUPPORT_PAGE.path, component: SupportPage }),
 ];
 
+// Not prerendered: the form needs the app to submit, so Caddy serves the SPA shell here.
+const requestAccessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: REQUEST_ACCESS_PATH,
+  component: RequestAccessPage,
+});
+
+// Public: the AuthGate lets anyone through, signed in or not.
+const sharedCollectionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: `${SHARED_PATH_PREFIX}$token`,
+  component: SharedCollectionPage,
+});
+
 const extensionGuideRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: EXTENSION_GUIDE_PATH,
   component: ExtensionGuidePage,
 });
 
+// Signed in only: the AuthGate sends a signed-out visit through sign-in and back here.
+const extensionConnectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: EXTENSION_CONNECT_PATH,
+  component: ExtensionConnectPage,
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: SETTINGS_PATH,
+  component: SettingsPage,
+});
+
+const accountDeletedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ACCOUNT_DELETED_PATH,
+  component: AccountDeletedPage,
+});
+
+// Restoring scroll brings a list back where it was when Back leaves a link's page.
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, signInRoute, saveRoute, saveAnywhereRoute, extensionGuideRoute, ...legalRoutes]),
+  scrollRestoration: true,
+  routeTree: rootRoute.addChildren([linksRoute, collectionRoute, linkRoute, oldReaderRoute, signInRoute, saveRoute, saveAnywhereRoute, settingsRoute, accountDeletedRoute, extensionGuideRoute, extensionConnectRoute, requestAccessRoute, sharedCollectionRoute, ...legalRoutes]),
 });
 
 declare module "@tanstack/react-router" {

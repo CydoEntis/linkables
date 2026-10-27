@@ -33,6 +33,9 @@ describe("parseEnv", () => {
           jwksUrl: "https://ref.supabase.co/auth/v1/.well-known/jwks.json",
           testJwks: undefined,
         },
+        resendApiKey: undefined,
+        supabaseUrl: "https://ref.supabase.co",
+        supabaseSecretKey: undefined,
       },
     });
   });
@@ -62,6 +65,30 @@ describe("parseEnv", () => {
     const result = parseEnv({ ...VALID, NODE_ENV: "test", AUTH_TEST_JWKS: '{"keys":[]}' });
 
     expect(result.ok && result.config.auth.testJwks).toBe('{"keys":[]}');
+  });
+
+  it("reads the optional Resend API key", () => {
+    const result = parseEnv({ ...VALID, RESEND_API_KEY: "re_123" });
+
+    expect(result.ok && result.config.resendApiKey).toBe("re_123");
+  });
+
+  it("treats an empty Resend API key as unset", () => {
+    const result = parseEnv({ ...VALID, RESEND_API_KEY: "" });
+
+    expect(result.ok && result.config.resendApiKey).toBeUndefined();
+  });
+
+  it("reads the optional Supabase secret key", () => {
+    const result = parseEnv({ ...VALID, SUPABASE_SECRET_KEY: "sb_secret_123" });
+
+    expect(result.ok && result.config.supabaseSecretKey).toBe("sb_secret_123");
+  });
+
+  it("treats an empty Supabase secret key as unset", () => {
+    const result = parseEnv({ ...VALID, SUPABASE_SECRET_KEY: "" });
+
+    expect(result.ok && result.config.supabaseSecretKey).toBeUndefined();
   });
 
   it("rejects a CORS entry that is not a bare origin", () => {

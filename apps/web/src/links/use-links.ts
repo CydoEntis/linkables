@@ -1,4 +1,5 @@
 import { ERROR_CODES } from "@linkables/shared/http";
+import { UNGROUPED } from "@linkables/shared/groups";
 import { listLinksResponseSchema, type ListLinksResponse, type SavedLink } from "@linkables/shared/links";
 import { useInfiniteQuery, useQueryClient, type InfiniteData, type QueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
@@ -18,8 +19,9 @@ const PENDING_BACKOFF = [
   { untilAgeMs: 120_000, intervalMs: 15_000 },
 ] as const;
 
-// A list is one of the views, or one collection's links.
-export type ListScope = { view: LinksView } | { collectionId: string };
+// A list is one of the views, or one collection's links; groupId narrows a
+// collection to one of its groups, or to UNGROUPED.
+export type ListScope = { view: LinksView } | { collectionId: string; groupId?: string };
 
 export const linksKeys = {
   all: ["links"] as const,
@@ -30,7 +32,9 @@ export const linksKeys = {
 };
 
 export function scopeKey(scope: ListScope) {
-  return "view" in scope ? linksKeys.list(scope.view) : linksKeys.collection(scope.collectionId);
+  if ("view" in scope) return linksKeys.list(scope.view);
+  const collection = linksKeys.collection(scope.collectionId);
+  return scope.groupId === undefined ? collection : ([...collection, "group", scope.groupId] as const);
 }
 
 // What the list really shows. A search covers every link (brief 5.9), so on the
@@ -56,10 +60,15 @@ export function belongsIn(scope: ListScope, link: SavedLink, filters: ListFilter
   if (filters.pinned && !link.pinned) return false;
   if (filters.collection !== undefined && !inCollection(filters.collection)) return false;
   const effective = effectiveScope(scope, filters);
-  if ("collectionId" in effective) return inCollection(effective.collectionId);
+  if ("collectionId" in effective) return inCollection(effective.collectionId) && inGroup(link, effective.groupId);
   if (effective.view === "inbox") return link.collections.length === 0;
   if (effective.view === "pinned") return link.pinned;
   return true;
+}
+
+function inGroup(link: SavedLink, groupId: string | undefined): boolean {
+  if (groupId === undefined) return true;
+  return groupId === UNGROUPED ? (link.groupId ?? null) === null : link.groupId === groupId;
 }
 
 export type LinksPages = InfiniteData<ListLinksResponse, string | undefined>;
@@ -77,8 +86,10 @@ function filterParams(params: URLSearchParams, { q, sort, kind, pinned, from, to
 function listPath(scope: ListScope, filters: ListFilters, cursor: string | undefined): string {
   const effective = effectiveScope(scope, filters);
   const params = new URLSearchParams();
-  if ("collectionId" in effective) params.set("collectionId", effective.collectionId);
-  else if (effective.view === "inbox") params.set("view", "inbox");
+  if ("collectionId" in effective) {
+    params.set("collectionId", effective.collectionId);
+    if (effective.groupId !== undefined) params.set("groupId", effective.groupId);
+  } else if (effective.view === "inbox") params.set("view", "inbox");
   else if (effective.view === "pinned") params.set("pinned", "true");
   filterParams(params, filters);
   if (cursor !== undefined) params.set("cursor", cursor);
@@ -86,18 +97,35 @@ function listPath(scope: ListScope, filters: ListFilters, cursor: string | undef
   return query ? `/links?${query}` : "/links";
 }
 
-export function findListedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
-  for (const [, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.lists })) {
-    const found = data?.pages.flatMap((page) => page.items).find((item) => item.id === linkId);
-    if (found) return found;
-  }
-  return undefined;
+export type CachedCopy = { link: SavedLink; updatedAt: number };
+
+// Only lists on screen poll for metadata, so a list visited earlier can still
+// hold a link as pending. A fetched copy always beats a pending one, since
+// metadata never goes back to pending; the timestamp only breaks ties, because
+// any change to one link re-stamps every list, holding it or not.
+function isFresher(candidate: CachedCopy, current: CachedCopy | undefined): boolean {
+  if (current === undefined) return true;
+  if (isPending(candidate.link) !== isPending(current.link)) return isPending(current.link);
+  return candidate.updatedAt > current.updatedAt;
 }
 
-// The link as the cache has it, for UI that holds only an id: from a loaded
-// list, or else as details fetched it on its own.
+export function findListedCopy(queryClient: QueryClient, linkId: string): CachedCopy | undefined {
+  let freshest: CachedCopy | undefined;
+  for (const [queryKey, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.lists })) {
+    const link = data?.pages.flatMap((page) => page.items).find((item) => item.id === linkId);
+    const copy = link && { link, updatedAt: queryClient.getQueryState(queryKey)?.dataUpdatedAt ?? 0 };
+    if (copy && isFresher(copy, freshest)) freshest = copy;
+  }
+  return freshest;
+}
+
+// The link as the cache has it, for UI that holds only an id: the freshest of
+// the loaded lists' copies and the one details fetched on its own.
 export function findCachedLink(queryClient: QueryClient, linkId: string): SavedLink | undefined {
-  return findListedLink(queryClient, linkId) ?? queryClient.getQueryData<SavedLink>(linksKeys.detail(linkId));
+  const listed = findListedCopy(queryClient, linkId);
+  const own = queryClient.getQueryState<SavedLink>(linksKeys.detail(linkId));
+  if (own?.data && isFresher({ link: own.data, updatedAt: own.dataUpdatedAt }, listed)) return own.data;
+  return listed?.link;
 }
 
 // Applies a change made on this device to every cached copy of the link.
@@ -124,8 +152,8 @@ export function isPending(link: SavedLink): boolean {
 // savedAt, so a device clock ahead of the server cannot stop polling early.
 export function pendingPoller() {
   const firstSeen = new Map<string, number>();
-  return (data: LinksPages | undefined, now: number): number | false => {
-    const pendingIds = (data?.pages ?? []).flatMap((page) => page.items.filter(isPending).map((link) => link.id));
+  return (links: readonly SavedLink[], now: number): number | false => {
+    const pendingIds = links.filter(isPending).map((link) => link.id);
     for (const id of firstSeen.keys()) if (!pendingIds.includes(id)) firstSeen.delete(id);
     if (pendingIds.length === 0) return false;
     for (const id of pendingIds) if (!firstSeen.has(id)) firstSeen.set(id, now);
@@ -163,7 +191,7 @@ export function useLinks(scope: ListScope, filters: ListFilters = {}) {
     // While a search, filter or sort changes, the same list's last results stay up instead of a skeleton.
     placeholderData: (previous, previousQuery) =>
       filtered && ownKey.every((part, index) => previousQuery?.queryKey[index] === part) ? previous : undefined,
-    refetchInterval: (current) => pendingInterval(current.state.data, Date.now()),
+    refetchInterval: (current) => pendingInterval(current.state.data?.pages.flatMap((page) => page.items) ?? [], Date.now()),
     retry: (failures, error) => !isApiError(error, ERROR_CODES.VALIDATION) && shouldRetry(failures, error),
   });
 

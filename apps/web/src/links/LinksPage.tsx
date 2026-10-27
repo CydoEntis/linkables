@@ -1,5 +1,5 @@
 import { getRouteApi, Navigate } from "@tanstack/react-router";
-import { withoutLinkDetails } from "../link-details/details-search";
+import { withoutOldLink } from "../link-page/old-link-address";
 import { DropToSave } from "../save-anywhere/DropToSave";
 import { SAVE_ANYWHERE_PATH } from "../save-anywhere/SaveAnywherePage";
 import { welcomeSeen } from "../save-anywhere/welcome";
@@ -12,7 +12,7 @@ const route = getRouteApi("/");
 export function LinksPage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
-  const { view, ...filters } = withoutLinkDetails(search);
+  const { view, ...filters } = withoutOldLink(search);
   const onFiltersChange: FiltersChange = (patch, { replace = false } = {}) => {
     void navigate({ search: (previous) => ({ ...previous, ...patch }), replace });
   };

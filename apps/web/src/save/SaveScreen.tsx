@@ -5,6 +5,7 @@ import { AlertCircle, Check, Loader2, Undo2, Unlink } from "lucide-react";
 import { useId, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { cn } from "cn";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { saveLinkFormSchema, type SaveLinkFormInput, type SaveLinkFormOutput } from "../links/save-link-form";
 import { CollectionPicks } from "./CollectionPicks";
 import { Confetti } from "./Confetti";
@@ -94,9 +95,9 @@ function ScreenBody({ state, title, onUndo, undoing = false, onRetry, onSaveUrl 
         <>
           <Status icon={<AlertCircle className="size-5 text-destructive" />} heading="Couldn't save" note={state.message} alert />
           <Footer quiet>
-            <button type="button" onClick={onRetry} className="h-[54px] rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground">
+            <Button size="xl" onClick={onRetry}>
               Retry
-            </button>
+            </Button>
           </Footer>
         </>
       );
@@ -132,14 +133,15 @@ function Saved({ link, title, onUndo, undoing }: SavedProps) {
       <CollectionPicks linkId={link.id} inCollections={link.collections.map((collection) => collection.id)} />
       <Footer>
         {onUndo ? (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="xl"
             onClick={onUndo}
             disabled={undoing}
-            className="h-[54px] rounded-2xl bg-muted px-[22px] text-base font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+            className="px-[22px] text-muted-foreground hover:text-foreground disabled:opacity-60"
           >
             Undo
-          </button>
+          </Button>
         ) : null}
       </Footer>
     </>
@@ -194,10 +196,11 @@ function Status({ icon, heading, detail, note, tone = "neutral", celebrate = fal
 function Footer({ children, quiet = false }: { children?: ReactNode; quiet?: boolean }) {
   const popup = usePopupWindow();
   const navigate = useNavigate();
-  const secondary = cn(
-    "flex h-[54px] flex-1 items-center justify-center rounded-2xl text-base font-bold",
-    quiet ? "bg-muted text-foreground hover:bg-accent" : "bg-foreground text-background",
-  );
+  const secondary = buttonVariants({
+    variant: "ghost",
+    size: "xl",
+    className: cn("flex-1 font-bold", !quiet && "bg-foreground text-background hover:bg-foreground hover:brightness-95"),
+  });
   if (!popup) {
     return (
       <footer className="mt-auto flex gap-2.5 md:mt-0">
@@ -255,9 +258,9 @@ function PasteForm({ onSaveUrl }: { onSaveUrl: (url: string) => void }) {
           aria-describedby={error ? errorId : undefined}
           className="h-[54px] min-w-0 flex-1 rounded-2xl bg-muted px-4 text-base outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:shadow-[0_0_0_1.5px_var(--destructive)]"
         />
-        <button type="submit" className="h-[54px] shrink-0 rounded-2xl bg-primary px-5 text-base font-bold text-primary-foreground">
+        <Button type="submit" size="xl" className="px-5">
           Save
-        </button>
+        </Button>
       </div>
       {error ? (
         <p id={errorId} role="alert" className="text-[13px] text-destructive">

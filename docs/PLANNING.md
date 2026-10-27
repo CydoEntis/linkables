@@ -59,15 +59,29 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
    IPv4-mapped addresses, on every redirect hop.
    Check: `pnpm --filter api test fetcher`.
 2. No code outside `apps/api/src/metadata/fetcher.ts` makes outbound HTTP, except
-   the Supabase JWKS fetch inside the auth middleware (ADR-0002).
-   Check: ESLint in `apps/api` excluding that file bans `fetch` and
+   the Supabase JWKS fetch inside the auth middleware (ADR-0002) and the owner's
+   access-request email to Resend's fixed API host (`apps/api/src/access/notify-owner.ts`)
+   and the one-time code of a private share to the same host
+   (`apps/api/src/sharing/send-viewer-code.ts`); neither fetches a user-supplied URL,
+   so they need no SSRF guard.
+   Check: ESLint in `apps/api` excluding those files bans `fetch` and
    `globalThis.fetch`, and static or dynamic imports of `undici` (and subpaths),
    `http`, `https` and `http2` (test files may import `http` for local test
    servers); `pnpm lint`.
-3. Every route except `/health` needs a valid Supabase JWT, and every query is
-   scoped to `sub`. Check: `apps/api/test/authz.db.test.ts` (every route: no
-   token → 401, another user's ids → 404, no leaks in any listing; fails if a route
-   is missing from it).
+3. Every route except `/health`, `POST /access-requests`,
+   `GET /shared/:token`, `POST /shared/:token/code` and
+   `POST /shared/:token/verify` needs a valid Supabase JWT, and every query is scoped to
+   `sub`. The request-access form is public because its users have no account
+   yet; it only inserts, gives the same answer whatever is stored, and is
+   rate-limited per IP. A shared collection is public because its owner turned
+   its view-only link on; it reads only that collection's display fields (and its shown groups' names) and is
+   rate-limited per IP. When the owner limits a share to listed emails, the read also
+   needs a short-lived viewer session for that one collection, earned through the two
+   code routes, which answer the same for every address (full reasoning in AGENTS.md
+   and ADR-0008).
+   Check: `apps/api/test/authz.db.test.ts` (every route: no token → 401, another
+   user's ids → 404, no leaks in any listing; each public API route is probed for
+   what it gives back; fails if a route is missing from it).
 4. The database is reachable only through the API.
    Check: the SQL in P1-02's verify returns 0 and the Data API is off on the
    project (turned off 2026-10-22).
@@ -83,12 +97,12 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 
 ## Out of scope (now)
 
-- Sharing and collaboration (Phase 3)
+- Sharing with roles, invitations and collaboration (Phase 3); view-only share links are already in
 - AI features (Phase 4)
 - Billing and team plans (Phase 5)
-- Native mobile apps, nested collections, marketing site (Phase 6 or later)
-- Firefox extension
-- Tags, archive, bulk actions, account deletion (not asked for; add when wanted)
+- Native mobile apps, recursive nested collections (one level of groups is in, ADR-0007), marketing site (Phase 6 or later)
+- Tags, archive, bulk actions (not asked for; add when wanted)
+- Automated sign-in removal: Settings deletes a user's data at once, and the server's optional Supabase secret key is used only for extension sign-in, so the owner removes the sign-in record by hand within 30 days (emailed on each deletion)
 
 ## Phases
 
@@ -110,7 +124,24 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
   collection; sign-in is the 6-digit email code with the session in
   `chrome.storage.local`. The zip is served at `/downloads/linkables-chrome.zip`
   with an install guide at `/extension`. Everything else in Phase 2 stays there.
-- Deferred: the rest of the browser extension (Phase 2), any sharing.
+  Since 2026-10-26 it is in the Chrome Web Store (unlisted), which `/extension`
+  links to; the zip stays for existing by-hand installs. The side panel and
+  sign-in from linkables.app or Google (LNK-55, LNK-56) were pulled forward.
+  A Firefox build (LNK-58), signed as an unlisted add-on and served at
+  `/downloads/linkables-firefox.xpi`, was added on the same terms.
+- Also in, 2026-10-26 and 27: **groups** inside a collection, one level deep
+  (ADR-0007): group headers, drag a link onto a header or reorder by the grip,
+  and sharing by group (`shared` per group, `collection.share_ungrouped`, group
+  headings on the public page). A collection's page has **Open all** and
+  **Select** to open many links, with a confirm and a per-device "Don't ask me
+  again"; clicking a link opens it, with Read on hover (not for videos and
+  files). Where the web UI went beyond the design, `docs/design/DEVIATIONS.md`
+  says so.
+- Also in, 2026-10-27: **private shares** (ADR-0008). A share can be limited to
+  listed emails; a viewer with no account enters their email, gets a one-time
+  code, and opens only that collection for 12 hours.
+- Deferred: the rest of the browser extension (Phase 2), sharing with editors and
+  invited members.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
 - Tickets: Plane project `linkables` (LNK), workspace `ideayard`, project id
@@ -182,6 +213,8 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 
 - Objective: optional summaries and search over saved content, with citations.
 - In: on-demand summaries, semantic search, library Q&A with citations, usage metering.
+- Owner-requested (2026-10-25): "Reader: summaries, notes and highlights on articles". The
+  summaries belong here; notes and highlights inside articles are a Phase 6 candidate.
 - Exit: every AI call is metered and capped; summaries state whether source text
   or only metadata was used.
 - Tickets: none (outline only).
@@ -196,8 +229,9 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 ### Phase 6 — Later
 
 - Objective: nothing committed. Each item is evaluated by user demand and cost.
-- Candidates: native apps, nested collections, import integrations, public
-  directories, marketing site.
+- Candidates: native apps, recursive nested collections (groups, one level, shipped 2026-10-26), import integrations, public
+  directories, marketing site, and notes and highlights on reader articles
+  (owner-requested 2026-10-25, with the summaries in Phase 4).
 - Tickets: none.
 
 ## Hub

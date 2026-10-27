@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../packages/shared/src/ui";
 
 /* The handoff's dark tokens, the same values as apps/web/src/index.css, limited to what the pop-up uses. */
 @theme inline {
@@ -31,6 +32,7 @@
     --animate-tick: tick 0.3s ease-out;
     --animate-pin-pop: pin-pop 0.55s var(--ease-out-soft);
     --animate-shake: shake 0.3s ease-in-out;
+    --animate-sheet-up: sheet-up 0.32s var(--ease-out-soft) both;
 }
 
 :root {
@@ -97,6 +99,11 @@
     75% { transform: translateX(6px); }
 }
 
+@keyframes sheet-up {
+    from { transform: translateY(100%); }
+    to { transform: none; }
+}
+
 @layer base {
     * {
         @apply border-border outline-ring;
@@ -104,6 +111,10 @@
     /* Chrome sizes the pop-up to its content; the handoff draws it 344 wide. */
     body {
         @apply w-[344px] bg-card font-sans text-foreground antialiased;
+    }
+    /* The side panel is as wide as the user drags it, 320 to 600 px or so. */
+    .panel body {
+        @apply w-auto min-w-[320px];
     }
     input::placeholder {
         color: var(--subtle-foreground);

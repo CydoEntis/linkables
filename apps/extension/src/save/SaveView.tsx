@@ -1,6 +1,7 @@
 import { AlertCircle, Ban, LoaderCircle } from "lucide-react";
 import type { ReactNode } from "react";
-import { signOut } from "../auth/supabase";
+import { SignedInAs } from "../auth/SignedInAs";
+import { signOutByHand } from "../auth/supabase";
 import { GHOST_BUTTON, PRIMARY_BUTTON, QUIET_LINK } from "../ui";
 import { SAVE_MESSAGES } from "./save-flow";
 import { Saved } from "./Saved";
@@ -71,13 +72,16 @@ function SaveFailed({ message, onRetry }: { message: string; onRetry: () => void
   );
 }
 
-// The handoff's footer hint (Alt+Shift+S) belongs to Phase 2; sign-out takes its place.
 function Footer() {
   return (
-    <footer className="flex items-center justify-between border-t border-border py-2.5 pr-3 pl-3">
-      <button type="button" onClick={() => void signOut()} className={QUIET_LINK}>
-        Sign out
-      </button>
+    <footer className="flex items-center justify-between gap-3 border-t border-border py-2.5 pr-3 pl-3">
+      <div className="flex min-w-0 flex-col items-start gap-0.5">
+        <p className="text-[11.5px] text-muted-foreground">Alt+Shift+S saves quietly</p>
+        <SignedInAs />
+        <button type="button" onClick={() => void signOutByHand()} className={QUIET_LINK}>
+          Sign out
+        </button>
+      </div>
       <button type="button" onClick={() => { window.close(); }} className={GHOST_BUTTON}>
         Done
       </button>

@@ -5,11 +5,11 @@ const mail = <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>;
 
 export const PRIVACY_DOC: LongTextDoc = {
   title: "Privacy policy",
-  updated: "October 24, 2026",
+  updated: "October 26, 2026",
   short: [
     "We store the links you save, and what you add to them, so you can find them on any device.",
     "No ads, no analytics, no tracking, and we never sell your data.",
-    "You can export everything any time, and ask us to delete your account.",
+    "You can export everything any time, and delete your account yourself in Settings.",
   ],
   sections: [
     {
@@ -57,7 +57,11 @@ export const PRIVACY_DOC: LongTextDoc = {
             page they share its title and picture. Nobody can see who else saved it.
           </p>
           <p>
-            Preview images and site icons load in your browser straight from the site they belong to (for example YouTube). Like any image on the web, that
+            If you open a page in the reader, our server visits it the same way and stores a readable copy of the article's text and image addresses with
+            the page details, refreshing it when it's more than a week old.
+          </p>
+          <p>
+            Preview images, site icons and images in the reader load in your browser straight from the site they belong to (for example YouTube). Like any image on the web, that
             site can see your IP address when your browser loads it. We tell your browser not to send it your linkables address.
           </p>
         </>
@@ -72,6 +76,10 @@ export const PRIVACY_DOC: LongTextDoc = {
           <p>
             There are no ads in linkables, no analytics or tracking scripts, and no profile of you. We don't sell your data or share it with anyone except
             the providers below, who process it only to run the service.
+          </p>
+          <p>
+            If you turn on a collection's share link, anyone with that link can see the collection's name and its links' addresses, titles, descriptions and
+            preview images, without signing in. They can't see your notes, your pins or who you are. Turning the link off stops it working right away.
           </p>
         </>
       ),
@@ -88,7 +96,9 @@ export const PRIVACY_DOC: LongTextDoc = {
             <strong>OVHcloud</strong> hosts the linkables website and server, in Vint Hill, Virginia, USA.
           </li>
           <li>
-            <strong>Resend</strong> sends the sign-in emails, from noreply@linkables.app, so it receives your email address when you ask for a sign-in code.
+            <strong>Resend</strong> sends the sign-in emails, from noreply@linkables.app, so it receives your email address when you ask for a sign-in code. It also
+            delivers each access request to us, and, when you delete your account, a note with your email address and account ID so we can remove your
+            sign-in.
           </li>
           <li>
             <strong>Google</strong>, only if you choose Continue with Google, confirms who you are and tells us your email address.
@@ -101,8 +111,8 @@ export const PRIVACY_DOC: LongTextDoc = {
       heading: "Cookies and local storage",
       body: (
         <p>
-          linkables uses no tracking cookies. Your browser's local storage keeps your sign-in session, so you stay signed in, and a few settings such as the
-          width of the details panel. Signing out removes the session.
+          linkables uses no tracking cookies. Your browser's local storage keeps your sign-in session, so you stay signed in, and a few display
+          settings. Signing out removes the session.
         </p>
       ),
     },
@@ -118,12 +128,16 @@ export const PRIVACY_DOC: LongTextDoc = {
     },
     {
       id: "extension",
-      heading: "The Chrome extension (beta)",
+      heading: "The browser extension (beta)",
       body: (
         <p>
-          The Chrome extension reads the address and title of a tab only when you click linkables in the toolbar on that tab. It sends the address to
-          your account to save it; the title is only shown in the pop-up. It keeps your sign-in in Chrome's storage for the extension. It doesn't read
-          what you type into pages, your passwords, or your browsing history.
+          The Chrome and Firefox extension reads the address and title of a tab only after you use linkables on that tab: by clicking linkables in the toolbar,
+          pressing its side panel shortcut, or choosing Save link to linkables from the right-click menu. If you turn on Follow the tab you're on in
+          its side panel, it also reads the address and title of the tab you're on while the panel is open. It sends the address to your account to
+          save it, and while its side panel is open it sends the address to check whether you've saved that page before; the title is only shown in
+          the extension. Saving a link from the right-click menu sends that link's address. To sign in, it can take a one-time sign-in code for your
+          own account from linkables.app when you're signed in there, or use Google or an email code. It keeps your sign-in in the browser's extension storage for
+          the extension. In Firefox, the extension asks for permission to reach linkables.app; without it, it can't save. It doesn't read what you type into pages, your passwords, or your browsing history.
         </p>
       ),
     },
@@ -143,6 +157,18 @@ export const PRIVACY_DOC: LongTextDoc = {
       ),
     },
     {
+      id: "access-requests",
+      heading: "Access requests",
+      body: (
+        <p>
+          While linkables is invite-only, you can ask for access with the form at linkables.app/request-access. We keep the email address, and the
+          optional name and note you send, with the time and the kind of browser you sent it from, only to decide on and send beta invites. Your IP
+          address is used briefly, in our server's memory, to limit repeat requests, and is never stored. Each request is also sent to us by email through Resend. We keep requests until the beta ends, or until you
+          ask us to delete yours at {mail}.
+        </p>
+      ),
+    },
+    {
       id: "export-delete",
       heading: "Export and delete",
       body: (
@@ -152,9 +178,11 @@ export const PRIVACY_DOC: LongTextDoc = {
             collection.
           </p>
           <p>
-            To delete your account, email {mail} from the address you sign in with. We delete your account, links, notes and collections within 30 days,
-            and tell you when it's done. Page details stay, because they aren't tied to you.
+            To delete your account, open your account menu, choose Settings, then Delete account. Your links, notes and collections are deleted right
+            away, and any share links stop working. We remove your sign-in record, your email address and how you sign in, from Supabase within 30
+            days. Page details stay, because they aren't tied to you.
           </p>
+          <p>If you can't sign in, email {mail} from the address you sign in with and we'll delete your account for you.</p>
         </>
       ),
     },

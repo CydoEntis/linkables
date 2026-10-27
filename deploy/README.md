@@ -8,17 +8,30 @@ it is not a second production writer:
 then `sudo tailscale serve reset`.
 
 ```
-push to main → CI: verify, e2e, image smoke test
-             → publish: migrate Supabase, build web, push amd64+arm64 images to GHCR
-server timer (every 5 min) → docker compose pull && up -d
+push to main → the server pulls main (about every 5 minutes)
+             → the server's own build scripts: verify, migrate Supabase,
+               build the web and API images, add the Chrome zip, restart
 host Caddy (HTTPS :443) → web container 127.0.0.1:8080 (Caddy)
                             ├─ /api/*, /health → api container :3000
                             └─ everything else → the built SPA
 ```
 
-CI never connects to the server; it only publishes images, and the server pulls
-them. The server will also host other static sites, each one more site block in
-the host's Caddyfile.
+Production builds on the VPS. The build scripts live on the server at
+`/srv/build`, outside this repo, and are not documented here. GitHub Actions
+are disabled, so `.github/workflows/ci.yml`, its GHCR publish job, and the
+GHCR-based `docker-compose.yml`, `linkables-update.service` and
+`linkables-update.timer` in this folder describe the earlier flow and do not
+run production. What the repo does fix:
+
+- The server's web build adds `linkables-chrome.zip` to the web `dist/`
+  (`apps/extension/README.md`).
+- Anything under `apps/web/public/` reaches the image by itself. That is why
+  the signed Firefox add-on, `apps/web/public/downloads/linkables-firefox.xpi`,
+  is committed there; the build has no signing keys.
+- `apps/web/Caddyfile` serves `/downloads/*.xpi` as `application/x-xpinstall`.
+
+The server also hosts other static sites, each one more site block in the host's
+Caddyfile.
 
 ## One-time server setup
 
@@ -48,16 +61,16 @@ Run on the server as a user with sudo.
    }
    ```
    Then `sudo systemctl reload caddy`.
-6. **Stack folder.** Copy `deploy/docker-compose.yml` to `/srv/linkables/`, and
+6. **Stack folder (earlier GHCR flow).** Copy `deploy/docker-compose.yml` to `/srv/linkables/`, and
    write `/srv/linkables/.env` from `deploy/.env.production.example`
    (`chmod 600`).
-7. **Registry login.** The images are private. Create a GitHub classic token
+7. **Registry login (earlier GHCR flow).** The images are private. Create a GitHub classic token
    with only `read:packages`, then:
    ```sh
    sudo docker login ghcr.io -u <github-user> --password-stdin
    ```
    (`sudo`, because the update timer runs as root.)
-8. **Update timer.**
+8. **Update timer (earlier GHCR flow).**
    ```sh
    sudo cp deploy/linkables-update.service deploy/linkables-update.timer /etc/systemd/system/
    sudo systemctl daemon-reload
@@ -75,7 +88,9 @@ needs its own records to get a certificate):
 Keep Resend's records (`resend._domainkey`, `send`, `rsend`); sign-in email
 depends on them.
 
-## GitHub settings
+## GitHub settings (earlier flow)
+
+Used only if Actions are turned back on:
 
 - Variable `APP_ORIGIN`: `https://linkables.app`
 - Variable `IOS_SHORTCUT_URL` (optional): the iCloud link to the Shortcut.
@@ -96,13 +111,8 @@ app's own address is checked by Supabase's Redirect URLs above.
 
 ## Day to day
 
-- Deploy: merge to main. The server runs it within about 5 minutes of CI
-  finishing.
-- Force an update now: `sudo systemctl start linkables-update.service`
-- Logs: `cd /srv/linkables && docker compose logs -f api`
-- Roll back: pin `image:` in `/srv/linkables/docker-compose.yml` to a commit
-  SHA tag (`ghcr.io/cydoentis/linkables-api:<sha>`) and run the update service.
+- Deploy: merge to main. The server picks it up within about 5 minutes.
+- Build, update and roll back: use the scripts in `/srv/build` on the server;
+  they are not in this repo.
 - Add another site: add its site block to `/etc/caddy/Caddyfile` and run
   `sudo systemctl reload caddy`.
-- shortcut: the server does not pick up changes to `deploy/docker-compose.yml`;
-  copy it to `/srv/linkables/` by hand when it changes.

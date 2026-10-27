@@ -10,3 +10,15 @@ export function chromeStorage(area: chrome.storage.StorageArea) {
     removeItem: (key: string) => area.remove(key),
   };
 }
+
+// The PKCE verifier only has to last until the Google window returns, so it is
+// kept in memory (chrome.storage.session) rather than written to disk.
+export function authStorage(local: chrome.storage.StorageArea, session: chrome.storage.StorageArea) {
+  const [persistent, inMemory] = [chromeStorage(local), chromeStorage(session)];
+  const areaFor = (key: string) => (key.endsWith("-code-verifier") ? inMemory : persistent);
+  return {
+    getItem: (key: string) => areaFor(key).getItem(key),
+    setItem: (key: string, value: string) => areaFor(key).setItem(key, value),
+    removeItem: (key: string) => areaFor(key).removeItem(key),
+  };
+}

@@ -21,9 +21,8 @@ test.describe("at 1280 px", () => {
   });
 
   test("the bookmark button dialog keeps Tab inside", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Account" }).click();
-    await page.getByRole("menuitem", { name: "Get the bookmark button" }).click();
+    await page.goto("/settings");
+    await page.getByRole("button", { name: "Get the button" }).click();
     await expect(page.getByRole("dialog", { name: "Get the bookmark button" })).toBeVisible();
     await expectFocusTrapped(page);
   });

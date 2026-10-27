@@ -25,7 +25,7 @@ Open `prototype.dc.html` in a browser. The dark strip at the top switches betwee
 |---|---|
 | **Link** | One saved URL: user title, note, pin, collections. |
 | **New** | Links in no collection. (The brief calls this "Inbox". The UI label is **New**; it was "To sort" until the 2026-10-24 handoff, so "To sort" below means New.) |
-| **Collection** | Named group of links. Flat, with no sub-collections. A link can be in many. |
+| **Collection** | Named group of links. Not recursive: it can be split into one level of groups, built after this design (see `docs/design/DEVIATIONS.md`). A link can be in many. |
 | **Pin** | Keeps a link (or a collection) at the top. |
 | **Note** | Private plain-text note on a link. |
 | **Kind** | `video` / `page` / `other`. |

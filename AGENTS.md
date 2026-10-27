@@ -27,7 +27,7 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
 ## Layout
 
 - `apps/api`: Hono API and worker. One folder per feature under `src/`
-  (`links/`, `collections/`, `metadata/`, `auth/`, ...) holding its routes,
+  (`links/`, `collections/`, `groups/`, `sharing/`, `metadata/`, `auth/`, ...) holding its routes,
   logic and tests. Cross-cutting HTTP code (envelope, errors, request id) in
   `src/http/`; DB schema and client in `src/db/`; integration tests and
   fixtures in `apps/api/test/`.
@@ -61,10 +61,59 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - All data access goes through the API and is scoped to the signed-in user's
   `sub`. No query returns another user's rows (plan Rule 3). Every new route gets
   a two-user test and an entry in `apps/api/test/authz.db.test.ts`.
+- Every route needs a JWT except `GET /health`, `POST /access-requests`,
+  `GET /shared/:token`, `POST /shared/:token/code` and
+  `POST /shared/:token/verify`. The request-access form is public because the people
+  filling it in have no account yet; it only inserts, answers every request the
+  same way, and is rate-limited per IP. A shared collection is public because
+  its owner chose to show it to people without an account: the token is 192
+  random bits that the owner turns on and off, it reads only that one
+  collection's name, the names and link counts of the groups the owner shows,
+  and its links' display fields (no ids, notes, pins, dates or owner), and, when the collection has groups (one level, per collection), the
+  names of the groups the owner chose to share, each with only its links; a group
+  the owner left out, or the ungrouped links when switched off, is absent from the
+  response entirely, names included. The owner sets this per group; everything
+  starts shared. Deleting or moving a link out of an unshared group makes it
+  ungrouped, hence public while the ungrouped tick is on, and the delete-group
+  confirmation says so. An unknown, malformed or turned-off token is the same NOT_FOUND, and
+  it is rate-limited per IP.
+  An owner may instead limit a share to listed emails (`collection.share_private`,
+  ADR-0008). Then `GET /shared/:token` also needs the `X-Viewer-Session` header,
+  and without a valid one answers `FORBIDDEN` before it reads anything of the
+  collection, its name included (`FORBIDDEN`, because the web client takes
+  `UNAUTHENTICATED` as a signed-out owner). That session comes from the two other
+  public routes, which let a viewer with no account prove an address:
+  `POST /shared/:token/code` takes an email, `POST /shared/:token/verify` takes
+  the email and the 6-digit code. Asking for a code always gives the same empty
+  success, whether the address is listed or not and whether the link is unknown,
+  off or open to anyone, does the same work, and mails only a listed address
+  without the answer waiting on the mail. A wrong or expired code, an unlisted address and an
+  unknown link all get the same `FORBIDDEN`. Both routes are rate-limited per IP
+  and per link-and-address, counted before the list is read so being refused says
+  nothing about it, and the mail we send is capped per hour. A code is single
+  use, lasts 10 minutes, allows five tries, and is stored only as a salted
+  scrypt hash, compared in constant time. A session is 192 random bits stored as
+  a SHA-256 hash, good for 12 hours for that one collection; it ends when the
+  owner removes the address, makes the share open to anyone, or turns the link
+  off. Addresses and codes are never logged. The groups the owner shares still
+  decide what a verified viewer sees.
+  authz.db.test.ts lists these as public and checks what each gives back. A new
+  public route needs the same reasoning written down here.
 - Anything that fetches a user-supplied URL goes through the SSRF-guarded
   fetcher (ADR-0003, `apps/api/src/metadata/fetcher.ts`). Never call `fetch` on a
   saved URL directly; never weaken the guard to make a test pass. The fetcher
-  never forwards `X-Request-Id` or `traceparent` to saved URLs.
+  never forwards `X-Request-Id` or `traceparent` to saved URLs. The three other
+  outbound clients are `apps/api/src/access/notify-owner.ts`, which posts to
+  Resend's fixed API host, `apps/api/src/sharing/send-viewer-code.ts`, which
+  posts the one-time code of a private share to the same fixed host (the
+  recipient is the only part a viewer chooses, and only if the owner listed it;
+  no saved URL, no collection name in the mail), and
+  `apps/api/src/extension-sessions/supabase-admin.ts`, which calls only the
+  configured `SUPABASE_URL`'s auth admin API with the optional
+  `SUPABASE_SECRET_KEY` (never logged), never a saved URL. All three are
+  allowlisted by path in `eslint.config.js`.
+- Logs never contain personal data such as a requester's or viewer's email
+  address, or a one-time code.
 - The test auth path (`AUTH_TEST_JWKS`, the committed test key pair) works only
   with `NODE_ENV=test`. Never add another way around token verification.
 - Logs never contain a URL's query string or fragment; use the redacting logger.

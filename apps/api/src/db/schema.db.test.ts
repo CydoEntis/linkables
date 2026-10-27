@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { connectTestDb, truncateAll } from "../../test/db";
-import { collection, collectionItem, job, resource, savedLink } from "./schema";
+import { accessRequest, collection, collectionItem, job, resource, resourceReader, savedLink } from "./schema";
 
 const USER_A = "0b6e2f3a-5c1d-4e8f-9a2b-3c4d5e6f7a81";
 const USER_B = "7d9c1b2a-3e4f-4a5b-8c6d-7e8f9a0b1c22";
@@ -131,5 +131,26 @@ describe("schema", () => {
     await db.delete(resource).where(eq(resource.id, res.id));
 
     expect(await db.$count(job)).toBe(0);
+  });
+
+  it("removes a resource's readable copy when the resource is deleted", async () => {
+    const res = await insertResource();
+    await db.insert(resourceReader).values({ resourceId: res.id, status: "unavailable", reason: "no_article" });
+
+    await db.delete(resource).where(eq(resource.id, res.id));
+
+    expect(await db.$count(resourceReader)).toBe(0);
+  });
+
+  it("rejects a readable copy marked ok without an article", async () => {
+    const res = await insertResource();
+    await expect(db.insert(resourceReader).values({ resourceId: res.id, status: "ok" })).rejects.toMatchObject({
+      cause: { code: "23514" },
+    });
+  });
+
+  it("rejects an access request whose email is not lower case", async () => {
+    // 23514 is check_violation.
+    await expect(db.insert(accessRequest).values({ email: "Sam@example.com" })).rejects.toMatchObject({ cause: { code: "23514" } });
   });
 });

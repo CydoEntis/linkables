@@ -1,11 +1,20 @@
+import { BUTTON_DARK, BUTTON_PRIMARY } from "@linkables/shared/ui";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 
 // Button tiers from the handoff: one lime primary per view, everything else ghost.
-export const PRIMARY_BUTTON =
-  "flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[14.5px] font-bold text-primary-foreground transition hover:brightness-105 disabled:cursor-default disabled:opacity-50";
+export const PRIMARY_BUTTON = cn(
+  BUTTON_PRIMARY,
+  "flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14.5px] disabled:cursor-default disabled:opacity-50",
+);
 
-export const GHOST_BUTTON =
-  "flex h-[34px] items-center justify-center rounded-[10px] bg-accent px-4 text-[13px] font-bold text-foreground hover:bg-muted disabled:cursor-default disabled:opacity-50";
+export const GHOST_BUTTON = cn(
+  BUTTON_DARK,
+  "flex h-[34px] items-center justify-center rounded-[10px] bg-accent px-4 text-[13px] font-bold text-foreground hover:bg-muted disabled:cursor-default disabled:opacity-50",
+);
+
+// The quick-action tiles under a saved page: icon over a short label.
+export const TILE = cn(BUTTON_DARK, "flex h-14 flex-col items-center justify-center gap-1 rounded-xl text-[12px]");
 
 export const QUIET_LINK = "rounded-md px-1 text-[12.5px] text-muted-foreground hover:text-foreground";
 

@@ -1,5 +1,6 @@
 import { isDateOnly, type LinkSort, type LinkView, type ListLinksResponse, type ResourceKind } from "@linkables/shared/links";
-import { and, eq, exists, notExists, sql } from "drizzle-orm";
+import { UNGROUPED } from "@linkables/shared/groups";
+import { and, eq, exists, isNull, notExists, sql } from "drizzle-orm";
 import { requireCollection } from "../collections/collections";
 import type { Db } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
@@ -15,6 +16,7 @@ export type ListLinksInput = {
   limit: number;
   cursor: Cursor | undefined;
   collectionId?: string | undefined;
+  groupId?: string | undefined;
   q?: string | undefined;
   kind?: ResourceKind | undefined;
   pinned?: boolean | undefined;
@@ -32,13 +34,33 @@ function inInbox(db: Db, userId: string) {
   );
 }
 
-function inCollection(db: Db, collectionId: string) {
+function inGroup(groupId: string | undefined) {
+  if (groupId === undefined) return undefined;
+  return groupId === UNGROUPED ? isNull(collectionItem.groupId) : eq(collectionItem.groupId, groupId);
+}
+
+function inCollection(db: Db, collectionId: string, groupId: string | undefined) {
   return exists(
     db
       .select({ one: sql`1` })
       .from(collectionItem)
-      .where(and(eq(collectionItem.savedLinkId, savedLink.id), eq(collectionItem.collectionId, collectionId))),
+      .where(
+        and(
+          eq(collectionItem.savedLinkId, savedLink.id),
+          eq(collectionItem.collectionId, collectionId),
+          inGroup(groupId),
+        ),
+      ),
   );
+}
+
+// The link's group in the one collection being listed.
+function groupIn(collectionId: string | undefined) {
+  if (collectionId === undefined) return sql<null>`null`;
+  return sql<string | null>`(
+    select ${collectionItem.groupId} from ${collectionItem}
+    where ${collectionItem.savedLinkId} = ${savedLink.id} and ${collectionItem.collectionId} = ${collectionId}
+  )`;
 }
 
 // A date bound is a whole UTC day, computed in SQL so 9999-12-31 + 1 day still works.
@@ -55,11 +77,11 @@ function savedThrough(to: string) {
 }
 
 function matchesFilters(db: Db, input: ListLinksInput) {
-  const { userId, view, collectionId, q, kind, pinned, from, to } = input;
+  const { userId, view, collectionId, groupId, q, kind, pinned, from, to } = input;
   return and(
     eq(savedLink.userId, userId),
     view === "inbox" ? inInbox(db, userId) : undefined,
-    collectionId === undefined ? undefined : inCollection(db, collectionId),
+    collectionId === undefined ? undefined : inCollection(db, collectionId, groupId),
     q === undefined ? undefined : matchesSearch(q),
     kind === undefined ? undefined : eq(resource.kind, kind),
     pinned === undefined ? undefined : eq(savedLink.pinned, pinned),
@@ -69,10 +91,10 @@ function matchesFilters(db: Db, input: ListLinksInput) {
 }
 
 export async function listLinks(db: Db, input: ListLinksInput): Promise<ListLinksResponse> {
-  const { userId, sort, limit, cursor, collectionId } = input;
+  const { userId, sort, limit, cursor, collectionId, groupId } = input;
   if (collectionId !== undefined) await requireCollection(db, { userId, id: collectionId });
   const rows = await db
-    .select({ link: savedLink, resource, collections: collectionsOf(userId), ...sortKeys })
+    .select({ link: savedLink, resource, collections: collectionsOf(userId), groupId: groupIn(collectionId), ...sortKeys })
     .from(savedLink)
     .innerJoin(resource, eq(resource.id, savedLink.resourceId))
     .where(and(matchesFilters(db, input), cursor ? await after(db, userId, cursor) : undefined))
@@ -82,7 +104,10 @@ export async function listLinks(db: Db, input: ListLinksInput): Promise<ListLink
   const page = rows.slice(0, limit);
   const last = page.at(-1);
   return {
-    items: page.map((row) => toSavedLink(row.link, row.resource, row.collections)),
+    items: page.map((row) => {
+      const link = toSavedLink(row.link, row.resource, row.collections);
+      return groupId === undefined ? link : { ...link, groupId: row.groupId };
+    }),
     cursor:
       rows.length > limit && last
         ? encodeCursor(cursorAt(sort, { ...last, id: last.link.id, pinned: last.link.pinned }))

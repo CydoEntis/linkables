@@ -63,6 +63,11 @@ describe("sign-in start", () => {
     expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "/support");
   });
 
+  it("sends people without an invite to the request access form", () => {
+    renderScreen();
+    expect(screen.getByRole("link", { name: "request access" })).toHaveAttribute("href", "/request-access");
+  });
+
   it("starts Google sign-in with a redirect back to this page", async () => {
     signInWithOAuth.mockResolvedValue({ data: {}, error: null });
     renderScreen();

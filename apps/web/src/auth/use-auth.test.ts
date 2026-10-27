@@ -39,6 +39,13 @@ function emit(event: AuthChangeEvent, value: Session | null) {
   });
 }
 
+it("clears a rejected token fragment from the URL when already signed in", () => {
+  window.history.replaceState(null, "", "/#access_token=a&refresh_token=b");
+  renderHook(() => useAuth());
+  emit("INITIAL_SESSION", session);
+  expect(window.location.hash).toBe("");
+});
+
 it("stays signed in when the landing check finishes after a sign-in", async () => {
   const { result } = renderHook(() => useAuth());
   emit("INITIAL_SESSION", null);

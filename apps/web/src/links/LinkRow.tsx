@@ -1,11 +1,12 @@
-import type { SavedLink } from "@linkables/shared/links";
+import { canRead, type SavedLink } from "@linkables/shared/links";
 import { Link } from "@tanstack/react-router";
-import { Pin, Plus, Share, Trash2 } from "lucide-react";
-import { useRef, useState, type DragEvent, type MouseEvent } from "react";
+import { BookOpen, Pin, Plus, Share, Trash2 } from "lucide-react";
+import { useRef, useState, type DragEvent } from "react";
 import { cn } from "cn";
 import { AddToPopover } from "../collections/AddToPopover";
-import { useLinkDetails } from "../link-details/details-search";
-import { displayTitle, domainOf, filedLabel, relativeTime, savedFromLabel } from "./link-display";
+import { displayTitle, domainOf, filedLabel, relativeTime, safeHref, savedFromLabel } from "./link-display";
+import { SelectBox, useSelectable } from "../open-links/use-selectable";
+import { useSelection } from "../open-links/selection-store";
 import { MatchedText } from "../search/MatchedText";
 import { LinkThumb } from "./LinkThumb";
 import { useLinksUi } from "./links-ui-store";
@@ -19,11 +20,19 @@ export type RowHighlight = "hop" | "flash";
 
 export const LINK_DRAG_TYPE = "application/x-linkables-link";
 
-// Four 60 px tiles, 6 px apart, inside 6 px of padding.
-const TILES_WIDTH = 4 * 60 + 3 * 6 + 2 * 6;
+// 56 px tiles, 4 px apart, inside 6 px of padding: all five fit a 320 px screen.
+const TILE_PX = 56;
+const TILE_GAP_PX = 4;
+const TILES_PADDING_PX = 6;
+const TILE_COUNT = 5;
+
+function tilesWidth(readable: boolean): number {
+  const tiles = readable ? TILE_COUNT : TILE_COUNT - 1;
+  return tiles * TILE_PX + (tiles - 1) * TILE_GAP_PX + 2 * TILES_PADDING_PX;
+}
 const TEXT_FADE_PX = 120;
 
-type LinkRowProps = {
+export type LinkRowProps = {
   link: SavedLink;
   now: number;
   // On a collection's page every row is in that collection, so the meta skips where it is filed.
@@ -36,49 +45,60 @@ type LinkRowProps = {
   query?: string | undefined;
 };
 
-// The row opens the link's details; Open ↗ in the details goes to the saved URL.
+// The row is a real link to the saved URL, opened in a new tab; the link's own
+// page (the reader) opens from its Read action.
 export function LinkRow({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
-  const details = useLinkDetails();
   const deleteLink = useDeleteLink();
   const swipeOpen = useLinksUi((state) => state.swipeOpenId === link.id);
   const setSwipeOpenId = useLinksUi((state) => state.setSwipeOpenId);
+  const readable = canRead(link);
+  const href = safeHref(link.originalUrl);
   const swipe = useSwipe({
-    width: TILES_WIDTH,
+    width: tilesWidth(readable),
     open: swipeOpen,
     onOpenChange: (open) => { setSwipeOpenId(open ? link.id : null); },
   });
   const textOpacity = Math.max(0, 1 + swipe.offset / TEXT_FADE_PX);
   const rowRef = useRef<HTMLDivElement | null>(null);
+  const selectable = useSelectable(link);
 
   return (
     <div ref={rowRef} data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
-      <Link
-        to="."
-        search={(prev) => ({ ...prev, link: link.id })}
-        aria-current={details.linkId === link.id ? "true" : undefined}
-        onClick={(event) => { openDetails(event, () => { details.open(link.id); }); }}
+      <a
+        href={href}
+        // Without an href the anchor cannot take focus, so focus hand-offs would have nowhere to land.
+        tabIndex={href === undefined ? 0 : undefined}
+        aria-disabled={href === undefined ? true : undefined}
+        target="_blank"
+        rel="noopener noreferrer"
         draggable
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
-        {...swipe.handlers}
+        {...(selectable.selecting ? {} : swipe.handlers)}
+        {...selectable.anchorProps}
         data-row-link
         data-link-id={link.id}
         className={cn(
-          "flex touch-pan-y items-center gap-3 rounded-xl py-2.5 pr-3.5 pl-3 transition-colors group-hover/row:bg-row-hover focus-visible:outline-offset-0 aria-[current]:bg-row-hover max-md:select-none md:gap-4 md:px-3.5",
+          "flex touch-pan-y items-center gap-3 rounded-xl py-2.5 pr-3.5 pl-3 transition-colors group-hover/row:bg-row-hover focus-visible:outline-offset-0 max-md:select-none md:gap-4 md:px-3.5",
+          selectable.selected && "bg-row-hover",
           highlight === "hop" && "animate-hop",
           highlight === "flash" && "animate-glow",
         )}
       >
+        {selectable.selecting ? <SelectBox selected={selectable.selected} /> : null}
         <LinkThumb link={link} />
         <RowText link={link} now={now} inCollection={inCollection} pinned={pin.pinned} opacity={textOpacity} query={query} />
-      </Link>
+      </a>
       <RowActions link={link} belongs={belongs} pinned={pin.pinned} onPin={pin.toggle} />
       <SwipeTiles
         label={displayTitle(link).text}
         offset={swipe.offset}
         animate={!swipe.dragging}
         pinned={pin.pinned}
+        linkId={link.id}
+        readable={readable}
+        onRead={() => { setSwipeOpenId(null); }}
         onFocus={() => { setSwipeOpenId(link.id); }}
         onAddTo={() => {
           setSwipeOpenId(null);
@@ -104,16 +124,8 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
   );
 }
 
-// A plain click opens the details in place; a modified click is left to the
-// browser (a new tab with the same details), and a swipe has already cancelled it.
-function openDetails(event: MouseEvent<HTMLAnchorElement>, open: () => void) {
-  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  event.preventDefault();
-  open();
-}
-
-// Dragged out of the app, the row carries the saved URL, not the details address.
-function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
+// Dragged out of the app, the row carries the saved URL.
+export function startDrag(event: DragEvent<HTMLAnchorElement>, link: SavedLink) {
   event.dataTransfer.setData("text/uri-list", link.originalUrl);
   event.dataTransfer.setData("text/plain", link.originalUrl);
   event.dataTransfer.setData(LINK_DRAG_TYPE, link.id);
@@ -130,6 +142,8 @@ function RowText({ link, now, inCollection, pinned, opacity, query }: RowTextPro
   const filed = inCollection ? null : filedLabel(link.collections);
   const from = savedFromLabel(link.savedFrom);
   const unsorted = link.collections.length === 0 && !pending;
+  // Big screens have room for the page's description as a second line.
+  const description = link.resource.description?.trim();
 
   return (
     <>
@@ -142,6 +156,11 @@ function RowText({ link, now, inCollection, pinned, opacity, query }: RowTextPro
         >
           <MatchedText text={title.text} query={query} />
         </span>
+        {description ? (
+          <span className="hidden truncate text-[13.5px] text-description-foreground 3xl:block">
+            <MatchedText text={description} query={query} />
+          </span>
+        ) : null}
         <span className="truncate text-xs text-muted-foreground md:text-[13px]">
           <MatchedText text={domainOf(link.originalUrl)} query={query} />
           {pending ? (
@@ -171,13 +190,20 @@ function RowText({ link, now, inCollection, pinned, opacity, query }: RowTextPro
 
 const ACTION = "flex h-[34px] items-center justify-center rounded-md bg-accent text-[13px] font-semibold hover:bg-[#333]";
 
-type RowActionsProps = { link: SavedLink; belongs: boolean; pinned: boolean; onPin: () => void };
+// A row's actions sit at its end over a fade; a card's over its image's top corner.
+const ACTIONS_PLACEMENT = {
+  row: "top-1/2 right-3 -translate-y-1/2 bg-[linear-gradient(90deg,transparent,var(--row-hover)_44px)] pl-11",
+  card: "top-2.5 right-2.5 drop-shadow-[0_4px_12px_rgb(0_0_0/0.6)]",
+} as const;
+
+type RowActionsProps = { link: SavedLink; belongs: boolean; pinned: boolean; onPin: () => void; placement?: keyof typeof ACTIONS_PLACEMENT };
 
 // Float over the row's end on hover or keyboard focus, so nothing shifts (handoff global rules).
-function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
+export function RowActions({ link, belongs, pinned, onPin, placement = "row" }: RowActionsProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const dragging = useLinksUi((state) => state.draggingId !== null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const selecting = useSelection((state) => state.selecting);
 
   // A row leaving the list may unmount before the popover finishes closing,
   // which would take the popover's own focus return with it; so focus moves
@@ -190,6 +216,7 @@ function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
     if (!open) ui.leave(link.id);
   }
 
+  if (selecting) return null;
   return (
     <div
       role="group"
@@ -198,11 +225,17 @@ function RowActions({ link, belongs, pinned, onPin }: RowActionsProps) {
       data-open={pickerOpen || undefined}
       className={cn(
         // Hidden by opacity, not visibility, so the buttons stay focusable and the popover can return focus to its trigger.
-        "pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 gap-1.5 bg-[linear-gradient(90deg,transparent,var(--row-hover)_44px)] pl-11 opacity-0 md:flex",
+        "pointer-events-none absolute hidden gap-1.5 opacity-0 md:flex",
+        ACTIONS_PLACEMENT[placement],
         !dragging &&
           "group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 data-open:pointer-events-auto data-open:opacity-100",
       )}
     >
+      {canRead(link) ? (
+        <Link to="/l/$linkId" params={{ linkId: link.id }} className={cn(ACTION, "px-3.5")}>
+          Read
+        </Link>
+      ) : null}
       <AddToPopover
         link={link}
         open={pickerOpen}
@@ -248,6 +281,9 @@ type SwipeTilesProps = {
   offset: number;
   animate: boolean;
   pinned: boolean;
+  linkId: string;
+  readable: boolean;
+  onRead: () => void;
   onFocus: () => void;
   onAddTo: () => void;
   onShare: () => void;
@@ -255,18 +291,24 @@ type SwipeTilesProps = {
   onDelete: () => void;
 };
 
-const TILE = "flex w-[60px] flex-col items-center justify-center gap-[3px] rounded-[11px] text-[11px] font-semibold";
+const TILE = "flex w-14 flex-col items-center justify-center gap-[3px] rounded-[11px] text-[11px] font-semibold";
 
 // The phone's swipe-left actions. Keyboard focus opens them as a swipe would.
-function SwipeTiles({ label, offset, animate, pinned, onFocus, onAddTo, onShare, onPin, onDelete }: SwipeTilesProps) {
+function SwipeTiles({ label, offset, animate, pinned, linkId, readable, onRead, onFocus, onAddTo, onShare, onPin, onDelete }: SwipeTilesProps) {
   return (
     <div
       role="group"
       aria-label={label}
       onFocus={onFocus}
-      style={{ transform: `translateX(${String(TILES_WIDTH + offset)}px)`, opacity: offset === 0 ? 0 : 1 }}
-      className={cn("absolute inset-y-0 right-0 z-10 flex gap-1.5 p-1.5 md:hidden", animate && "transition-transform duration-300 ease-out-soft")}
+      style={{ transform: `translateX(${String(tilesWidth(readable) + offset)}px)`, opacity: offset === 0 ? 0 : 1 }}
+      className={cn("absolute inset-y-0 right-0 z-10 flex gap-1 p-1.5 md:hidden", animate && "transition-transform duration-300 ease-out-soft")}
     >
+      {readable ? (
+        <Link to="/l/$linkId" params={{ linkId }} onClick={onRead} className={cn(TILE, "bg-accent")}>
+          <BookOpen aria-hidden strokeWidth={2.2} className="size-4" />
+          Read
+        </Link>
+      ) : null}
       <button type="button" onClick={onAddTo} className={cn(TILE, "bg-primary text-primary-foreground")}>
         <Plus aria-hidden strokeWidth={2.4} className="size-4" />
         Add to

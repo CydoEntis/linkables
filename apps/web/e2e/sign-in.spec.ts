@@ -1,7 +1,8 @@
 import type { Page, TestInfo } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { WELCOME_SEEN_KEY } from "../src/save-anywhere/welcome";
 import { SUPABASE_URL } from "./env";
-import { sessionJson, type TestUser } from "./session";
+import { sessionJson, STORAGE_KEY, type TestUser } from "./session";
 
 test.use({ signedIn: false });
 
@@ -14,6 +15,12 @@ function answerVerify(page: Page, user: TestUser | null) {
     user
       ? route.fulfill({ status: 200, contentType: "application/json", body: sessionJson(user) })
       : route.fulfill({ status: 403, json: { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" } }),
+  );
+}
+
+function answerCodeExchange(page: Page, user: TestUser) {
+  return page.route(`${SUPABASE_URL}/auth/v1/token*`, (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: sessionJson(user) }),
   );
 }
 
@@ -92,4 +99,43 @@ test("an expired email link offers a new one", async ({ page }, testInfo) => {
   await snap(page, testInfo, "sign-in-expired");
   await page.getByRole("button", { name: "Send a new link" }).click();
   await expect(page.getByLabel("Email")).toBeFocused();
+});
+
+test("a magic link opened in the browser that asked for it signs in", async ({ page, user }) => {
+  await answerSend(page);
+  await answerCodeExchange(page, user);
+  await page.goto("/sign-in");
+  await sendEmail(page, user.email);
+  await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+  await page.evaluate((key) => { localStorage.setItem(key, "1"); }, WELCOME_SEEN_KEY);
+
+  await page.goto("/?code=e2e-code");
+  await expect(page.getByRole("heading", { name: /Save your first link/ })).toBeVisible();
+  expect(page.url()).not.toContain("code=");
+});
+
+test("Google coming back with a code signs in", async ({ page, user }) => {
+  await answerCodeExchange(page, user);
+  // The Google button leaves for Supabase's authorize page, which this suite never loads;
+  // this stores the verifier it would have left behind.
+  await page.goto("/sign-in");
+  await page.evaluate((key) => { localStorage.setItem(`${key}-code-verifier`, JSON.stringify("e2e-verifier")); }, STORAGE_KEY);
+
+  await page.goto("/sign-in?code=e2e-code");
+  await expect(page).not.toHaveURL(/\/sign-in/);
+  await expect(page.getByRole("heading", { name: "Sign in to linkables" })).toBeHidden();
+});
+
+test("a magic link opened in another browser says it didn't work", async ({ page }, testInfo) => {
+  await page.goto("/?code=e2e-code");
+  await expect(page.getByRole("alert")).toHaveText("This sign-in link didn't work. Send a new one.");
+  await snap(page, testInfo, "sign-in-other-browser");
+});
+
+test("someone else's tokens in the URL fragment do not sign this browser in", async ({ page, user }) => {
+  await page.goto(`/#access_token=${user.accessToken}&refresh_token=attacker-refresh&expires_in=3600&token_type=bearer`);
+  await expect(page.getByRole("heading", { name: "Sign in to linkables" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("This sign-in link didn't work. Send a new one.");
+  expect(page.url()).not.toContain("access_token");
+  expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBeNull();
 });

@@ -1,12 +1,17 @@
 {
   "name": "extension",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.2",
   "type": "module",
   "scripts": {
     "build": "vite build",
     "watch": "vite build --watch --mode development",
     "release": "node scripts/release-zip.ts",
+    "release:store": "vite build --mode store --outDir dist-store --emptyOutDir && node scripts/release-zip.ts store",
+    "release:firefox": "vite build --mode firefox --outDir dist-firefox --emptyOutDir && web-ext lint --source-dir dist-firefox",
+    "check:firefox": "node scripts/check-firefox-xpi.ts",
+    "sign:firefox": "node scripts/sign-firefox.ts",
+    "store:images": "node store/render.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p e2e/tsconfig.json",
     "test": "vitest run",
     "e2e": "playwright test -c e2e"
@@ -40,6 +45,7 @@
     "jsdom": "29.1.1",
     "tailwindcss": "4.3.3",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "web-ext": "10.8.0"
   }
 }

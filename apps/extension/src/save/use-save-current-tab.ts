@@ -1,8 +1,8 @@
-import { saveLinkResponseSchema, type SaveLinkRequest } from "@linkables/shared/links";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { api } from "../api/api";
+import { markSaved } from "../badge/saved-badge";
 import { saveCurrentTab } from "./save-flow";
+import { saveLink } from "./save-link";
 
 // The pop-up opens on the user's click on the tab they want, so that window's active tab is the one to save.
 async function readActiveTab(): Promise<chrome.tabs.Tab> {
@@ -10,13 +10,16 @@ async function readActiveTab(): Promise<chrome.tabs.Tab> {
   return tab ?? {};
 }
 
-function saveLink(body: SaveLinkRequest) {
-  return api.request("/links", saveLinkResponseSchema, { method: "POST", json: body });
+async function saveAndMark() {
+  const tab = await readActiveTab();
+  const outcome = await saveCurrentTab({ readTab: () => Promise.resolve(tab), save: saveLink });
+  if (outcome.status === "saved" && tab.id !== undefined) await markSaved(tab.id, true);
+  return outcome;
 }
 
 // Saves once as the pop-up opens. The ref keeps StrictMode's second effect run from saving twice.
 export function useSaveCurrentTab() {
-  const save = useMutation({ mutationFn: () => saveCurrentTab({ readTab: readActiveTab, save: saveLink }) });
+  const save = useMutation({ mutationFn: saveAndMark });
   const started = useRef(false);
   const { mutate } = save;
   useEffect(() => {

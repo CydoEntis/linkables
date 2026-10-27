@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
-import { render, screen, waitFor } from "@testing-library/react";
+import { EXTENSION_CONNECT_PATH } from "@linkables/shared/extension-sessions";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { EXTENSION_GUIDE_PATH } from "../extension-guide/path";
 import { clearPendingSave, keepPendingSave, SAVE_PATH } from "../save/pending-save";
@@ -9,6 +10,7 @@ import { AuthGate } from "./AuthGate";
 const signedIn = vi.hoisted(() => ({ current: true }));
 
 vi.mock("./supabase", () => ({ returningFromSignIn: false }));
+vi.mock("../api/api", () => ({ api: { request: vi.fn() } }));
 vi.mock("./use-auth", () => ({
   useAuth: () =>
     signedIn.current
@@ -20,7 +22,7 @@ function renderAt(path: string) {
   const rootRoute = createRootRoute({ component: AuthGate });
   const page = (routePath: string) => createRoute({ getParentRoute: () => rootRoute, path: routePath, component: () => <p>{routePath}</p> });
   const router = createRouter({
-    routeTree: rootRoute.addChildren([page("/"), page("/sign-in"), page(SAVE_PATH), page(EXTENSION_GUIDE_PATH)]),
+    routeTree: rootRoute.addChildren([page("/"), page("/sign-in"), page(SAVE_PATH), page(EXTENSION_GUIDE_PATH), page(EXTENSION_CONNECT_PATH)]),
     history: createMemoryHistory({ initialEntries: [path] }),
   });
   render(<RouterProvider router={router} />);
@@ -48,4 +50,15 @@ it("sends a user who comes back signed in to the share they started", async () =
 it("sends a user who comes back signed in with nothing pending to their links", async () => {
   const router = renderAt("/sign-in");
   await waitFor(() => { expect(router.state.location.pathname).toBe("/"); });
+});
+
+it("brings a signed-out visit to the extension connect page back there after sign-in", async () => {
+  signedIn.current = false;
+  const signedOut = renderAt(EXTENSION_CONNECT_PATH);
+  await waitFor(() => { expect(signedOut.state.location.pathname).toBe("/sign-in"); });
+  cleanup();
+
+  signedIn.current = true;
+  const router = renderAt("/sign-in");
+  await waitFor(() => { expect(router.state.location.pathname).toBe(EXTENSION_CONNECT_PATH); });
 });

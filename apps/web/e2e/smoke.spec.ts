@@ -20,7 +20,7 @@ test("the keyboard-highlighted account menu item has a visible focus ring", asyn
   await page.goto("/");
   await page.getByRole("button", { name: "Account" }).focus();
   await page.keyboard.press("ArrowDown");
-  const item = page.getByRole("menuitem", { name: "Save from anywhere" });
+  const item = page.getByRole("menuitem", { name: "Settings" });
   await expect(item).toHaveAttribute("data-highlighted", "");
   const ring = await outlineContrast(item, page.getByRole("menu"));
   expect(ring.width).toBe("2px");

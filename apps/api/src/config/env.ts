@@ -21,6 +21,12 @@ const corsOrigins = z
   )
   .pipe(z.array(origin).min(1));
 
+// The .env examples leave optional keys empty, which counts as unset.
+const optionalSecret = z
+  .string()
+  .transform((key) => key || undefined)
+  .optional();
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]),
@@ -32,6 +38,10 @@ const envSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
     AUTH_TEST_JWKS: z.string().min(1).optional(),
+    // Unset, the API takes access requests without emailing the owner about them.
+    RESEND_API_KEY: optionalSecret,
+    // Unset, the extension cannot sign in from linkables.app: POST /extension-sessions answers UPSTREAM.
+    SUPABASE_SECRET_KEY: optionalSecret,
   })
   .refine((env) => env.AUTH_TEST_JWKS === undefined || env.NODE_ENV === "test", {
     path: ["AUTH_TEST_JWKS"],
@@ -59,6 +69,9 @@ function toConfig(env: Env) {
       jwksUrl: `${authBase}/.well-known/jwks.json`,
       testJwks: env.AUTH_TEST_JWKS,
     },
+    resendApiKey: env.RESEND_API_KEY,
+    supabaseUrl: env.SUPABASE_URL,
+    supabaseSecretKey: env.SUPABASE_SECRET_KEY,
   };
 }
 

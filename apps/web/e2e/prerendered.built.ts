@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 import { BUILT_URL } from "./built-env";
@@ -22,7 +22,7 @@ test("a signed-out visitor gets the prerendered landing page without the app", a
   const response = await page.goto("/");
   expect(await response?.text()).toContain("Never lose a");
   await expect(page.getByRole("heading", { name: "Never lose a link again.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Request access" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Request access" }).first()).toHaveAttribute("href", "/request-access");
   expect(scripts).toEqual([]);
 });
 
@@ -46,28 +46,42 @@ test("an expired email sign-in link loads the app, which explains the problem", 
   await expect(page.getByRole("heading", { name: "This link has expired" })).toBeVisible();
 });
 
+test("the request access form loads the app for a visitor who is not signed in", async ({ page }) => {
+  await page.goto("/request-access");
+  await expect(page.getByRole("heading", { name: "Request access", level: 1 })).toBeVisible();
+  await expect(page.getByLabel("Email")).toBeVisible();
+});
+
 test("the extension install guide is open to a visitor who is not signed in", async ({ page }) => {
   await page.goto("/extension");
   await expect(page.getByRole("heading", { name: "linkables for Chrome" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Download for Chrome" })).toHaveAttribute("href", "/downloads/linkables-chrome.zip");
+  await expect(page.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", "https://chromewebstore.google.com/detail/linkables/dckjkoommfddaimpjbghbomojdkhaoai");
 });
 
 test.describe("the extension download", () => {
-  // CI copies the real zip here after the web build; the test stands in a tiny one.
+  // The Firefox add-on comes from public/ with the build; the Chrome zip is added after it, so the test stands in a tiny one.
   const downloads = fileURLToPath(new URL("../dist/downloads/", import.meta.url));
+  const firefoxXpi = fileURLToPath(new URL("../public/downloads/linkables-firefox.xpi", import.meta.url));
   const emptyZip = Buffer.from([0x50, 0x4b, 0x05, 0x06, ...new Array<number>(18).fill(0)]);
 
   test.beforeAll(() => {
     mkdirSync(downloads, { recursive: true });
     writeFileSync(`${downloads}linkables-chrome.zip`, emptyZip);
   });
-  test.afterAll(() => { rmSync(downloads, { recursive: true, force: true }); });
+  test.afterAll(() => { rmSync(`${downloads}linkables-chrome.zip`, { force: true }); });
 
   test("is served as the zip file, not the app shell", async ({ request }) => {
     const response = await request.get("/downloads/linkables-chrome.zip");
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toBe("application/zip");
     expect(await response.body()).toEqual(emptyZip);
+  });
+
+  test("serves the Firefox add-on as an installable add-on, not a zip", async ({ request }) => {
+    const response = await request.get("/downloads/linkables-firefox.xpi");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("application/x-xpinstall");
+    expect(await response.body()).toEqual(readFileSync(firefoxXpi));
   });
 });
 
@@ -94,5 +108,25 @@ test.describe("prerendered pages", () => {
     const html = await (await request.get("/sign-in")).text();
     expect(html).toContain(`<meta name="robots" content="noindex"`);
     expect(html).toContain(`<div id="root">`);
+  });
+
+  test("the shared collection shell is no page of its own", async ({ request }) => {
+    for (const path of ["/shared", "/shared.html"]) {
+      const response = await request.get(path, { maxRedirects: 0 });
+      expect(response.status()).toBe(302);
+      expect(response.headers().location).toBe("/");
+    }
+  });
+
+  test("a shared collection's deep link gets the app shell with its link preview, kept out of search and Referer headers", async ({ request }) => {
+    const response = await request.get(`/s/${"A".repeat(32)}`);
+
+    expect(response.status()).toBe(200);
+    const html = await response.text();
+    expect(html).toContain(`<div id="root">`);
+    expect(html).toContain(`<meta property="og:image" content="https://linkables.app/social/shared-collection.png">`);
+    expect(html).toContain(`<meta property="og:title" content="A shared collection on linkables">`);
+    expect(response.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+    expect(response.headers()["referrer-policy"]).toBe("no-referrer");
   });
 });

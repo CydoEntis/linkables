@@ -10,10 +10,10 @@ function parseJwks(json: string): JSONWebKeySet {
   return jwksSchema.parse(JSON.parse(json));
 }
 
-// This file is the one allowed exception to the no-outbound-HTTP rule (plan
-// Rule 2, ADR-0002): jose's remote key set calls global fetch. The URL comes
-// from SUPABASE_URL in config, never from a user, so the SSRF-guarded fetcher
-// does not apply. The Rule 2 lint must exclude only this file.
+// This file is one of the two allowed exceptions to the no-outbound-HTTP rule
+// (plan Rule 2, ADR-0002; see eslint.config.js): jose's remote key set calls
+// global fetch. The URL comes from SUPABASE_URL in config, never from a user,
+// so the SSRF-guarded fetcher does not apply.
 //
 // The env schema already refuses AUTH_TEST_JWKS outside NODE_ENV=test; the
 // check here keeps a local key from being trusted even if config is built

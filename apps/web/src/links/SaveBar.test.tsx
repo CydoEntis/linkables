@@ -59,7 +59,7 @@ describe("SaveBar", () => {
   it("shows a pending row at once when Enter saves a link, and clears the field", async () => {
     answerSave(() => new Promise(() => undefined));
     const { field, user } = renderBar();
-    await screen.findByText("No links yet");
+    await screen.findByRole("heading", { name: /Save your first link/ });
     await user.type(field, "https://example.com/new{Enter}");
     expect(await screen.findByText("example.com/new")).toBeInTheDocument();
     expect(screen.getByText(/Getting details…/)).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe("SaveBar", () => {
     await user.type(field, "https://example.com/old{Enter}");
     expect(await screen.findByText("Already saved", { selector: "[data-sonner-toast] *" })).toBeInTheDocument();
     expect(screen.getByText("Already saved", { selector: "p[role=status]" })).toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: /^Old favourite/ })).toHaveLength(1);
   });
 
   it("puts a link the API rejects back in the bar with the reason", async () => {
@@ -168,7 +168,7 @@ describe("SaveBar", () => {
   it("toasts a rate limit and removes the pending row", async () => {
     answerSave(() => Promise.reject(new ApiError("RATE_LIMIT", "Too many saves, try again shortly")));
     const { field, user } = renderBar();
-    await screen.findByText("No links yet");
+    await screen.findByRole("heading", { name: /Save your first link/ });
     await user.type(field, "https://example.com/y{Enter}");
     expect(await screen.findByText("Too many saves. Wait a minute.")).toBeInTheDocument();
     expect(screen.queryByText("example.com/y")).not.toBeInTheDocument();

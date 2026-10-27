@@ -6,17 +6,21 @@ import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { isNarrowed, type FiltersChange, type ListFilters } from "../search/list-filters";
 import { NoMatches } from "../search/NoMatches";
 import { groupLinks, type LinkGroup } from "./link-groups";
-import { LinkRow, type RowHighlight } from "./LinkRow";
+import { LinkCard } from "./LinkCard";
+import { LinkRow, type LinkRowProps, type RowHighlight } from "./LinkRow";
+import { useListLayout } from "./list-layout";
 import { useLinksUi } from "./links-ui-store";
 import { LinksEmpty } from "./LinksEmpty";
 import { belongsIn, useLinks, type ListScope } from "./use-links";
+import { useFocusReturningRow } from "./use-focus-returning-row";
 import { useHeldRow } from "./use-held-row";
 
-type LinkListProps = { scope: ListScope; filters?: ListFilters; onFiltersChange?: FiltersChange };
+// section: the list is one group of a collection, under that group's header on the page.
+type LinkListProps = { scope: ListScope; filters?: ListFilters; onFiltersChange?: FiltersChange; section?: { empty: ReactNode } };
 
 const noChange: FiltersChange = () => undefined;
 
-export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: LinkListProps) {
+export function LinkList({ scope, filters = {}, onFiltersChange = noChange, section }: LinkListProps) {
   const { query, loadMore } = useLinks(scope, filters);
   const now = useNow();
   const highlightFor = useRowHighlight();
@@ -24,19 +28,7 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const heldId = useLinksUi((state) => state.heldId);
   const deletingIds = useLinksUi((state) => state.deletingIds);
   const loaded = useHeldRow(query.data?.pages.flatMap((page) => page.items) ?? []);
-
-  const narrowed = isNarrowed(filters);
-  // One status region in every state, so a change to "0 matches" is announced too.
-  const withStatus = (body: ReactNode, count: string | null = null) => (
-    <>
-      <ResultCount text={count} />
-      {body}
-    </>
-  );
-  if (query.isPending) return withStatus(<LinkListSkeleton />);
-  if (query.isError && query.data === undefined) {
-    return withStatus(<LoadProblem error={query.error} onRetry={() => void query.refetch()} />);
-  }
+  const layout = useListLayout();
 
   // A link filed out of this list on this device goes at once (after its leave
   // animation), without waiting for the refetch; a held row waits for its popover.
@@ -44,40 +36,45 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   const belongs = (link: SavedLink) => belongsIn(scope, link, filters);
   const stays = (link: SavedLink) => !deletingIds.includes(link.id) && (belongs(link) || link.id === heldId);
   const links = loaded.filter((link) => stays(link) || leavingIds.includes(link.id));
-  const count = narrowed ? countLabel(links.length, query.hasNextPage, query.isPlaceholderData) : null;
-  if (links.length === 0) {
-    return withStatus(narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : <LinksEmpty scope={scope} />, count);
+  useFocusReturningRow(!query.isPending, loaded.map((link) => link.id));
+
+  const narrowed = isNarrowed(filters);
+  // One status region in every state, so a change to "0 matches" is announced too.
+  const withStatus = (body: ReactNode, count: string | null = null) =>
+    section ? (
+      body
+    ) : (
+      <>
+        <ResultCount text={count} />
+        {body}
+      </>
+    );
+  if (query.isPending) return withStatus(<LinkListSkeleton rows={section ? 2 : undefined} />);
+  if (query.isError && query.data === undefined) {
+    return withStatus(<LoadProblem error={query.error} onRetry={() => void query.refetch()} />);
   }
 
-  const renderRow = (link: SavedLink) => (
-    <li key={link.id}>
-      <LinkRow
-        link={link}
-        now={now}
-        inCollection={"collectionId" in scope}
-        highlight={highlightFor(link.id)}
-        belongs={belongs(link)}
-        leaving={!stays(link)}
-        query={filters.q}
-      />
-    </li>
-  );
+  const count = narrowed ? countLabel(links.length, query.hasNextPage, query.isPlaceholderData) : null;
+  if (links.length === 0) {
+    return withStatus(narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : (section?.empty ?? <LinksEmpty scope={scope} />), count);
+  }
+
+  const itemProps = (link: SavedLink): LinkRowProps => ({
+    link,
+    now,
+    inCollection: "collectionId" in scope,
+    highlight: highlightFor(link.id),
+    belongs: belongs(link),
+    leaving: !stays(link),
+    query: filters.q,
+  });
+  const groups = listGroups(links, now, scope, filters);
   return withStatus(
     <div className="flex flex-col gap-2 md:gap-[22px]">
-      {listGroups(links, now, scope, filters).map((group) =>
-        group.label === null ? (
-          <ul key="results">{group.links.map(renderRow)}</ul>
-        ) : (
-          <section key={group.label} aria-labelledby={`group-${group.label}`}>
-            <h2
-              id={`group-${group.label}`}
-              className="px-3 pb-1 text-xs font-semibold tracking-[0.02em] text-subtle-foreground md:px-3.5 md:pb-1.5 md:text-[12.5px]"
-            >
-              {group.label}
-            </h2>
-            <ul>{group.links.map(renderRow)}</ul>
-          </section>
-        ),
+      {layout === "grid" ? (
+        <LinkGrid links={groups.flatMap((group) => group.links)} itemProps={itemProps} />
+      ) : (
+        <LinkGroups groups={groups} itemProps={itemProps} />
       )}
       {query.hasNextPage ? (
         <Button
@@ -95,22 +92,61 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
   );
 }
 
+type ListGroup = LinkGroup | { label: null; links: SavedLink[] };
+type ItemProps = (link: SavedLink) => LinkRowProps;
+
+function LinkGroups({ groups, itemProps }: { groups: ListGroup[]; itemProps: ItemProps }) {
+  const renderRow = (link: SavedLink) => (
+    <li key={link.id}>
+      <LinkRow {...itemProps(link)} />
+    </li>
+  );
+  return groups.map((group) =>
+    group.label === null ? (
+      <ul key="results">{group.links.map(renderRow)}</ul>
+    ) : (
+      <section key={group.label} aria-labelledby={`group-${group.label}`}>
+        <h2
+          id={`group-${group.label}`}
+          className="px-3 pb-1 text-xs font-semibold tracking-[0.02em] text-subtle-foreground md:px-3.5 md:pb-1.5 md:text-[12.5px]"
+        >
+          {group.label}
+        </h2>
+        <ul>{group.links.map(renderRow)}</ul>
+      </section>
+    ),
+  );
+}
+
+// One grid in the list's order; pinned cards carry a tag instead of a group heading.
+function LinkGrid({ links, itemProps }: { links: SavedLink[]; itemProps: ItemProps }) {
+  return (
+    <ul aria-label="Links" className="grid animate-fade-in grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[22px] pt-3.5">
+      {links.map((link) => (
+        <li key={link.id}>
+          <LinkCard {...itemProps(link)} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // Day groups follow the newest-first order; search results and other sorts are
 // one list in the API's order (pinned still first), as in the handoff's search.
-function listGroups(links: SavedLink[], now: number, scope: ListScope, filters: ListFilters): (LinkGroup | { label: null; links: SavedLink[] })[] {
-  if (filters.q !== undefined || (filters.sort ?? "newest") !== "newest") return [{ label: null, links }];
+function listGroups(links: SavedLink[], now: number, scope: ListScope, filters: ListFilters): ListGroup[] {
+  if ("groupId" in scope || filters.q !== undefined || (filters.sort ?? "newest") !== "newest") return [{ label: null, links }];
   const pinnedView = "view" in scope && scope.view === "pinned";
   return groupLinks(links, now, { pinnedGroup: !pinnedView });
 }
 
 // A loaded count: past the first page the total is unknown, so it reads "50+".
-function countLabel(count: number, more: boolean, searching: boolean): string {
+export function countLabel(count: number, more: boolean, searching: boolean): string {
   if (searching) return "Searching…";
   return `${String(count)}${more ? "+" : ""} ${count === 1 && !more ? "match" : "matches"}`;
 }
 
 // "0 matches" is read out but not shown: the no-matches message says it on screen.
-function ResultCount({ text }: { text: string | null }) {
+export function ResultCount({ text }: { text: string | null }) {
   return (
     <p
       role="status"
@@ -150,11 +186,11 @@ const SKELETON_WIDTHS = [
 
 const SHIMMER = "animate-shimmer bg-[linear-gradient(90deg,#1b1b1b_25%,#272727_50%,#1b1b1b_75%)] bg-size-[200%_100%]";
 
-function LinkListSkeleton() {
+export function LinkListSkeleton({ rows = SKELETON_WIDTHS.length }: { rows?: number | undefined }) {
   return (
     <div className="flex flex-col gap-0.5 pt-6">
       <p role="status" className="sr-only">Loading your links</p>
-      {SKELETON_WIDTHS.map(([title, meta], index) => (
+      {SKELETON_WIDTHS.slice(0, rows).map(([title, meta], index) => (
         <div
           key={index}
           aria-hidden

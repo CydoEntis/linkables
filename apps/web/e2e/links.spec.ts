@@ -7,7 +7,7 @@ const WITHIN_REFETCH = 5_000;
 
 test("a saved link shows pending, then its title once the metadata lands", async ({ page, db }) => {
   await page.goto("/");
-  await expect(page.getByText("No links yet")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Save your first link/ })).toBeVisible();
   const bar = page.getByRole("textbox", { name: "Search or paste a link" });
   await expect(bar).toBeFocused();
 

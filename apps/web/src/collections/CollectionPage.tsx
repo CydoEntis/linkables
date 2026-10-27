@@ -1,17 +1,21 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { Trash2 } from "lucide-react";
-import { useState } from "react";
+import { FolderPlus, Globe, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { withoutLinkDetails } from "../link-details/details-search";
+import { withoutOldLink } from "../link-page/old-link-address";
+import { useCollectionOpening } from "../open-links/use-collection-opening";
+import { useWideScreen } from "../shell/use-wide-screen";
 import { LinksScreen } from "../links/LinksScreen";
-import type { FiltersChange } from "../search/list-filters";
+import type { FiltersChange, ListFilters } from "../search/list-filters";
+import { useShareToken } from "../sharing/use-share";
 import { AppShell } from "../shell/AppShell";
+import { CollectionList } from "./CollectionList";
 import { CollectionTitle } from "./CollectionTitle";
 import { useCollectionsUi, type PendingDelete } from "./collections-ui-store";
 import { displayName } from "./display-name";
 import { MiniCover } from "./MiniCover";
-import { linkCountLabel, ShareDialog } from "./ShareDialog";
+import { linkCountLabel } from "./link-count";
+import { ShareControls } from "./ShareControls";
 import { useCollections } from "./use-collections";
 import { useDeleteCollection } from "./use-delete-collection";
 
@@ -19,7 +23,7 @@ const route = getRouteApi("/c/$collectionId");
 
 export function CollectionPage() {
   const { collectionId } = route.useParams();
-  const filters = withoutLinkDetails(route.useSearch());
+  const filters = withoutOldLink(route.useSearch());
   const navigate = route.useNavigate();
   const onFiltersChange: FiltersChange = (patch, { replace = false } = {}) => {
     void navigate({ search: (previous) => ({ ...previous, ...patch }), replace });
@@ -35,40 +39,63 @@ export function CollectionPage() {
       scope={{ collectionId }}
       filters={filters}
       onFiltersChange={onFiltersChange}
-      heading={collection ? <CollectionHeader collection={collection} /> : <div aria-hidden className="h-[60px] md:mt-[30px] md:mb-3.5 md:h-[52px]" />}
+      list={collection ? <CollectionList collection={collection} filters={filters} onFiltersChange={onFiltersChange} /> : undefined}
+      heading={collection ? <CollectionHeader collection={collection} filters={filters} /> : <div aria-hidden className="h-[60px] md:mt-[30px] md:mb-3.5 md:h-[52px]" />}
     />
   );
 }
 
-function CollectionHeader({ collection }: { collection: ListedCollection }) {
-  const [sharing, setSharing] = useState(false);
+function CollectionHeader({ collection, filters }: { collection: ListedCollection; filters: ListFilters }) {
   const deleteCollection = useDeleteCollection();
+  const shared = useShareToken(collection.id) !== undefined;
+  const wide = useWideScreen();
+  const opening = useCollectionOpening(collection, filters);
+  const setCreatingGroupIn = useCollectionsUi((state) => state.setCreatingGroupIn);
 
   return (
-    <div className="mt-2 mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-2 md:mt-[30px] md:mb-3.5 md:px-0">
-      <div className="flex min-w-0 items-center gap-3.5">
-        <MiniCover name={collection.name} cover={collection.cover} className="hidden size-11 animate-pop rounded-lg md:grid" />
-        <div className="flex min-w-0 flex-col">
-          <CollectionTitle collection={collection} />
-          <span className="mt-1 text-[13.5px] text-muted-foreground">{linkCountLabel(collection.linkCount)}</span>
+    <>
+      <div className="mt-2 mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-2 md:mt-[30px] md:mb-3.5 md:px-0">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <MiniCover name={collection.name} cover={collection.cover} className="hidden size-11 animate-pop rounded-lg md:grid" />
+          <div className="flex min-w-0 flex-col">
+            <CollectionTitle collection={collection} />
+            <span className="mt-1 flex items-center gap-2 text-[13.5px] text-muted-foreground">
+              {linkCountLabel(collection.linkCount)}
+              {shared ? (
+                <span className="inline-flex h-[22px] animate-fade-in items-center gap-[5px] rounded-full bg-muted px-[9px] text-xs font-semibold text-foreground">
+                  <Globe aria-hidden className="size-3" />
+                  Shared
+                </span>
+              ) : null}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {opening.actions}
+          <ShareControls collection={collection} wide={wide} />
+          <button
+            type="button"
+            aria-label="New group"
+            title="New group"
+            onClick={() => { setCreatingGroupIn(collection.id); }}
+            className="flex size-11 items-center justify-center gap-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground md:h-10 md:w-auto md:px-3 md:text-[13.5px] md:font-semibold"
+          >
+            <FolderPlus aria-hidden strokeWidth={2} className="size-[15px]" />
+            <span className="hidden md:inline">New group</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Delete collection"
+            title="Delete collection"
+            onClick={() => { deleteCollection(collection); }}
+            className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive md:size-10"
+          >
+            <Trash2 aria-hidden strokeWidth={2} className="size-[15px]" />
+          </button>
         </div>
       </div>
-      <div className="flex gap-2">
-        <Button size="touch" onClick={() => { setSharing(true); }} className="h-11 rounded-md px-4 font-semibold md:h-10">
-          Share
-        </Button>
-        <button
-          type="button"
-          aria-label="Delete collection"
-          title="Delete collection"
-          onClick={() => { deleteCollection(collection); }}
-          className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive md:size-10"
-        >
-          <Trash2 aria-hidden strokeWidth={2} className="size-[15px]" />
-        </button>
-      </div>
-      <ShareDialog collection={collection} open={sharing} onOpenChange={setSharing} />
-    </div>
+      {opening.extras}
+    </>
   );
 }
 

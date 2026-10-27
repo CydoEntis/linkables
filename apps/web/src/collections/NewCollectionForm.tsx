@@ -1,6 +1,7 @@
 import type { Collection } from "@linkables/shared/collections";
 import { useId } from "react";
 import { cn } from "cn";
+import { Button } from "@/components/ui/button";
 import { useCollectionNameForm } from "./use-collection-name-form";
 import { useCreateCollection } from "./use-collections";
 
@@ -48,13 +49,9 @@ export function NewCollectionForm({ variant, onCreated, onCancel }: NewCollectio
           )}
         />
         {sheet ? (
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="h-[50px] shrink-0 rounded-xl bg-primary px-[18px] font-bold text-primary-foreground"
-          >
+          <Button type="submit" size="touch" disabled={isSubmitting} className="h-[50px] px-[18px]">
             Create
-          </button>
+          </Button>
         ) : null}
       </div>
       {error ? (

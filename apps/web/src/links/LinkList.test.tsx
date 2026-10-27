@@ -1,13 +1,15 @@
 import type { ListLinksResponse } from "@linkables/shared/links";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@linkables/shared/api-client";
 import { useCollectionsUi } from "../collections/collections-ui-store";
 import type { ListFilters } from "../search/list-filters";
 import { TestRouter } from "../test/router";
+import { resetViewport, stubViewport } from "../test/viewport";
 import { LinkList } from "./LinkList";
+import { useLinksUi } from "./links-ui-store";
 import type { LinksView } from "./links-search";
 import { savedLink } from "./test-links";
 
@@ -40,6 +42,8 @@ beforeEach(() => {
   request.mockReset();
 });
 
+afterEach(resetViewport);
+
 describe("LinkList", () => {
   it("groups links under day headings with pinned links first", async () => {
     request.mockResolvedValue({
@@ -52,6 +56,24 @@ describe("LinkList", () => {
     expect(headings).toEqual(["Pinned", "Today"]);
   });
 
+  it("gives focus back to the row of the link whose page was just left, once", async () => {
+    const back = savedLink({ resource: { title: "Read just now" } });
+    request.mockResolvedValue({ items: [savedLink({ resource: { title: "Other" } }), back], cursor: null });
+    useLinksUi.setState({ returnFocusId: back.id });
+    renderList();
+    await waitFor(() => { expect(screen.getByRole("link", { name: /^Read just now/ })).toHaveFocus(); });
+    expect(useLinksUi.getState().returnFocusId).toBeNull();
+  });
+
+  it("gives focus to the next row when the link was deleted on its page", async () => {
+    const deleted = savedLink({ resource: { title: "Deleted there" } });
+    request.mockResolvedValue({ items: [deleted, savedLink({ resource: { title: "Next one" } })], cursor: null });
+    useLinksUi.setState({ returnFocusId: deleted.id, deletingIds: [deleted.id] });
+    renderList();
+    await waitFor(() => { expect(screen.getByRole("link", { name: /^Next one/ })).toHaveFocus(); });
+    useLinksUi.setState({ deletingIds: [] });
+  });
+
   it("asks the API for the New view as view=inbox", async () => {
     request.mockResolvedValue(page([]));
     renderList("inbox");
@@ -62,8 +84,12 @@ describe("LinkList", () => {
   it("teaches a new user how to save", async () => {
     request.mockResolvedValue(page([]));
     renderList();
-    expect(await screen.findByText("No links yet")).toBeInTheDocument();
-    expect(screen.getByText(/Paste a link above/)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Save your first link/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual([
+      "Paste a link",
+      "Share from your phone",
+      "Chrome extension",
+    ]);
   });
 
   it("restarts from the first page when the API rejects the cursor", async () => {
@@ -109,7 +135,7 @@ describe("LinkList", () => {
     request.mockResolvedValue(page([]));
     const { onFiltersChange } = renderList("all", { q: "zebra" });
     expect(await screen.findByText("No links match “zebra”")).toBeInTheDocument();
-    expect(screen.queryByText("No links yet")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Save your first link/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(onFiltersChange).toHaveBeenCalledWith({ q: undefined });
   });
@@ -129,6 +155,20 @@ describe("LinkList", () => {
     request.mockResolvedValue(page(["Rust"], "cursor-1"));
     renderList("all", { q: "rust" });
     expect(await screen.findByText("1+ matches")).toBeInTheDocument();
+  });
+
+  it("lays the links out as cards in one grid on a big screen", async () => {
+    stubViewport(1920);
+    request.mockResolvedValue({
+      items: [savedLink({ resource: { title: "Fresh" } }), savedLink({ pinned: true, resource: { title: "Kept" } })],
+      cursor: null,
+    });
+    renderList();
+    const grid = await screen.findByRole("list", { name: "Links" });
+    const [first, second] = within(grid).getAllByRole("link", { name: /^(Kept|Fresh)/ });
+    expect(first).toHaveAccessibleName(/^Kept/);
+    expect(second).toHaveAccessibleName(/^Fresh/);
+    expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
   });
 
   it("keeps a sorted list flat, in the API's order", async () => {

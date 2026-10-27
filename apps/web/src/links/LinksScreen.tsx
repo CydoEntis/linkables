@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { AddToSheet } from "../collections/AddToSheet";
-import { LinkDetails } from "../link-details/LinkDetails";
 import { BookmarkletDialog } from "../save/BookmarkletDialog";
 import { CommandPalette } from "../search/CommandPalette";
 import { FilterBar } from "../search/FilterBar";
@@ -9,6 +8,7 @@ import { PhoneSearchField } from "../search/PhoneSearchField";
 import { ShortcutSheet } from "../search/ShortcutSheet";
 import { useListShortcuts } from "../search/use-list-shortcuts";
 import { AppShell } from "../shell/AppShell";
+import { LayoutToggle } from "./LayoutToggle";
 import { LinkList } from "./LinkList";
 import { SaveBar } from "./SaveBar";
 import { SaveFab, SaveSheet } from "./SaveSheet";
@@ -22,10 +22,12 @@ type LinksScreenProps = {
   // The search, sort and filters from the URL, and how to change them.
   filters: ListFilters;
   onFiltersChange: FiltersChange;
+  // Replaces the plain list, for a collection that lays its links out in sections.
+  list?: ReactNode;
 };
 
 // One list screen for the views and for a collection; only the heading differs.
-export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksScreenProps) {
+export function LinksScreen({ scope, heading, filters, onFiltersChange, list }: LinksScreenProps) {
   usePasteToSave();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -38,8 +40,8 @@ export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksS
     <AppShell scope={effectiveScope(scope, filters)} search={<PhoneSearchField query={filters.q} onQueryChange={onQueryChange} />}>
       <SaveBar className="hidden md:block" query={filters.q} onQueryChange={onQueryChange} />
       {heading}
-      <FilterBar scope={scope} filters={filters} onFiltersChange={onFiltersChange} />
-      <LinkList scope={scope} filters={filters} onFiltersChange={onFiltersChange} />
+      <FilterBar scope={scope} filters={filters} onFiltersChange={onFiltersChange} trailing={<LayoutToggle />} />
+      {list ?? <LinkList scope={scope} filters={filters} onFiltersChange={onFiltersChange} />}
       <SaveStatus />
       <SaveFab />
       <SaveSheet />
@@ -53,7 +55,6 @@ export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksS
       />
       <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <BookmarkletDialog open={bookmarkletOpen} onOpenChange={setBookmarkletOpen} />
-      <LinkDetails />
     </AppShell>
   );
 }

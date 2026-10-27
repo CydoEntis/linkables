@@ -7,6 +7,7 @@ import { api } from "../api/api";
 import { useLinksUi } from "../links/links-ui-store";
 import { linksKeys, updateCachedLink } from "../links/use-links";
 import { collectionsKeys } from "./use-collections";
+import { invalidateGroups } from "./use-groups";
 import { displayName } from "./display-name";
 
 export type CollectionRef = SavedLink["collections"][number];
@@ -80,6 +81,7 @@ export function useMembership() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: linksKeys.all }),
         queryClient.invalidateQueries({ queryKey: collectionsKeys.all }),
+        invalidateGroups(queryClient),
       ]);
     },
   });

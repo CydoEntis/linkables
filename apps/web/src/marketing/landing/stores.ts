@@ -10,7 +10,7 @@ export type StoreKey = "iphone" | "android" | "chrome" | "web";
 // platform is giving its card a body and a cta here.
 export type StoreCard = { key: StoreKey; name: string; body: string; cta: { label: string; href: string } | null };
 
-export function storeCards(shortcutUrl: string | undefined, inviteOnly: boolean): StoreCard[] {
+export function storeCards(shortcutUrl: string | undefined, inviteOnly: boolean, chromeStoreUrl: string | undefined): StoreCard[] {
   return [
     {
       key: "iphone",
@@ -27,8 +27,10 @@ export function storeCards(shortcutUrl: string | undefined, inviteOnly: boolean)
     {
       key: "chrome",
       name: "Chrome extension",
-      body: "Save a tab in one click, pin it, or drop it in a collection. In beta, installed by hand for now.",
-      cta: { label: "Get the extension", href: EXTENSION_GUIDE_PATH },
+      body: chromeStoreUrl
+        ? "Save a tab in one click, pin it, or drop it in a collection. In beta, from the Chrome Web Store."
+        : "Save a tab in one click, pin it, or drop it in a collection. In beta, installed by hand for now.",
+      cta: chromeStoreUrl ? { label: "Add to Chrome", href: chromeStoreUrl } : { label: "Get the extension", href: EXTENSION_GUIDE_PATH },
     },
     {
       key: "web",

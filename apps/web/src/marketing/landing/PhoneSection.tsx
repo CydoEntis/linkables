@@ -10,6 +10,11 @@ const ROWS: MockLink[] = [
   { title: "Crispy gyoza at home", site: "youtube.com", meta: "Recipes", video: true },
   { title: "Japanese curry from scratch", site: "seriouseats.com", meta: "New" },
   { title: "How kangaroos actually hop", site: "nationalgeographic.com", meta: "New" },
+  { title: "A beginner's guide to film cameras", site: "theverge.com", meta: "Hobbies" },
+  { title: "Kyoto in two days: a walking plan", site: "lonelyplanet.com", meta: "Trip to Japan" },
+  { title: "Sourdough starter, day by day", site: "kingarthurbaking.com", meta: "Recipes" },
+  { title: "The case for a four-day week", site: "bbc.com", meta: "Reading" },
+  { title: "Lo-fi beats to focus to", site: "youtube.com", meta: "Music", video: true },
 ];
 
 export function PhoneSection() {
@@ -44,38 +49,41 @@ function PhonePicture() {
     <figure
       role="img"
       aria-label="linkables on a phone: a list of saved links, one swiped left to show Add to, Share, Pin and Delete"
-      className="mx-auto w-full max-w-[340px] overflow-hidden rounded-[44px] bg-background p-3.5 shadow-[0_0_0_10px_#050505,0_0_0_11px_#2a2a2a,0_50px_100px_-30px_rgb(0_0_0/0.9)]"
+      className="mx-auto aspect-[9/19.5] w-full max-w-[320px] rounded-[52px] bg-[#050505] p-2.5 shadow-[0_0_0_1px_#2a2a2a,0_50px_100px_-30px_rgb(0_0_0/0.9)]"
     >
-      <div className="flex items-center justify-between px-2 pt-1 pb-3 text-[12px] font-semibold">
-        <span>9:41</span>
-        <span className="h-[22px] w-[84px] rounded-full bg-black" />
-        <span className="w-[30px]" />
-      </div>
-      <div className="flex items-center justify-between px-1 pb-3">
-        <MarkWordmark size={20} textClass="text-[15px]" />
-        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-[13px] font-bold">A</span>
-      </div>
-      <span className="flex h-11 items-center gap-2 rounded-[14px] bg-muted px-3.5 text-[13.5px] text-subtle-foreground">
-        <Search aria-hidden className="size-3.5" />
-        Search your links
-      </span>
-      <div className="flex gap-1.5 py-3 text-[12.5px] font-semibold">
-        <span className="flex h-8 items-center gap-1 rounded-full bg-accent px-3">
-          All links <ChevronDown aria-hidden className="size-3" />
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[42px] bg-background px-3.5">
+        <div className="flex h-11 shrink-0 items-center justify-between px-3 text-[12px] font-semibold">
+          <span>9:41</span>
+          <span className="h-[22px] w-[84px] rounded-full bg-black" />
+          <span className="w-[30px]" />
+        </div>
+        <div className="flex items-center justify-between px-1 pb-3">
+          <MarkWordmark size={20} textClass="text-[15px]" />
+          <span className="flex size-8 items-center justify-center rounded-full bg-muted text-[13px] font-bold">A</span>
+        </div>
+        <span className="flex h-11 shrink-0 items-center gap-2 rounded-[14px] bg-muted px-3.5 text-[13.5px] text-subtle-foreground">
+          <Search aria-hidden className="size-3.5" />
+          Search your links
         </span>
-        <span className="flex h-8 items-center rounded-full bg-muted px-3">Pinned</span>
-        <span className="flex h-8 items-center gap-1.5 rounded-full bg-muted px-3">
-          New <span className="rounded-full bg-primary px-1.5 text-[11px] text-primary-foreground">2</span>
-        </span>
-      </div>
-      <div className="relative">
-        <SwipedRow />
-        {ROWS.map((link) => (
-          <MockRow key={link.meta + link.site} link={link} size="sm" />
-        ))}
-        <span className="absolute right-1 bottom-1 flex size-[52px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fab">
+        <div className="flex gap-1.5 py-3 text-[12.5px] font-semibold">
+          <span className="flex h-8 items-center gap-1 rounded-full bg-accent px-3">
+            All links <ChevronDown aria-hidden className="size-3" />
+          </span>
+          <span className="flex h-8 items-center rounded-full bg-muted px-3">Pinned</span>
+          <span className="flex h-8 items-center gap-1.5 rounded-full bg-muted px-3">
+            New <span className="rounded-full bg-primary px-1.5 text-[11px] text-primary-foreground">2</span>
+          </span>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <SwipedRow />
+          {ROWS.map((link) => (
+            <MockRow key={link.meta + link.site} link={link} size="sm" />
+          ))}
+        </div>
+        <span className="absolute right-4 bottom-8 flex size-[52px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fab">
           <Plus aria-hidden className="size-6" strokeWidth={2.6} />
         </span>
+        <span className="absolute bottom-2 left-1/2 h-[5px] w-[120px] -translate-x-1/2 rounded-full bg-foreground/85" />
       </div>
     </figure>
   );

@@ -16,20 +16,70 @@ function renderRow(link = savedLink(), inCollection = false) {
 }
 
 describe("LinkRow", () => {
-  it("opens the link's details in place instead of the saved URL", async () => {
+  it("opens the saved URL in a new tab", async () => {
     const link = savedLink({ originalUrl: "https://example.com/a?ref=1" });
-    const { router } = await renderRow(link);
-    const row = screen.getByRole("link");
-    expect(row).toHaveAttribute("href", `/?link=${link.id}`);
-    expect(row).not.toHaveAttribute("target");
-    await userEvent.click(row);
-    expect(router.state.location.search).toEqual({ link: link.id });
+    const { container } = await renderRow(link);
+    const row = container.querySelector("[data-row-link]");
+    expect(row).toHaveAttribute("href", "https://example.com/a?ref=1");
+    expect(row).toHaveAttribute("target", "_blank");
+    expect(row).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it("never links to a saved URL, so a javascript: URL cannot run from the row", async () => {
-    const link = savedLink({ originalUrl: "javascript:alert(1)", resource: { title: "Odd one" } });
-    await renderRow(link);
-    expect(screen.getByRole("link", { name: /^Odd one/ })).toHaveAttribute("href", `/?link=${link.id}`);
+  it("opens a pending link's URL too", async () => {
+    await renderRow(savedLink({ originalUrl: "https://example.com/new", resource: { title: null, fetchStatus: "pending" } }));
+    expect(screen.getByRole("link", { name: /example\.com\/new/ })).toHaveAttribute("href", "https://example.com/new");
+  });
+
+  it("never gives the row a javascript: URL to run", async () => {
+    const { container } = await renderRow(savedLink({ originalUrl: "javascript:alert(1)", resource: { title: "Odd one" } }));
+    expect(container.querySelector("[data-row-link]")).not.toHaveAttribute("href");
+  });
+
+  it("offers Read, which opens the link's own page", async () => {
+    const link = savedLink();
+    const { router } = await renderRow(link);
+    const reads = screen.getAllByRole("link", { name: "Read" });
+    expect(reads).toHaveLength(2);
+    for (const read of reads) expect(read).toHaveAttribute("href", `/l/${link.id}`);
+    await userEvent.click(reads[0] as HTMLElement);
+    expect(router.state.location.pathname).toBe(`/l/${link.id}`);
+  });
+
+  it("leaves Read out of a video's actions and swipe tiles", async () => {
+    await renderRow(savedLink({ originalUrl: "https://www.youtube.com/watch?v=1", resource: { kind: "video" } }));
+    expect(screen.queryByRole("link", { name: "Read" })).not.toBeInTheDocument();
+  });
+
+  it("leaves Read out of a file's actions", async () => {
+    await renderRow(savedLink({ resource: { kind: "other" } }));
+    expect(screen.queryByRole("link", { name: "Read" })).not.toBeInTheDocument();
+  });
+
+  it("still offers Read while the kind is unknown", async () => {
+    await renderRow(savedLink({ resource: { kind: null, title: null, fetchStatus: "pending" } }));
+    expect(screen.getAllByRole("link", { name: "Read" })).toHaveLength(2);
+  });
+
+  it("slides the swipe tiles in by exactly their width, one less without Read", async () => {
+    const tilesOf = () => screen.getAllByRole("group", { name: "Some title" }).at(-1);
+    const { unmount } = await renderRow(savedLink({ resource: { title: "Some title" } }));
+    expect(tilesOf()?.style.transform).toBe("translateX(308px)");
+    unmount();
+    await renderRow(savedLink({ resource: { title: "Some title", kind: "video" } }));
+    expect(tilesOf()?.style.transform).toBe("translateX(248px)");
+  });
+
+  it("keeps a row with an unsafe URL focusable without making it navigate", async () => {
+    const { container } = await renderRow(savedLink({ originalUrl: "javascript:alert(1)" }));
+    const row = container.querySelector<HTMLElement>("[data-row-link]");
+    expect(row).toHaveAttribute("tabindex", "0");
+    expect(row).toHaveAttribute("aria-disabled", "true");
+    expect(row).not.toHaveAttribute("href");
+  });
+
+  it("leaves a row with a safe URL out of the tab order it already has", async () => {
+    const { container } = await renderRow(savedLink());
+    expect(container.querySelector("[data-row-link]")).not.toHaveAttribute("tabindex");
   });
 
   it("shows the user's title over the fetched one", async () => {
@@ -61,12 +111,16 @@ describe("LinkRow", () => {
     const image = container.querySelector("img");
     expect(image).toHaveAttribute("src", "https://cdn.example.com/og.png");
     expect(image).toHaveAttribute("referrerpolicy", "no-referrer");
-    expect(screen.getByRole("link").getAttribute("href")).toMatch(/^\/\?link=/);
   });
 
   it("shows the domain's letter when there is no image", async () => {
     await renderRow(savedLink({ originalUrl: "https://doc.rust-lang.org/book" }));
     expect(screen.getByText("D")).toBeInTheDocument();
+  });
+
+  it("keeps the page's description for big screens' second line", async () => {
+    await renderRow(savedLink({ resource: { description: "A slow walk through Shibuya." } }));
+    expect(screen.getByText("A slow walk through Shibuya.")).toHaveClass("3xl:block");
   });
 
   it("marks a pinned link", async () => {
@@ -126,6 +180,7 @@ describe("LinkRow", () => {
     const groups = screen.getAllByRole("group", { name: "Rust by Example" });
     expect(groups.length).toBeGreaterThan(0);
     for (const group of groups) {
+      expect(within(group).getByRole("link", { name: "Read" })).toBeInTheDocument();
       expect(within(group).getByRole("button", { name: /^Add to/ })).toBeInTheDocument();
       expect(within(group).getByRole("button", { name: "Share" })).toBeInTheDocument();
       expect(within(group).getByRole("button", { name: "Pin" })).toBeInTheDocument();

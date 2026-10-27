@@ -7,6 +7,7 @@ import { z } from "zod";
 import { cn } from "cn";
 import { api } from "../api/api";
 import { tileFor } from "../links/link-display";
+import { invalidateGroups } from "../collections/use-groups";
 import { linksKeys } from "../links/use-links";
 
 type ListedCollection = z.infer<typeof listCollectionsResponseSchema>["items"][number];
@@ -39,6 +40,7 @@ function useMembership(linkId: string, initial: string[]) {
       queryClient.invalidateQueries({ queryKey: linksKeys.all }),
       // Marked stale but not refetched here: the handoff freezes the order while the card is open.
       queryClient.invalidateQueries({ queryKey: collectionsKey, refetchType: "none" }),
+      invalidateGroups(queryClient, { refetchType: "none" }),
     ]),
   });
   return { ticked, toggle: (collectionId: string) => { toggle.mutate({ collectionId, on: !ticked.has(collectionId) }); } };
