@@ -9,12 +9,14 @@ import { keepPendingConnect, keepPendingSave, pendingReturnHref, SAVE_PATH } fro
 import { AuthPage } from "./AuthPage";
 import { AuthStateContext, useAuthState } from "./auth-state";
 import { useAuth } from "./use-auth";
+import { wasAccountDeleted } from "../settings/account-deleted";
+import { ACCOUNT_DELETED_PATH } from "../settings/path";
 
 export function AuthGate() {
   const auth = useAuth();
   return (
     <AuthStateContext value={auth}>
-      <GatedOutlet />
+      <GatedOutlet key={auth.status === "signed-in" ? auth.session.user.id : auth.status} />
       <Toaster />
     </AuthStateContext>
   );
@@ -35,6 +37,7 @@ function GatedOutlet() {
   if (auth.status === "unavailable") return <AuthPage title="Could not reach your server"><button type="button" onClick={auth.retry}>Try again</button></AuthPage>;
 
   if (auth.status === "signed-out" && !onSignIn) {
+    if (wasAccountDeleted()) return <Navigate to={ACCOUNT_DELETED_PATH} replace />;
     // Written during render so it lands before Navigate's effect leaves /save; the write is idempotent.
     if (pathname === SAVE_PATH && searchStr) keepPendingSave(searchStr);
     if (pathname === EXTENSION_CONNECT_PATH) keepPendingConnect();

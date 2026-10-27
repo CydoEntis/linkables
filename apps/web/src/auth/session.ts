@@ -9,6 +9,7 @@ type Listener = (session: Session | null) => void;
 let current: Session | null = null;
 let revision = 0;
 const listeners = new Set<Listener>();
+export const AUTH_CHANGED_KEY = "linkables.auth.changed";
 
 export function currentSession(): Session | null { return current; }
 
@@ -23,14 +24,14 @@ export function subscribeSession(listener: Listener): () => void {
   return () => { listeners.delete(listener); };
 }
 
-async function request(path: string, body?: unknown) {
+async function request(path: string, body?: unknown, token?: string) {
   let response: Response;
   try {
     response = await fetch(`${env.VITE_API_URL}/api/v1/auth/${path}`, {
       method: body === undefined ? "GET" : "POST",
-      credentials: "include",
+      credentials: token === undefined ? "include" : "omit",
       redirect: "error",
-      headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+      headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }), ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   } catch (error) {
@@ -62,15 +63,66 @@ export async function loadSession(): Promise<Session | null> {
 export async function signIn(values: z.infer<typeof signInRequestSchema>): Promise<void> {
   const session = parseData(sessionSchema, await request("sign-in", signInRequestSchema.parse(values)));
   rememberSession(session);
+  publishSessionChange();
 }
 
 export async function signOut(): Promise<void> {
-  await request("sign-out", {});
-  rememberSession(null);
+  const session = current;
+  if (session) {
+    try { await request("sign-out", {}, session.token); }
+    catch (error) {
+      if (!(error instanceof ApiError) || error.code !== ERROR_CODES.UNAUTHENTICATED) throw error;
+    }
+  }
+  if (current?.token === session?.token) rememberSession(null);
+  publishSessionChange();
 }
 
 // The server rejected the bearer token; clearing it must not depend on a second request.
-export function forgetSession(): Promise<void> {
+export function forgetSession(expectedToken?: string | null): Promise<void> {
+  if (expectedToken !== undefined && (current?.token ?? null) !== expectedToken) return Promise.resolve();
   rememberSession(null);
+  publishSessionChange();
   return Promise.resolve();
+}
+
+function publishSessionChange(): void {
+  try { localStorage.setItem(AUTH_CHANGED_KEY, crypto.randomUUID()); }
+  catch (error) {
+    // Private browsing can block storage; focusing another tab still reconciles its cookie.
+    if (!(error instanceof DOMException)) throw error;
+  }
+}
+
+export function startSessionSync(): () => void {
+  let pending: Promise<Session | null> | null = null;
+  let queued = false;
+  let disposed = false;
+  function reconcile() {
+    if (pending) { queued = true; return; }
+    pending = loadSession().catch((error: unknown) => {
+      if (error instanceof ApiError) return current;
+      throw error;
+    }).finally(() => {
+      pending = null;
+      if (!disposed && queued) { queued = false; reconcile(); }
+    });
+  }
+  function onStorage(event: StorageEvent) {
+    if (event.key !== AUTH_CHANGED_KEY) return;
+    rememberSession(null);
+    reconcile();
+  }
+  function onVisible() {
+    if (document.visibilityState === "visible") reconcile();
+  }
+  window.addEventListener("storage", onStorage);
+  window.addEventListener("focus", reconcile);
+  document.addEventListener("visibilitychange", onVisible);
+  return () => {
+    disposed = true;
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener("focus", reconcile);
+    document.removeEventListener("visibilitychange", onVisible);
+  };
 }

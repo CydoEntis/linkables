@@ -7,7 +7,8 @@ export type ApiClientOptions = {
   getAccessToken: () => Promise<string | null>;
   // The token already held in memory, if it is still valid; see send().
   peekAccessToken?: () => string | null;
-  onUnauthenticated: () => Promise<void>;
+  onUnauthenticated: (token: string | null) => Promise<void>;
+  isCurrentSession?: (token: string) => boolean;
   fetch?: typeof fetch;
 };
 
@@ -17,7 +18,7 @@ export function createApiClient(options: ApiClientOptions) {
   const doFetch = options.fetch ?? ((input, init) => fetch(input, init));
   const root = options.baseUrl.replace(/\/$/, "") + API_V1_PREFIX;
 
-  async function send(path: string, init: RequestInit): Promise<Response> {
+  async function send(path: string, init: RequestInit): Promise<{ response: Response; token: string | null }> {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
     // A keepalive request is sent as the page goes away, which leaves no time to
@@ -26,7 +27,7 @@ export function createApiClient(options: ApiClientOptions) {
     const token = held ?? (await options.getAccessToken());
     if (token) headers.set("Authorization", `Bearer ${token}`);
     try {
-      return await doFetch(root + path, { ...init, headers });
+      return { response: await doFetch(root + path, { ...init, headers }), token };
     } catch (error) {
       // fetch rejects with a TypeError only when no response arrived (offline, DNS, CORS).
       if (error instanceof TypeError) {
@@ -41,9 +42,13 @@ export function createApiClient(options: ApiClientOptions) {
     dataSchema: T,
     init: RequestInit = {},
   ): Promise<z.infer<T>> {
-    const envelope = await readEnvelope(await send(path, init));
+    const { response, token } = await send(path, init);
+    const envelope = await readEnvelope(response);
+    if (token !== null && options.isCurrentSession?.(token) === false) {
+      throw new ApiError(ERROR_CODES.CONFLICT, "The account changed. Try again.");
+    }
     if (envelope.ok) return parseData(dataSchema, envelope.data);
-    if (envelope.error.code === ERROR_CODES.UNAUTHENTICATED) await options.onUnauthenticated();
+    if (envelope.error.code === ERROR_CODES.UNAUTHENTICATED) await options.onUnauthenticated(token);
     throw new ApiError(envelope.error.code, envelope.error.message, envelope.meta.requestId);
   }
 

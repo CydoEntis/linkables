@@ -12,7 +12,7 @@ beforeEach(() => {
 it("offers the Firefox add-on on its tile to a Firefox visitor", async () => {
   await renderWithRouter(<EverywhereSection storeUrl={STORE_URL} firefox />);
   const tile = screen.getByRole("heading", { name: "Firefox extension" }).parentElement as HTMLElement;
-  expect(within(tile).getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/extension");
+  expect(within(tile).getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
   expect(screen.queryByRole("link", { name: /Add to Chrome/ })).not.toBeInTheDocument();
 });
 

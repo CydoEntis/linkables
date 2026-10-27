@@ -29,7 +29,7 @@ describe("FirstLinks on a computer", () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0");
     await renderWithRouter(<FirstLinks />);
     expect(screen.getByRole("heading", { name: "Firefox extension" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/extension");
+    expect(screen.getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
   });
 
   it("takes Paste a link to the save bar", async () => {

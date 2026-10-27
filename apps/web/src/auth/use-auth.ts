@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { currentSession, loadSession, subscribeSession, type Session } from "./session";
+import { currentSession, loadSession, startSessionSync, subscribeSession, type Session } from "./session";
 
 export type AuthState =
   | { status: "loading" }
@@ -17,6 +17,7 @@ export function useAuth(): AuthState {
       changed = true;
       setState(session ? { status: "signed-in", session } : { status: "signed-out", linkProblem: null, afterSignOut: true });
     });
+    const stopSync = startSessionSync();
     const existing = currentSession();
     if (existing) setState({ status: "signed-in", session: existing });
     else void loadSession().then((session) => {
@@ -24,7 +25,7 @@ export function useAuth(): AuthState {
     }).catch(() => {
       if (!disposed && !changed) setState({ status: "unavailable", retry: () => { setState({ status: "loading" }); setAttempt((value) => value + 1); } });
     });
-    return () => { disposed = true; unsubscribe(); };
+    return () => { disposed = true; unsubscribe(); stopSync(); };
   }, [attempt]);
   return state;
 }
