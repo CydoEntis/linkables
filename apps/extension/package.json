@@ -1,7 +1,7 @@
 {
   "name": "extension",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "scripts": {
     "build": "vite build",
@@ -9,6 +9,7 @@
     "release": "node scripts/release-zip.ts",
     "release:store": "vite build --mode store --outDir dist-store --emptyOutDir && node scripts/release-zip.ts store",
     "release:firefox": "vite build --mode firefox --outDir dist-firefox --emptyOutDir && web-ext lint --source-dir dist-firefox",
+    "check:firefox": "node scripts/check-firefox-xpi.ts",
     "sign:firefox": "node scripts/sign-firefox.ts",
     "store:images": "node store/render.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p e2e/tsconfig.json",
