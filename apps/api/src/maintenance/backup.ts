@@ -1,6 +1,7 @@
 import { chmodSync, existsSync, linkSync, mkdirSync, unlinkSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { backup, DatabaseSync } from "node:sqlite";
 import { MaintenanceError } from "./errors";
 
@@ -40,3 +41,8 @@ export async function backupDatabase(source: string, destination: string): Promi
 }
 
 export const restoreDatabase = backupDatabase;
+
+export function configuredDatabasePath(databaseUrl = process.env.DATABASE_URL ?? "file:./data/linkables.db"): string {
+  if (!databaseUrl.startsWith("file:") || databaseUrl === "file::memory:") throw new MaintenanceError("Backup requires a local SQLite file DATABASE_URL");
+  return databaseUrl.startsWith("file://") ? fileURLToPath(databaseUrl) : databaseUrl.slice(5);
+}

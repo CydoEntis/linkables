@@ -8,6 +8,9 @@ metadata worker. Caddy serves the web app and proxies the API on the same origin
 
 Set `APP_ORIGIN` in `.env` to the exact origin people open. The web build discovers
 its API from the current origin; it contains no instance credentials or hostname.
+The shipped Chrome builds and Firefox extension origins work without extra CORS
+configuration. Add a custom Chrome build's origin to `CORS_ORIGINS` if its ID
+differs from the shipped packages. Unlisted Chrome origins are rejected.
 
 ### Use Tailscale HTTPS
 
@@ -77,12 +80,14 @@ docker compose exec --user root api chmod 700 /backups
 Create a new snapshot without stopping the app:
 
 ```sh
-docker compose exec api node_modules/.bin/tsx src/maintenance/cli.ts backup /data/linkables.db /backups/library-2026-10-27.db
+docker compose exec api node_modules/.bin/tsx src/maintenance/cli.ts backup-current /backups/library-2026-10-27.db
 ```
 
 Use a new filename for each backup. The command refuses existing destinations,
 includes committed WAL pages, checks database integrity and foreign keys, and
-publishes the result only after validation. Copy the snapshot off the host. On a
+publishes the result only after validation. `backup-current` reads the running
+API container's `DATABASE_URL`, so it backs up the selected database after a
+migration or restore. Copy the snapshot off the host. On a
 host where your UID differs from the container's UID 1000, use Docker to copy it
 to a directory you own:
 
@@ -97,8 +102,10 @@ docker compose exec api node_modules/.bin/tsx src/maintenance/cli.ts restore /ba
 docker compose exec api node_modules/.bin/tsx src/maintenance/cli.ts check /data/restored.db
 ```
 
-To use the restored database, stop the app and change the compose `DATABASE_URL`
-to `file:/data/restored.db`, then recreate the API. Keep the original database
+To use the restored database, stop the app, set `DATABASE_URL=file:/data/restored.db`
+in the checkout's `.env`, and run `docker compose up -d`. Keep the file under
+`/data` so it persists in the data volume. The compose file passes this variable
+to the API; its default is `file:/data/linkables.db`. Keep the original database
 until sign-in, link counts, collections, search, and a test save all work. A
 restored session works only with the corresponding auth secret and an unexpired
 session; users can sign in again if needed.

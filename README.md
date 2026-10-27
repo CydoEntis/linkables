@@ -27,6 +27,8 @@ cp .env.example .env
 Set `AUTH_SECRET` in `.env` to a random value of at least 32 characters. Generate
 one with `openssl rand -hex 32`. Set `APP_ORIGIN` to your instance's full origin,
 such as `https://links.example.com`, without a trailing slash.
+The default `DATABASE_URL=file:/data/linkables.db` stores your library in the
+persistent data volume. Shipped browser extensions are trusted by default.
 
 ```sh
 mkdir -p backups

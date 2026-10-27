@@ -66,7 +66,7 @@ docker compose cp /secure/location/migrated.db api:/data/migrated.db
 docker compose run --rm --user root api chown node:node /data/migrated.db
 ```
 
-Change the compose API's `DATABASE_URL` to `file:/data/migrated.db`. Preserve the
+Set `DATABASE_URL=file:/data/migrated.db` in the checkout's `.env`. Preserve the
 original `linkables.db` until the migration is verified. Then start the app:
 
 ```sh
@@ -91,6 +91,8 @@ the permitted network, even when they hold a share URL.
 Create an online SQLite backup and restore it into a fresh database. Open the
 restored database with the app and repeat sign-in and retrieval checks. Retain
 the matching `.env` and auth secret with your protected recovery material.
+Use the operator guide's `backup-current` command, which reads the selected
+database from the running container instead of assuming the original filename.
 
 Only after these checks pass, stop the old app and its automatic update timer.
 Remove only Linkables resources from a shared host. Keep the old Postgres backup

@@ -1,10 +1,13 @@
 import { importPostgresFile } from "./import-postgres";
-import { backupDatabase, restoreDatabase, validateDatabase } from "./backup";
+import { backupDatabase, configuredDatabasePath, restoreDatabase, validateDatabase } from "./backup";
 import { MaintenanceError } from "./errors";
 
 async function main() {
   const [command, source, destination] = process.argv.slice(2);
-  if (command === "check" && source && !destination) {
+  if (command === "backup-current" && source && !destination) {
+    await backupDatabase(configuredDatabasePath(), source);
+    process.stdout.write("Verified snapshot of the configured database created.\n");
+  } else if (command === "check" && source && !destination) {
     validateDatabase(source);
     process.stdout.write("Database integrity and references verified.\n");
   } else if (command === "import-postgres" && source && destination) {
@@ -13,7 +16,7 @@ async function main() {
     await (command === "backup" ? backupDatabase : restoreDatabase)(source, destination);
     process.stdout.write("Verified database snapshot created.\n");
   } else {
-    throw new MaintenanceError("Usage: maintenance <import-postgres|backup|restore> <source> <new-destination>; maintenance check <database>");
+    throw new MaintenanceError("Usage: maintenance <import-postgres|backup|restore> <source> <new-destination>; maintenance backup-current <new-backup>; maintenance check <database>");
   }
 }
 

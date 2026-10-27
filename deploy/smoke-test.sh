@@ -36,9 +36,10 @@ curl -fsS -c "$cookie" -H "Origin: $origin" -H 'Content-Type: application/json' 
   -d '{"email":"smoke@example.test","password":"smoke-password-only-12345"}' "$origin/api/v1/auth/sign-in" >/dev/null
 curl -fsS -b "$cookie" -H 'Content-Type: application/json' \
   -d '{"url":"https://example.com/smoke"}' "$origin/api/v1/links" >/dev/null
-docker exec "$name" node_modules/.bin/tsx src/maintenance/cli.ts backup /data/linkables.db /data/backup.db
+docker exec "$name" node_modules/.bin/tsx src/maintenance/cli.ts backup-current /data/backup.db
 docker exec "$name" node_modules/.bin/tsx src/maintenance/cli.ts restore /data/backup.db /data/restored.db
 docker rm -f "$name" >/dev/null
 start restored.db
 curl -fsS -b "$cookie" "$origin/api/v1/links" | grep -q 'https://example.com/smoke'
+docker exec "$name" node_modules/.bin/tsx src/maintenance/cli.ts backup-current /data/after-restore-backup.db
 echo 'Fresh install, local sign-in, save, online backup and restored-session checks passed.'
