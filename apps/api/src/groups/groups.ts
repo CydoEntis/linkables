@@ -32,7 +32,7 @@ async function uniqueName<T>(query: Promise<T>): Promise<T> {
 // no key update serialises writers of one collection's groups (the count check
 // for the limit, positions) while membership writes, which only key share the
 // collection, carry on.
-async function lockCollection(tx: Tx, { userId, collectionId }: InCollection): Promise<void> {
+export async function lockCollection(tx: Tx, { userId, collectionId }: InCollection): Promise<void> {
   const [row] = await tx
     .select({ id: collection.id })
     .from(collection)

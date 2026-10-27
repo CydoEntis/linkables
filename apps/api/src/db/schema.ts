@@ -72,6 +72,8 @@ export const collection = pgTable(
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
     // Null while the view-only link is off; turning it on again issues a new one.
     shareToken: text("share_token").unique(),
+    // Whether the shared page shows links that sit in no group; a group's own flag is collection_group.shared.
+    shareUngrouped: boolean("share_ungrouped").notNull().default(true),
   },
   (table) => [uniqueIndex("collection_user_id_lower_name_unique").on(table.userId, sql`lower(${table.name})`)],
 ).enableRLS();

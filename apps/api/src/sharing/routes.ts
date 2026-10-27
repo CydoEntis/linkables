@@ -1,4 +1,4 @@
-import { shareTokenSchema } from "@linkables/shared/sharing";
+import { shareScopeRequestSchema, shareTokenSchema } from "@linkables/shared/sharing";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { z } from "zod";
@@ -11,7 +11,7 @@ import { NotFoundError } from "../http/errors";
 import { rateLimit } from "../http/rate-limit";
 import { parseWith } from "../http/validate";
 import type { Logger } from "../log/logger";
-import { disableShare, enableShare, getShareState, listOwnShared, sharedCollection } from "./share";
+import { disableShare, enableShare, getShareState, listOwnShared, setShareScope, sharedCollection } from "./share";
 
 const MINUTE_MS = 60 * 1000;
 // A viewer loads the page once; this leaves room for a household behind one address.
@@ -19,6 +19,8 @@ const VIEWS_PER_MINUTE = 60;
 const ADDRESSES_TRACKED = 10_000;
 
 const collectionParams = validator("param", parseWith(z.object({ id: z.uuid() }), "Invalid path"));
+
+const scopeBody = validator("json", parseWith(shareScopeRequestSchema, "Invalid request body"));
 
 // A malformed token can never match, so it gets the same NOT_FOUND as an unknown one.
 const tokenParams = validator("param", (value) => {
@@ -38,6 +40,9 @@ export function shareRoutes({ db }: { db: Db }) {
     )
     .delete("/collections/:id/share", collectionParams, async (c) =>
       ok(c, await disableShare(db, { userId: c.get("userId"), id: c.req.valid("param").id })),
+    )
+    .put("/collections/:id/share/scope", collectionParams, scopeBody, async (c) =>
+      ok(c, await setShareScope(db, { userId: c.get("userId"), id: c.req.valid("param").id }, c.req.valid("json"))),
     );
 }
 
