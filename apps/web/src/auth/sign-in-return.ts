@@ -10,3 +10,9 @@ export function isSignInReturn(href: string): boolean {
   const found = (params: URLSearchParams) => params.has("access_token") || params.has("code") || SIGN_IN_ERROR_PARAMS.some((key) => params.has(key));
   return found(new URLSearchParams(url.hash.slice(1))) || found(url.searchParams);
 }
+
+// The PKCE client refuses tokens in the fragment but leaves them in the URL and history, signed in or not.
+export function removeRejectedTokensFromUrl(): void {
+  const { hash, pathname, search } = window.location;
+  if (new URLSearchParams(hash.slice(1)).has("access_token")) window.history.replaceState(null, "", pathname + search);
+}

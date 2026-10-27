@@ -1,4 +1,4 @@
-import { AuthApiError, AuthImplicitGrantRedirectError } from "@supabase/supabase-js";
+import { AuthApiError, AuthImplicitGrantRedirectError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { expect, it, vi } from "vitest";
 import { readLinkProblem } from "./link-landing";
 
@@ -40,6 +40,13 @@ it("reports a failed Google code exchange on the sign-in page", async () => {
   window.history.replaceState(null, "", "/sign-in?code=abc");
   initialize.mockResolvedValue({ error: new AuthApiError("bad", 400, "validation_failed") });
   await expect(readLinkProblem()).resolves.toBe("google-failed");
+});
+
+it("reports a network failure during the exchange as offline and keeps the code for a retry", async () => {
+  window.history.replaceState(null, "", "/?code=abc");
+  initialize.mockResolvedValue({ error: new AuthRetryableFetchError("Failed to fetch", 0) });
+  await expect(readLinkProblem()).resolves.toBe("offline");
+  expect(currentUrl()).toBe("/?code=abc");
 });
 
 it("reports nothing for an ordinary page load", async () => {

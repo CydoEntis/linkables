@@ -1,9 +1,9 @@
-import { type AuthError, isAuthApiError, isAuthImplicitGrantRedirectError } from "@supabase/supabase-js";
+import { type AuthError, isAuthApiError, isAuthImplicitGrantRedirectError, isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { GOOGLE_RETURN_PATH } from "./google-sign-in";
 import { isSignInReturn, SIGN_IN_QUERY_PARAMS } from "./sign-in-return";
 import { supabase } from "./supabase";
 
-export type LinkProblem = "expired" | "invalid" | "google-failed";
+export type LinkProblem = "expired" | "invalid" | "google-failed" | "offline";
 
 // Supabase redirects a failed sign-in back with error=... in the hash or query. Some OAuth
 // failures (lost flow state) go to the Site URL, not redirectTo, so the code is checked first;
@@ -13,6 +13,8 @@ export type LinkProblem = "expired" | "invalid" | "google-failed";
 // elsewhere), or tokens in the hash, which the PKCE client refuses.
 export async function readLinkProblem(): Promise<LinkProblem | null> {
   const { error } = await supabase.auth.initialize();
+  // The code stays in the URL so a reload can retry the exchange.
+  if (isAuthRetryableFetchError(error)) return "offline";
   const code = failureCode(error);
   if (code === null && !isSignInReturn(window.location.href)) return null;
   removeSignInParamsFromUrl();
