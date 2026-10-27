@@ -7,6 +7,7 @@ const webOrigin = z.url().refine((value) => new URL(value).origin === value && [
 const extensionOrigin = z.string().regex(/^(chrome-extension:\/\/[a-p]{32}|moz-extension:\/\/[a-zA-Z0-9-]+)$/);
 const corsOrigins = z.string().default("").transform((value) => value.split(",").map((entry) => entry.trim()).filter(Boolean))
   .pipe(z.array(z.union([extensionOrigin, webOrigin])));
+const optionalEmail = z.preprocess((value) => value === "" ? undefined : value, z.email().optional());
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("production"),
   DATABASE_URL: z.string().startsWith("file:").default("file:./data/linkables.db"),
@@ -18,6 +19,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
   RESEND_API_KEY: z.string().transform((value) => value || undefined).optional(),
+  MAIL_FROM: optionalEmail,
+  OWNER_EMAIL: optionalEmail,
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -36,6 +39,8 @@ function toConfig(env: Env) {
     databaseUrl: env.DATABASE_URL,
     auth: { appOrigin: env.APP_ORIGIN, secret: env.AUTH_SECRET, trustedOrigins: origins },
     resendApiKey: env.RESEND_API_KEY,
+    mailFrom: env.MAIL_FROM,
+    ownerEmail: env.OWNER_EMAIL,
   };
 }
 
