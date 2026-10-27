@@ -9,6 +9,8 @@ type Selection = {
   cancel: () => void;
   toggle: (link: SavedLink) => void;
   chooseAll: (links: readonly SavedLink[]) => void;
+  // Drops links that are no longer in the list.
+  keepOnly: (ids: ReadonlySet<string>) => void;
 };
 
 export const useSelection = create<Selection>()((set, get) => ({
@@ -19,6 +21,10 @@ export const useSelection = create<Selection>()((set, get) => ({
   toggle: (link) => {
     const { [link.id]: was, ...rest } = get().chosen;
     set({ chosen: was === undefined ? { ...rest, [link.id]: link.originalUrl } : rest });
+  },
+  keepOnly: (ids) => {
+    const chosen = Object.fromEntries(Object.entries(get().chosen).filter(([id]) => ids.has(id)));
+    if (Object.keys(chosen).length !== Object.keys(get().chosen).length) set({ chosen });
   },
   chooseAll: (links) => { set({ chosen: Object.fromEntries(links.map((link) => [link.id, link.originalUrl])) }); },
 }));

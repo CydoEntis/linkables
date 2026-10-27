@@ -1,8 +1,14 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClientProvider } from "@tanstack/react-query";
-import type { SavedLink } from "@linkables/shared/links";
+import type { ListLinksResponse, SavedLink } from "@linkables/shared/links";
+import type { InfiniteData } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
+import type { ListFilters } from "../search/list-filters";
+import { useLinksUi } from "../links/links-ui-store";
+import { linksKeys } from "../links/use-links";
 import { LinkList } from "../links/LinkList";
 import { savedLink } from "../links/test-links";
 import { listedCollection } from "../collections/test-collections";
@@ -30,27 +36,35 @@ function serve(pages: SavedLink[][]) {
   });
 }
 
-function Page() {
-  const opening = useCollectionOpening(COLLECTION);
+function Page({ filters }: { filters: ListFilters }) {
+  const opening = useCollectionOpening(COLLECTION, filters);
   return (
     <>
       {opening.actions}
       {opening.extras}
-      <LinkList scope={{ collectionId: COLLECTION.id }} />
+      <LinkList scope={{ collectionId: COLLECTION.id }} filters={filters} />
     </>
   );
 }
 
-async function renderPage() {
-  render(
-    <QueryClientProvider client={testQueryClient()}>
+const queryClient = testQueryClient();
+
+function ui(filters: ListFilters) {
+  return (
+    <QueryClientProvider client={queryClient}>
       <TestRouter>
-        <Page />
+        <Page filters={filters} />
       </TestRouter>
-    </QueryClientProvider>,
+      <Toaster />
+    </QueryClientProvider>
   );
+}
+
+async function renderPage() {
+  const view = render(ui({}));
   await screen.findByText("Link 1");
   await waitFor(() => { expect(screen.getByRole("button", { name: "Open all" })).toBeEnabled(); });
+  return { changeFilters: (filters: ListFilters) => { view.rerender(ui(filters)); } };
 }
 
 type Tab = { opener: unknown; location: { href: string } };
@@ -72,6 +86,8 @@ function stubOpen(allowed = Infinity) {
 }
 
 beforeEach(() => {
+  queryClient.clear();
+  toast.dismiss();
   request.mockReset();
   tabs = [];
   open = vi.spyOn(window, "open");
@@ -85,6 +101,7 @@ afterEach(() => {
   resetViewport();
   useAskBeforeOpening.setState({ ask: true });
   useSelection.setState({ selecting: false, chosen: {} });
+  useLinksUi.setState({ deletingIds: [] });
   localStorage.clear();
 });
 
@@ -232,5 +249,99 @@ describe("Select to open", () => {
     expect(screen.getByText("0 selected")).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+  });
+
+  it("toggles with Space, and Enter does not follow the link", async () => {
+    await startSelecting();
+    const row = screen.getByRole("checkbox", { name: /Link 1/ });
+    row.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(row).toHaveAttribute("aria-checked", "false");
+    expect(open).not.toHaveBeenCalled();
+    await userEvent.keyboard(" ");
+    expect(row).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("ends the selection when the search changes", async () => {
+    const { changeFilters } = await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 1/ }));
+    changeFilters({ q: "link" });
+    await waitFor(() => { expect(screen.queryByRole("toolbar")).not.toBeInTheDocument(); });
+    expect(useSelection.getState().chosen).toEqual({});
+  });
+
+  it("ends the selection when the sort changes", async () => {
+    const { changeFilters } = await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 1/ }));
+    changeFilters({ sort: "oldest" });
+    await waitFor(() => { expect(screen.queryByRole("toolbar")).not.toBeInTheDocument(); });
+  });
+
+  it("drops a ticked link that is deleted", async () => {
+    await startSelecting();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 1/ }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 2/ }));
+    const [first] = Object.keys(useSelection.getState().chosen);
+    act(() => { useLinksUi.getState().startDeleting(first ?? ""); });
+    await waitFor(() => { expect(screen.getByText("1 selected")).toBeInTheDocument(); });
+  });
+
+  it("drops a ticked link that is filed out of the collection", async () => {
+    await startSelecting();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 1/ }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 3/ }));
+    act(() => {
+      queryClient.setQueryData<InfiniteData<ListLinksResponse>>(linksKeys.collection(COLLECTION.id), (data) => {
+        const [first, ...rest] = data?.pages[0]?.items ?? [];
+        return data && first && { ...data, pages: [{ items: [{ ...first, collections: [] }, ...rest], cursor: null }] };
+      });
+    });
+    await waitFor(() => { expect(screen.getByText("1 selected")).toBeInTheDocument(); });
+  });
+
+  it("shows loading and disables Select all while it pages through the collection", async () => {
+    let release: () => void = () => undefined;
+    request.mockImplementation((path) => {
+      const cursor = new URLSearchParams(path.split("?")[1]).get("cursor");
+      if (cursor === null) return Promise.resolve({ items: [link(1), link(2)], cursor: "1" });
+      return new Promise((resolve) => { release = () => { resolve({ items: [link(3)], cursor: null }); }; });
+    });
+    await startSelecting();
+    await userEvent.click(screen.getByRole("button", { name: "Select all" }));
+    expect(screen.queryByRole("button", { name: "Select all" })).not.toBeInTheDocument();
+    await act(async () => { release(); await Promise.resolve(); });
+    await waitFor(() => { expect(screen.getByText("3 selected")).toBeInTheDocument(); });
+  });
+});
+
+describe("Open all while the collection loads", () => {
+  it("shows Loading… on the button until every page is in", async () => {
+    let release: () => void = () => undefined;
+    request.mockImplementation((path) => {
+      const cursor = new URLSearchParams(path.split("?")[1]).get("cursor");
+      if (cursor === null) return Promise.resolve({ items: [link(1), link(2)], cursor: "1" });
+      return new Promise((resolve) => { release = () => { resolve({ items: [link(3)], cursor: null }); }; });
+    });
+    await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Open all" }));
+    expect(screen.queryByRole("button", { name: "Open all" })).not.toBeInTheDocument();
+    for (const button of screen.getAllByRole("button", { name: "Loading…" })) expect(button).toBeDisabled();
+    await act(async () => { release(); await Promise.resolve(); });
+    expect(await screen.findByRole("dialog", { name: "Open 3 links?" })).toBeInTheDocument();
+  });
+});
+
+describe("links that are not web addresses", () => {
+  it("counts only the openable ones and says how many were skipped", async () => {
+    const bad = savedLink({ collections: [{ id: COLLECTION.id, name: COLLECTION.name }], originalUrl: "javascript:alert(1)", resource: { title: "Link 3" } });
+    serve([[link(1), link(2), bad]]);
+    await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Open all" }));
+    expect(await screen.findByRole("dialog", { name: "Open 2 links?" })).toBeInTheDocument();
+    expect(await screen.findByText("1 link skipped: not a web address")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(opened()).toHaveLength(2);
   });
 });
