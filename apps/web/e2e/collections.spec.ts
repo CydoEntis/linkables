@@ -117,6 +117,73 @@ test.describe("at 1280 px", () => {
     await expect(sidebar(page).getByRole("link", { name: /^Watch later/ })).toContainText("1");
   });
 
+  const SHOTS = process.env.DROP_ZONE_SHOTS;
+
+  async function holdRowOver(page: Page, title: RegExp, target: ReturnType<typeof sidebar>) {
+    await page.getByRole("link", { name: title }).hover();
+    await page.mouse.down();
+    const box = await target.boundingBox();
+    if (box === null) throw new Error("the drop target has no box");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 5 });
+    await page.mouse.move(box.x + box.width / 2 + 2, box.y + box.height / 2);
+  }
+
+  test("while a row is dragged, each collection reads as a drop target and the one held shows its cue", async ({ page, seedLinks, request, user }) => {
+    await createCollection(request, user, "Watch later");
+    await createCollection(request, user, "Rust");
+    await seedLinks([{ url: "https://example.com/held", resource: { title: "Held row", fetchStatus: "fetched" } }]);
+    await page.goto("/?view=inbox");
+    const target = sidebar(page).getByRole("link", { name: /^Watch later/ });
+    const rust = sidebar(page).getByRole("link", { name: /^Rust/ });
+    await holdRowOver(page, /^Held row/, rust);
+    await expect(sidebar(page).getByRole("heading", { name: "Drop on a collection" })).toBeVisible();
+    await expect(target.getByTestId("drop-cue")).toHaveCount(0);
+    await expect(rust.getByTestId("drop-cue")).toHaveText("Add");
+    await page.mouse.move(100, 450, { steps: 5 });
+    await expect(rust.getByTestId("drop-cue")).toHaveCount(0);
+    await page.waitForTimeout(300);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/idle-drag.png` });
+    const rustBox = await rust.boundingBox();
+    if (rustBox === null) throw new Error("no box");
+    await page.mouse.move(rustBox.x + 20, rustBox.y + rustBox.height / 2, { steps: 10 });
+    await page.mouse.move(rustBox.x + 22, rustBox.y + rustBox.height / 2, { steps: 3 });
+    await page.mouse.move(rustBox.x + 24, rustBox.y + rustBox.height / 2, { steps: 3 });
+    await expect(rust.getByTestId("drop-cue")).toHaveText("Add");
+    await page.waitForTimeout(300);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/hover-target.png` });
+    const box = await target.boundingBox();
+    if (box === null) throw new Error("no box");
+    await page.mouse.move(box.x + 20, box.y + box.height / 2, { steps: 10 });
+    await page.mouse.move(box.x + 22, box.y + box.height / 2, { steps: 3 });
+    await page.mouse.move(box.x + 24, box.y + box.height / 2, { steps: 3 });
+    await expect(target.getByTestId("drop-cue")).toHaveText("Add");
+    await expect(rust.getByTestId("drop-cue")).toHaveCount(0);
+    await page.mouse.up();
+    await expect(sidebar(page).getByRole("link", { name: /^Watch later/ })).toContainText("1");
+  });
+
+  test("with no collections, dropping a row on the start box names a collection and files the row in it", async ({ page, seedLinks }) => {
+    await seedLinks([{ url: "https://example.com/first", resource: { title: "First ever", fetchStatus: "fetched" } }]);
+    await page.goto("/?view=inbox");
+    await expect(sidebar(page).getByText("Collections you make show up here.")).toBeVisible();
+    await page.getByRole("link", { name: /^First ever/ }).hover();
+    await page.mouse.down();
+    const start = sidebar(page).getByText("Drop here to start a collection");
+    await page.mouse.move(40, 400, { steps: 3 });
+    await expect(start).toBeVisible();
+    const box = await start.boundingBox();
+    if (box === null) throw new Error("no box");
+    await page.mouse.move(box.x + 20, box.y + 5, { steps: 8 });
+    await page.mouse.move(box.x + 22, box.y + 6);
+    await page.waitForTimeout(300);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/zero-collections-drag.png` });
+    await page.mouse.up();
+    await sidebar(page).getByRole("textbox", { name: "New collection name" }).fill("Reading");
+    await page.keyboard.press("Enter");
+    await expect(sidebar(page).getByRole("link", { name: /^Reading/ })).toContainText("1");
+    await expect(page.getByRole("link", { name: /^First ever/ })).toHaveCount(0);
+  });
+
   test("the sidebar never scrolls sideways while a row is held over a collection", async ({ page, seedLinks, request, user }) => {
     await createCollection(request, user, "Watch later");
     await seedLinks([{ url: "https://example.com/a", resource: { title: "Held row", fetchStatus: "fetched" } }]);
