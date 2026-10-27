@@ -39,11 +39,13 @@ for (const width of WIDTHS) {
     test.describe("on iPhone", () => {
       test.use({ userAgent: USER_AGENTS.iphone, viewport: { width, height: 900 }, hasTouch: true });
 
-      test("leads with the shortcut and its three-step guide", async ({ page }, testInfo) => {
+      test("leads with current-origin manual shortcut setup and offers the optional iCloud shortcut", async ({ page }, testInfo) => {
         const lead = await openPage(page);
         await expect(lead).toHaveAccessibleName("On iPhone or iPad");
+        await expect(lead.getByRole("list", { name: "Create the iPhone shortcut" })).toBeVisible();
+        await expect(lead.getByText(`${new URL(page.url()).origin}/save?url=`)).toBeVisible();
+        await lead.getByText("Use an existing iCloud shortcut").click();
         await expect(lead.getByRole("link", { name: "Add the shortcut" })).toHaveAttribute("href", IOS_SHORTCUT_URL);
-        await expect(lead.getByRole("listitem")).toHaveCount(3);
         await expect(lead.getByText(/default browser \(usually Safari\), so sign in to linkables there once/)).toBeVisible();
         await shot(page, testInfo, `save-anywhere-iphone-${String(width)}`);
       });
