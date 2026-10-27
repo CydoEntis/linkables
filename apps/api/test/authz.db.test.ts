@@ -4,7 +4,7 @@ import { sharedCollectionSchema, shareStateSchema } from "@linkables/shared/shar
 import { asc, eq, or } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { collection, collectionItem, resource, savedLink } from "../src/db/schema";
+import { collection, collectionGroup, collectionItem, resource, savedLink } from "../src/db/schema";
 import { encodeCursor } from "../src/links/cursor";
 import { cursorAt } from "../src/links/sort";
 import { createTestApp, testUsers, type TestUser } from "./app";
@@ -17,7 +17,7 @@ afterAll(close);
 beforeEach(() => truncateAll(db));
 
 type App = ReturnType<typeof createTestApp>;
-type Ids = { linkId: string; collectionId: string };
+type Ids = { linkId: string; collectionId: string; groupId: string };
 type Probe = { path: string; body?: unknown };
 type Seed = { a: Ids; b: Ids; secrets: string[] };
 
@@ -97,6 +97,39 @@ const cases: Record<string, Case> = {
   "DELETE /api/v1/collections/:id/links/:linkId": {
     request: ({ collectionId, linkId }) => ({ path: `/api/v1/collections/${collectionId}/links/${linkId}` }),
     idFields: ["collectionId", "linkId"],
+  },
+  "GET /api/v1/collections/:id/groups": {
+    request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/groups` }),
+    idFields: ["collectionId"],
+  },
+  "POST /api/v1/collections/:id/groups": {
+    request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/groups`, body: { name: SHARED_NAME } }),
+    idFields: ["collectionId"],
+  },
+  "PUT /api/v1/collections/:id/groups/order": {
+    request: ({ collectionId, groupId }) => ({
+      path: `/api/v1/collections/${collectionId}/groups/order`,
+      body: { ids: [groupId] },
+    }),
+    idFields: ["collectionId"],
+  },
+  "PATCH /api/v1/collections/:id/groups/:groupId": {
+    request: ({ collectionId, groupId }) => ({
+      path: `/api/v1/collections/${collectionId}/groups/${groupId}`,
+      body: { name: "changed by b" },
+    }),
+    idFields: ["collectionId", "groupId"],
+  },
+  "DELETE /api/v1/collections/:id/groups/:groupId": {
+    request: ({ collectionId, groupId }) => ({ path: `/api/v1/collections/${collectionId}/groups/${groupId}` }),
+    idFields: ["collectionId", "groupId"],
+  },
+  "PATCH /api/v1/collections/:id/links/:linkId": {
+    request: ({ collectionId, linkId, groupId }) => ({
+      path: `/api/v1/collections/${collectionId}/links/${linkId}`,
+      body: { groupId },
+    }),
+    idFields: ["collectionId", "linkId", "groupId"],
   },
   "GET /api/v1/export": { request: () => ({ path: "/api/v1/export" }) },
   // Mints a sign-in token for the caller only; B must get none of A's.
@@ -202,16 +235,24 @@ async function seed(): Promise<Seed> {
   const bLink = links(`${SHARED_URL}?by=user-b`);
   const aCollection = collections(`${A_MARKER} collection`);
   const bCollection = collections("user-b collection");
+  const [aGroup, bGroup] = await db
+    .insert(collectionGroup)
+    .values([
+      { collectionId: aCollection.id, name: `${A_MARKER} group`, position: 0 },
+      { collectionId: bCollection.id, name: "user-b group", position: 0 },
+    ])
+    .returning();
+  if (aGroup === undefined || bGroup === undefined) throw new Error("groups were not inserted");
   await db.insert(collectionItem).values([
-    { collectionId: aCollection.id, savedLinkId: aLink.id },
+    { collectionId: aCollection.id, savedLinkId: aLink.id, groupId: aGroup.id },
     { collectionId: aCollection.id, savedLinkId: aShared.id },
-    { collectionId: bCollection.id, savedLinkId: bLink.id },
+    { collectionId: bCollection.id, savedLinkId: bLink.id, groupId: bGroup.id },
   ]);
   return {
-    a: { linkId: aLink.id, collectionId: aCollection.id },
-    b: { linkId: bLink.id, collectionId: bCollection.id },
+    a: { linkId: aLink.id, collectionId: aCollection.id, groupId: aGroup.id },
+    b: { linkId: bLink.id, collectionId: bCollection.id, groupId: bGroup.id },
     // Resource ids are not secrets: resources are shared by everyone who saves the URL.
-    secrets: [A_MARKER, A_SHARE_TOKEN, aLink.id, aShared.id, aInbox.id, aCollection.id, collections(SHARED_NAME).id],
+    secrets: [A_MARKER, A_SHARE_TOKEN, aLink.id, aShared.id, aInbox.id, aCollection.id, aGroup.id, collections(SHARED_NAME).id],
   };
 }
 
@@ -220,8 +261,18 @@ async function rowsOfA() {
   return {
     links: await db.select().from(savedLink).where(eq(savedLink.userId, a.id)).orderBy(asc(savedLink.id)),
     collections: await db.select().from(collection).where(eq(collection.userId, a.id)).orderBy(asc(collection.id)),
+    groups: await db
+      .select({ group: collectionGroup })
+      .from(collectionGroup)
+      .innerJoin(collection, eq(collection.id, collectionGroup.collectionId))
+      .where(eq(collection.userId, a.id))
+      .orderBy(asc(collectionGroup.id)),
     filings: await db
-      .select({ collectionId: collectionItem.collectionId, linkId: collectionItem.savedLinkId })
+      .select({
+        collectionId: collectionItem.collectionId,
+        linkId: collectionItem.savedLinkId,
+        groupId: collectionItem.groupId,
+      })
       .from(collectionItem)
       .innerJoin(collection, eq(collection.id, collectionItem.collectionId))
       .innerJoin(savedLink, eq(savedLink.id, collectionItem.savedLinkId))
@@ -262,7 +313,7 @@ const idCases = caseList.filter(([, { idFields }]) => idFields !== undefined);
 
 describe("authz", () => {
   it.each(caseList)("%s rejects a request without a token", async (route, { request }) => {
-    const res = await send(createTestApp(), methodOf(route), request({ linkId: randomUUID(), collectionId: randomUUID() }));
+    const res = await send(createTestApp(), methodOf(route), request({ linkId: randomUUID(), collectionId: randomUUID(), groupId: randomUUID() }));
 
     expect(res.status).toBe(401);
     expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("UNAUTHENTICATED");
