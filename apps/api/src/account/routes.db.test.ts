@@ -52,10 +52,10 @@ async function seedBoth() {
 }
 
 async function userTables(): Promise<string[]> {
-  const rows = await db.execute<{ table_name: string }>(sql`
-    select table_name from information_schema.columns
-    where table_schema = 'public' and column_name = 'user_id'
-    order by table_name`);
+  const rows = await db.all<{ table_name: string }>(sql`
+    select m.name as table_name from sqlite_master m
+    join pragma_table_info(m.name) p on p.name = 'user_id'
+    where m.type = 'table' order by m.name`);
   return rows.map((row) => row.table_name);
 }
 
@@ -64,8 +64,8 @@ async function userTables(): Promise<string[]> {
 async function rowsPerUserTable(userId: string): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   for (const table of await userTables()) {
-    const [row] = await db.execute<{ n: number }>(
-      sql`select count(*)::int as n from ${sql.identifier(table)} where user_id = ${userId}`,
+    const [row] = await db.all<{ n: number }>(
+      sql`select count(*) as n from ${sql.identifier(table)} where user_id = ${userId}`,
     );
     counts[table] = row?.n ?? 0;
   }

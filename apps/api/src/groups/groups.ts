@@ -1,7 +1,6 @@
 import { COLLECTION_GROUPS_MAX, type Group, type ListGroupsResponse } from "@linkables/shared/groups";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { DrizzleQueryError } from "drizzle-orm/errors";
-import postgres from "postgres";
+import { isUniqueViolation } from "../db/errors";
 import type { Db, Tx } from "../db/client";
 import { collection, collectionGroup, collectionItem, savedLink } from "../db/schema";
 import { requireCollection } from "../collections/collections";
@@ -10,40 +9,31 @@ import { ConflictError, NotFoundError, ValidationError } from "../http/errors";
 export type InCollection = { userId: string; collectionId: string };
 export type GroupRef = InCollection & { groupId: string };
 
-const UNIQUE_VIOLATION = "23505";
-
 // The only unique index on collection_group besides its random id and the
 // (collection_id, id) pair is (collection_id, lower(name)).
 async function uniqueName<T>(query: Promise<T>): Promise<T> {
   try {
     return await query;
   } catch (error) {
-    if (
-      error instanceof DrizzleQueryError &&
-      error.cause instanceof postgres.PostgresError &&
-      error.cause.code === UNIQUE_VIOLATION
-    ) {
+    if (isUniqueViolation(error)) {
       throw new ConflictError("A group with that name already exists in this collection");
     }
     throw error;
   }
 }
 
-// no key update serialises writers of one collection's groups (the count check
-// for the limit, positions) while membership writes, which only key share the
-// collection, carry on.
+// SQLite write transactions serialize the count check and group positions.
 export async function lockCollection(tx: Tx, { userId, collectionId }: InCollection): Promise<void> {
   const [row] = await tx
     .select({ id: collection.id })
     .from(collection)
-    .where(and(eq(collection.id, collectionId), eq(collection.userId, userId)))
-    .for("no key update");
+    .where(and(eq(collection.id, collectionId), eq(collection.userId, userId)));
   if (row === undefined) throw new NotFoundError("Collection not found");
 }
 
 // A filing joins only the caller's links, as in the collection counts.
 const linkCount = sql<number>`(
-  select count(*)::int from ${collectionItem}
+  select count(*) from ${collectionItem}
   inner join ${savedLink} on ${savedLink.id} = ${collectionItem.savedLinkId}
   where ${collectionItem.groupId} = ${collectionGroup.id} and ${savedLink.userId} = ${collection.userId}
 )`;
@@ -124,12 +114,9 @@ export function deleteGroup(db: Db, ref: GroupRef): Promise<void> {
 
 async function writePositions(tx: Tx, ids: string[]): Promise<void> {
   if (ids.length === 0) return;
-  const array = sql`array[${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)}]`;
-  await tx.execute(sql`
-    update ${collectionGroup} set position = ordered.pos - 1
-    from unnest(${array}) with ordinality as ordered(id, pos)
-    where ${collectionGroup.id} = ordered.id
-  `);
+  for (const [position, id] of ids.entries()) {
+    await tx.update(collectionGroup).set({ position }).where(eq(collectionGroup.id, id));
+  }
 }
 
 export function reorderGroups(db: Db, scope: InCollection, ids: string[]): Promise<ListGroupsResponse> {

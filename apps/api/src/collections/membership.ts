@@ -10,8 +10,7 @@ async function requireSavedLink(tx: Tx, { userId, linkId }: Membership): Promise
   const [row] = await tx
     .select({ id: savedLink.id })
     .from(savedLink)
-    .where(and(eq(savedLink.id, linkId), eq(savedLink.userId, userId)))
-    .for("key share");
+    .where(and(eq(savedLink.id, linkId), eq(savedLink.userId, userId)));
   if (row === undefined) throw new NotFoundError("Saved link not found");
 }
 

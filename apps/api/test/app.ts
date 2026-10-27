@@ -18,7 +18,7 @@ export const TEST_AUTH: AppDeps["auth"] = {
 
 // postgres-js connects on first query, so unit tests that never reach the
 // database get a client that never opens a socket. DB tests pass their own.
-const unreachableDb = createDb("postgres://unused@127.0.0.1:1/unused").db;
+const unreachableDb = createDb("file::memory:").db;
 
 // Tests never reach the network; a test that reads a page passes its own fetchPage.
 const offlineFetchPage: AppDeps["fetchPage"] = () => Promise.reject(new FetchError("network", "tests are offline"));

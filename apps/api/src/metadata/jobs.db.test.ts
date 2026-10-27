@@ -26,7 +26,7 @@ async function claimedTwice(): Promise<{ stale: ClaimedJob; current: ClaimedJob 
   if (!res) throw new Error("resource insert returned nothing");
   await db.insert(job).values({ resourceId: res.id });
   const stale = await claimJob(db);
-  await db.update(job).set({ lockedUntil: sql`now() - interval '1 second'` });
+  await db.update(job).set({ lockedUntil: sql`strftime('%Y-%m-%dT%H:%M:%f000Z', 'now', '-1 second')` });
   const current = await claimJob(db);
   if (!stale || !current) throw new Error("claim returned nothing");
   return { stale, current };
@@ -34,7 +34,7 @@ async function claimedTwice(): Promise<{ stale: ClaimedJob; current: ClaimedJob 
 
 async function state(claimed: ClaimedJob) {
   const [jobRow] = await db
-    .select({ attempts: job.attempts, lastError: job.lastError, held: sql<boolean>`${job.lockedUntil} > now()` })
+    .select({ attempts: job.attempts, lastError: job.lastError, held: sql<boolean>`${job.lockedUntil} > strftime('%Y-%m-%dT%H:%M:%f000Z', 'now')`.mapWith(Boolean) })
     .from(job)
     .where(eq(job.id, claimed.id));
   const [resourceRow] = await db

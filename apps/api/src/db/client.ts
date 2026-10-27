@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
+import { serializeClient } from "./serialized-client";
 
 export function createDb(databaseUrl: string) {
   if (!databaseUrl.startsWith("file:")) throw new Error("DATABASE_URL must be a local SQLite file: URL");
@@ -11,9 +12,9 @@ export function createDb(databaseUrl: string) {
     const path = databaseUrl.startsWith("file://") ? fileURLToPath(databaseUrl) : databaseUrl.slice(5);
     mkdirSync(dirname(path), { recursive: true });
   }
-  const client = createClient({ url: databaseUrl });
+  const { client, close } = serializeClient(createClient({ url: databaseUrl, concurrency: 1 }));
   const ready = client.executeMultiple("PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL;");
-  return { db: drizzle(client, { schema }), ready, close: () => { client.close(); return Promise.resolve(); } };
+  return { db: drizzle(client, { schema }), ready, close };
 }
 
 export type Db = ReturnType<typeof createDb>["db"];
