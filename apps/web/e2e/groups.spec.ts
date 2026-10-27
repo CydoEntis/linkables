@@ -167,3 +167,76 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("link", { name: /^Alpha post/ })).toBeVisible();
   });
 });
+
+// Headless Chromium needs a few small moves over a target before dragover fires on it.
+async function holdOver(page: Page, source: Locator, target: Locator) {
+  await source.hover();
+  await page.mouse.down();
+  await moveOver(page, target);
+}
+
+async function moveOver(page: Page, target: Locator) {
+  const box = await target.boundingBox();
+  if (box === null) throw new Error("the drop target has no box");
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + 40, y, { steps: 10 });
+  await page.mouse.move(box.x + 42, y, { steps: 3 });
+  await page.mouse.move(box.x + 44, y, { steps: 3 });
+}
+
+const header = (page: Page, name: string) => section(page, name).getByRole("heading", { level: 2 }).locator("..");
+
+test.describe("dragging at 1280 px", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test.beforeEach(async ({ page, seedLinks, request, user }) => {
+    const collection = await createCollection(request, user, "Rust");
+    const seeded = await seedLinks([
+      { url: "https://example.com/alpha", resource: { title: "Alpha post", fetchStatus: "fetched" } },
+      { url: "https://example.com/beta", resource: { title: "Beta post", fetchStatus: "fetched" } },
+    ]);
+    for (const { id } of seeded) await file(request, user, collection.id, id);
+    await page.goto(`/c/${collection.id}`);
+    await newGroup(page, "Reading");
+    await newGroup(page, "Tools");
+  });
+
+  test("a row dragged onto a group header shows the drop state and files the link", async ({ page }) => {
+    await holdOver(page, page.getByRole("link", { name: /^Alpha post/ }), header(page, "Reading"));
+    await expect(header(page, "Reading").getByTestId("drop-cue")).toHaveText("Move here");
+    await expect(header(page, "Tools")).toHaveClass(/outline-dashed/);
+    await page.waitForTimeout(300);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/drag-hover.png` });
+    await page.mouse.up();
+    await expect(section(page, "Reading").getByRole("link", { name: /^Alpha post/ })).toBeVisible();
+    await expect(section(page, "Ungrouped").getByRole("link", { name: /^Alpha post/ })).toHaveCount(0);
+    await expect(page.getByText("Moved to Reading")).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(section(page, "Ungrouped").getByRole("link", { name: /^Alpha post/ })).toBeVisible();
+  });
+
+  test("a group's own header says Already in and a collapsed group still takes a drop", async ({ page }) => {
+    await moveToGroup(page, /^Alpha post/, "Reading", false);
+    await section(page, "Tools").getByRole("button", { name: /^Tools/ }).click();
+    await holdOver(page, section(page, "Reading").getByRole("link", { name: /^Alpha post/ }), header(page, "Reading"));
+    await expect(header(page, "Reading").getByTestId("drop-cue")).toHaveText("Already in");
+    await moveOver(page, header(page, "Tools"));
+    await expect(header(page, "Tools").getByTestId("drop-cue")).toHaveText("Move here");
+    await page.mouse.up();
+    await expect(page.getByText("Moved to Tools")).toBeVisible();
+    await expect(header(page, "Tools")).toContainText("1 link");
+  });
+
+  test("a group dragged by its grip onto another header reorders them, and Move up still works", async ({ page }) => {
+    expect(await sectionNames(page)).toEqual(["Ungrouped", "Reading", "Tools"]);
+    await header(page, "Tools").hover();
+    await holdOver(page, header(page, "Tools").getByTestId("group-grip"), header(page, "Reading"));
+    await expect(header(page, "Reading").getByTestId("drop-cue")).toHaveText("Move here");
+    await page.mouse.up();
+    await expect.poll(() => sectionNames(page)).toEqual(["Ungrouped", "Tools", "Reading"]);
+    await page.reload();
+    await expect.poll(() => sectionNames(page)).toEqual(["Ungrouped", "Tools", "Reading"]);
+    await groupMenu(page, "Reading", "Move up");
+    await expect.poll(() => sectionNames(page)).toEqual(["Ungrouped", "Reading", "Tools"]);
+  });
+});
