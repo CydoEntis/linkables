@@ -128,16 +128,16 @@ export const PRIVACY_DOC: LongTextDoc = {
     },
     {
       id: "extension",
-      heading: "The Chrome extension (beta)",
+      heading: "The browser extension (beta)",
       body: (
         <p>
-          The Chrome extension reads the address and title of a tab only after you use linkables on that tab: by clicking linkables in the toolbar,
+          The Chrome and Firefox extension reads the address and title of a tab only after you use linkables on that tab: by clicking linkables in the toolbar,
           pressing its side panel shortcut, or choosing Save link to linkables from the right-click menu. If you turn on Follow the tab you're on in
           its side panel, it also reads the address and title of the tab you're on while the panel is open. It sends the address to your account to
           save it, and while its side panel is open it sends the address to check whether you've saved that page before; the title is only shown in
           the extension. Saving a link from the right-click menu sends that link's address. To sign in, it can take a one-time sign-in code for your
-          own account from linkables.app when you're signed in there, or use Google or an email code. It keeps your sign-in in Chrome's storage for
-          the extension. It doesn't read what you type into pages, your passwords, or your browsing history.
+          own account from linkables.app when you're signed in there, or use Google or an email code. It keeps your sign-in in the browser's extension storage for
+          the extension. In Firefox, the extension asks for permission to reach linkables.app; without it, it can't save. It doesn't read what you type into pages, your passwords, or your browsing history.
         </p>
       ),
     },
