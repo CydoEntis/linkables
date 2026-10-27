@@ -1,7 +1,7 @@
 FROM node:24-slim AS build
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/web/package.json apps/web/
 COPY apps/extension/package.json apps/extension/
 COPY packages/shared/package.json packages/shared/

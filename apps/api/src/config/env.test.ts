@@ -31,4 +31,17 @@ describe("self-hosted configuration", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.message).not.toContain("private");
   });
+  it("has no implicit mail sender or owner recipient", () => {
+    const result = parseEnv({ ...VALID, RESEND_API_KEY: "re_selfhost" });
+    expect(result.ok && result.config.mailFrom).toBeUndefined();
+    expect(result.ok && result.config.ownerEmail).toBeUndefined();
+  });
+  it("accepts an instance's mail identities without any hosted service address", () => {
+    const result = parseEnv({ ...VALID, MAIL_FROM: "links@selfhost.example", OWNER_EMAIL: "admin@selfhost.example" });
+    expect(result.ok && result.config.mailFrom).toBe("links@selfhost.example");
+    expect(result.ok && result.config.ownerEmail).toBe("admin@selfhost.example");
+  });
+  it("rejects malformed mail addresses", () => {
+    expect(parseEnv({ ...VALID, MAIL_FROM: "not-an-email" }).ok).toBe(false);
+  });
 });

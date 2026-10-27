@@ -66,6 +66,9 @@ test("rejects cross-user collection memberships before creating a database", asy
 
 test("the runtime migrator reopens imported data repeatedly without reapplying DDL", async () => {
   await importPostgres(postgresFixture(), destination());
+  const initial = new DatabaseSync(destination(), { readOnly: true });
+  const migrationsBefore = initial.prepare("SELECT count(*) AS n FROM __drizzle_migrations").get()?.n;
+  initial.close();
   const cli = fileURLToPath(new URL("../db/migrate-cli.ts", import.meta.url));
   for (let attempt = 0; attempt < 2; attempt++) {
     execFileSync(process.execPath, ["--import", "tsx", cli], { env: { ...process.env, DATABASE_URL: pathToFileURL(destination()).href } });
@@ -73,7 +76,7 @@ test("the runtime migrator reopens imported data repeatedly without reapplying D
   const db = new DatabaseSync(destination(), { readOnly: true });
   try {
     expect(db.prepare("SELECT id FROM saved_link").get()?.id).toBe(LINK_ID);
-    expect(db.prepare("SELECT count(*) AS n FROM __drizzle_migrations").get()?.n).toBe(3);
+    expect(db.prepare("SELECT count(*) AS n FROM __drizzle_migrations").get()?.n).toBe(migrationsBefore);
     expect(db.prepare("SELECT link_id FROM saved_link_search WHERE saved_link_search MATCH ?").get('"research"')?.link_id).toBe(LINK_ID);
   } finally { db.close(); }
 });

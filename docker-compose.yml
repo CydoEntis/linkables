@@ -19,6 +19,8 @@ services:
       WORKER_ENABLED: ${WORKER_ENABLED:-true}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      OWNER_EMAIL: ${OWNER_EMAIL:-}
     volumes:
       - data:/data
       - ./backups:/backups

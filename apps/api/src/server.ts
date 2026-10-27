@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import {
   resendNotifier,
+  resendDeletionNotifier,
   skipNotifyOwner,
 } from "./access/notify-owner";
 import { createApp } from "./app";
@@ -20,14 +21,15 @@ if (!env.ok) {
 
 const logger = createLogger(env.config.logLevel);
 
-const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey } = env.config;
+const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey, mailFrom, ownerEmail } = env.config;
 const { db, close, ready } = createDb(databaseUrl);
 await ready;
 await migrateDb(db);
-const notifyOwner = resendApiKey === undefined ? skipNotifyOwner : resendNotifier({ apiKey: resendApiKey });
+const ownerMail = resendApiKey && mailFrom && ownerEmail ? { apiKey: resendApiKey, from: mailFrom, ownerEmail } : undefined;
+const notifyOwner = ownerMail ? resendNotifier(ownerMail) : skipNotifyOwner;
 // Without Resend a private share cannot be turned on, except under NODE_ENV=test, where no mail goes out.
 function viewerCodeSender(): SendViewerCode | undefined {
-  if (resendApiKey !== undefined) return resendViewerCodeSender({ apiKey: resendApiKey });
+  if (resendApiKey && mailFrom) return resendViewerCodeSender({ apiKey: resendApiKey, from: mailFrom });
   return nodeEnv === "test" ? skipSendViewerCode : undefined;
 }
 
@@ -38,6 +40,7 @@ const app = createApp({
   auth: { ...auth, nodeEnv },
   db,
   notifyOwner,
+  notifyAccountDeleted: ownerMail ? resendDeletionNotifier(ownerMail) : undefined,
   sendViewerCode: viewerCodeSender(),
   fetchPage,
 });

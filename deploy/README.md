@@ -123,8 +123,10 @@ new schema. No CI job migrates your database remotely or updates your instance.
 Private collection shares that verify a recipient's email need a configured mail
 provider. The current adapter uses Resend. Personal accounts, link saving, public
 token shares, and account deletion work without it. Setting `RESEND_API_KEY`
-enables the current adapter; configure and verify its sender for your deployment
-before offering email verification. An existing private share never becomes
+and `MAIL_FROM` enables viewer mail. `MAIL_FROM` is a plain sender email address
+on a domain you verify with Resend. Set `OWNER_EMAIL` as well to receive access
+requests and optional account-deletion notices. There are no default sender or
+owner addresses. An existing private share never becomes
 public because mail is unavailable.
 
 ## Operations
