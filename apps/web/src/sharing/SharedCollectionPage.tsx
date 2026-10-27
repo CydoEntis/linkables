@@ -8,6 +8,7 @@ import { INVITE_ONLY, primaryCta } from "../config/access";
 import { useWideScreen } from "../shell/use-wide-screen";
 import { Mark, MarkWordmark } from "../marketing/Mark";
 import { SharedCollection } from "./SharedCollection";
+import { PrivateShareGate } from "./PrivateShareGate";
 import { SharedLoadFailed, SharedLoading, SharedUnavailable } from "./SharedStates";
 import { useSharedCollection } from "./use-share";
 
@@ -24,6 +25,7 @@ export function SharedCollectionPage() {
   if (shared.isPending) body = <SharedLoading wide={wide} />;
   else if (shared.isSuccess) body = <SharedCollection collection={shared.data} wide={wide} />;
   else if (isApiError(shared.error, ERROR_CODES.NOT_FOUND)) body = <SharedUnavailable />;
+  else if (isApiError(shared.error, ERROR_CODES.FORBIDDEN)) body = <PrivateShareGate token={token} />;
   else {
     const requestId = shared.error instanceof ApiError ? shared.error.requestId : undefined;
     body = <SharedLoadFailed requestId={requestId} onRetry={() => void shared.refetch()} />;

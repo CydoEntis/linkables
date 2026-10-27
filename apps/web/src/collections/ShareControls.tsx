@@ -1,7 +1,7 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import type { ShareState } from "@linkables/shared/sharing";
 import { cn } from "cn";
-import { ChevronDown, Copy, ExternalLink, Link2Off, LoaderCircle, Share } from "lucide-react";
+import { ChevronDown, Copy, ExternalLink, Link2Off, LoaderCircle, Lock, Share } from "lucide-react";
 import { useEffect, useRef, useState, type Ref } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { canSend, sendLink } from "../sharing/send-link";
 import { TURN_OFF_HINT, useTwoTap } from "../sharing/use-two-tap";
 import { sharedPrefix, sharedUrl, useSetSharing, useShareToken } from "../sharing/use-share";
 import { displayName } from "./display-name";
+import { ShareAccessDialog } from "./ShareAccessDialog";
 import { ShareScope } from "./ShareScope";
 import { useShareScope } from "./use-share-scope";
 
@@ -125,6 +126,7 @@ type ShareMenuProps = { collectionId: string; token: string; title: string; wide
 
 function ShareMenu({ collectionId, token, title, wide, onTurnedOff }: ShareMenuProps) {
   const [open, setOpen] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(false);
   const setSharing = useSetSharing(collectionId);
   // Loaded before the menu opens, so its checklist is there on the first frame.
   useShareScope(collectionId);
@@ -150,6 +152,7 @@ function ShareMenu({ collectionId, token, title, wide, onTurnedOff }: ShareMenuP
   }
 
   return (
+    <>
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger
         aria-label="Sharing options"
@@ -177,11 +180,17 @@ function ShareMenu({ collectionId, token, title, wide, onTurnedOff }: ShareMenuP
             Send…
           </DropdownMenuItem>
         ) : null}
+        <DropdownMenuItem onClick={() => { setAccessOpen(true); }}>
+          <Lock aria-hidden className="text-muted-foreground" />
+          Who can see this…
+        </DropdownMenuItem>
         <ShareScope collectionId={collectionId} />
         <DropdownMenuSeparator />
         <TurnOffItem armed={turnOffTap.armed} pending={setSharing.isPending} onPress={turnOffTap.press} />
       </DropdownMenuContent>
     </DropdownMenu>
+    <ShareAccessDialog collectionId={collectionId} open={accessOpen} onOpenChange={setAccessOpen} />
+    </>
   );
 }
 
