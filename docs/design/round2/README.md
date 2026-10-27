@@ -187,7 +187,7 @@ A **full page** at `/l/:id/read`, with no sidebar. On phone it's full screen. Th
 - **Reduced motion:** all of the above turns off with `prefers-reduced-motion`.
 
 ## Copy notes
-- **"Get share link" / "Turn off link"**, not "public / private" or "view-only". There is only one kind of share for now, so the button doesn't name a type. When editors or invite-by-email arrive, add a "Who can see this" choice above the link.
+- **"Get share link" / "Turn off link"**, not "public / private" or "view-only". There is only one kind of share for now, so the button doesn't name a type. When editors or invite-by-email arrive, add a "Who can see this" choice above the link. (Private shares added it early; the web app's version is in `docs/design/DEVIATIONS.md`.)
 - **"Request access"** everywhere linkables is invite-only.
 - **Toasts** say what happened: `Link copied`, `Link turned off. It no longer works.`, `Trip to Japan is private again`.
 
