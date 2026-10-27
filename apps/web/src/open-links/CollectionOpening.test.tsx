@@ -310,14 +310,17 @@ describe("Select to open", () => {
     });
     await startSelecting();
     await userEvent.click(screen.getByRole("button", { name: "Select all" }));
-    expect(screen.queryByRole("button", { name: "Select all" })).not.toBeInTheDocument();
+    const selectAll = screen.getByRole("button", { name: "Select all" });
+    expect(selectAll).toHaveAttribute("aria-disabled", "true");
+    expect(selectAll).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Loading all links…")).toBeInTheDocument();
     await act(async () => { release(); await Promise.resolve(); });
     await waitFor(() => { expect(screen.getByText("3 selected")).toBeInTheDocument(); });
   });
 });
 
 describe("Open all while the collection loads", () => {
-  it("shows Loading… on the button until every page is in", async () => {
+  it("keeps its name and focus, and says it is loading, until every page is in", async () => {
     let release: () => void = () => undefined;
     request.mockImplementation((path) => {
       const cursor = new URLSearchParams(path.split("?")[1]).get("cursor");
@@ -326,8 +329,11 @@ describe("Open all while the collection loads", () => {
     });
     await renderPage();
     await userEvent.click(screen.getByRole("button", { name: "Open all" }));
-    expect(screen.queryByRole("button", { name: "Open all" })).not.toBeInTheDocument();
-    for (const button of screen.getAllByRole("button", { name: "Loading…" })) expect(button).toBeDisabled();
+    const button = screen.getByRole("button", { name: "Open all" });
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).not.toBeDisabled();
+    expect(screen.getByText("Loading all links…")).toBeInTheDocument();
     await act(async () => { release(); await Promise.resolve(); });
     expect(await screen.findByRole("dialog", { name: "Open 3 links?" })).toBeInTheDocument();
   });
@@ -343,5 +349,67 @@ describe("links that are not web addresses", () => {
     expect(await screen.findByText("1 link skipped: not a web address")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open" }));
     expect(opened()).toHaveLength(2);
+  });
+});
+
+describe("a slow load that the user has moved on from", () => {
+  function holdSecondPage() {
+    let release: () => void = () => undefined;
+    request.mockImplementation((path) => {
+      const cursor = new URLSearchParams(path.split("?")[1]).get("cursor");
+      if (cursor === null) return Promise.resolve({ items: [link(1), link(2)], cursor: "1" });
+      return new Promise((resolve) => { release = () => { resolve({ items: [link(3)], cursor: null }); }; });
+    });
+    return async () => { await act(async () => { release(); await Promise.resolve(); }); };
+  }
+
+  it("does not tick links after Cancel", async () => {
+    const release = holdSecondPage();
+    await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("button", { name: "Select all" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await release();
+    await waitFor(() => { expect(screen.queryByText("Loading all links…")).not.toBeInTheDocument(); });
+    expect(useSelection.getState().selecting).toBe(false);
+    expect(useSelection.getState().chosen).toEqual({});
+  });
+
+  it("does not ask to open after the search changed", async () => {
+    const release = holdSecondPage();
+    const { changeFilters } = await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Open all" }));
+    changeFilters({ q: "link" });
+    await release();
+    await waitFor(() => { expect(screen.queryByText("Loading all links…")).not.toBeInTheDocument(); });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(open).not.toHaveBeenCalled();
+  });
+});
+
+describe("ticks made in a searched view", () => {
+  it("stay when an unrelated link is deleted", async () => {
+    const hidden = savedLink({ collections: [{ id: COLLECTION.id, name: COLLECTION.name }], originalUrl: "https://hidden.example/", resource: { title: "Link 9" } });
+    const first = link(1);
+    request.mockImplementation((path) => {
+      const searched = new URLSearchParams(path.split("?")[1]).has("q");
+      return Promise.resolve({ items: searched ? [hidden] : [first, link(2)], cursor: null });
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TestRouter>
+          <Page filters={{ q: "nine" }} />
+        </TestRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByText("Link 9");
+    await waitFor(() => { expect(screen.getByRole("button", { name: "Select" })).toBeEnabled(); });
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 9/ }));
+
+    act(() => { useLinksUi.getState().startDeleting(first.id); });
+
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+    expect(useSelection.getState().chosen).toEqual({ [hidden.id]: "https://hidden.example/" });
   });
 });

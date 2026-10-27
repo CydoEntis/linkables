@@ -27,8 +27,8 @@ export function SelectionBar({ onOpen, onSelectAll, loading }: SelectionBarProps
       className="fixed inset-x-0 bottom-0 z-50 flex animate-fade-up flex-wrap items-center gap-x-3 gap-y-2 border-t border-line-strong bg-popover px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-float md:inset-x-auto md:bottom-6 md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:border md:py-3 md:pr-3 md:pl-5"
     >
       <p role="status" className="mr-auto text-[15px] font-bold max-md:flex-1">{`${String(urls.length)} selected`}</p>
-      <Button variant="ghost" size="touch" disabled={loading} onClick={onSelectAll}>
-        {loading ? "Loading…" : "Select all"}
+      <Button variant="ghost" size="touch" aria-disabled={loading || undefined} aria-busy={loading} onClick={onSelectAll} className={loading ? "opacity-60" : undefined}>
+        Select all
       </Button>
       <Button variant="ghost" size="touch" onClick={cancel}>
         Cancel

@@ -1,16 +1,31 @@
 import type { SavedLink } from "@linkables/shared/links";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { useLinksUi } from "../links/links-ui-store";
-import { belongsIn, useLinks } from "../links/use-links";
+import { belongsIn, linksKeys, useLinks, type LinksPages } from "../links/use-links";
+
+// The ids, as one comma-joined string so it compares by value, of links this collection has lost:
+// deleted (inside their Undo window) or filed out, in any list the cache holds. Ticks made in a
+// filtered or searched view are not in the unfiltered list, so they are judged by what happened to them.
+function goneIds(queryClient: QueryClient, collectionId: string, deletingIds: readonly string[]): string {
+  const gone = new Set(deletingIds);
+  for (const [, data] of queryClient.getQueriesData<LinksPages>({ queryKey: linksKeys.lists })) {
+    for (const link of data?.pages.flatMap((page) => page.items) ?? []) {
+      if (!belongsIn({ collectionId }, link)) gone.add(link.id);
+    }
+  }
+  return [...gone].sort().join(",");
+}
 
 // The page shows the links a screenful at a time, but Open all and Select all mean the whole collection.
 export function useAllCollectionLinks(collectionId: string) {
-  const scope = { collectionId };
-  const { query } = useLinks(scope);
+  const { query } = useLinks({ collectionId });
+  const queryClient = useQueryClient();
   const deletingIds = useLinksUi((state) => state.deletingIds);
-  // What the page still shows: a link filed out of the collection or deleted is gone from it.
-  const links = (query.data?.pages.flatMap((page) => page.items) ?? []).filter(
-    (link) => belongsIn(scope, link) && !deletingIds.includes(link.id),
+  const gone = useSyncExternalStore(
+    (onChange) => queryClient.getQueryCache().subscribe(onChange),
+    () => goneIds(queryClient, collectionId, deletingIds),
   );
 
   async function loadAll(): Promise<SavedLink[] | null> {
@@ -26,5 +41,5 @@ export function useAllCollectionLinks(collectionId: string) {
     return data?.pages.flatMap((page) => page.items) ?? [];
   }
 
-  return { ready: query.data !== undefined, links, loadAll };
+  return { ready: query.data !== undefined, gone, loadAll };
 }

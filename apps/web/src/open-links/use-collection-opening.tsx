@@ -1,6 +1,7 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { CheckSquare, ExternalLink, LoaderCircle } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import type { ListFilters } from "../search/list-filters";
 import { SelectionBar } from "./SelectionBar";
@@ -17,23 +18,31 @@ export function useCollectionOpening(collection: ListedCollection, filters: List
   const opening = useOpenLinks();
   const all = useAllCollectionLinks(collection.id);
   const selecting = useSelection((state) => state.selecting);
-  const { start, cancel, chooseAll, keepOnly } = useSelection.getState();
+  const { start, cancel, chooseAll, drop } = useSelection.getState();
   const [loading, setLoading] = useState<"open" | "select" | null>(null);
-  const shownIds = all.links.map((link) => link.id).join(",");
+  // Stringified so an equal filter object from a new render does not count as a change.
   const filtersKey = JSON.stringify(filters);
+  const currentFilters = useRef(filtersKey);
+  currentFilters.current = filtersKey;
 
   // Choosing is per collection and per visit: leaving the page ends it.
   useEffect(() => cancel, [collection.id, cancel]);
 
   // The ticks were made on a list that a new search, filter or sort replaces.
   useEffect(cancel, [filtersKey, cancel]);
-  // A ticked link that is deleted or filed out of the collection is no longer on the page.
-  useEffect(() => { keepOnly(new Set(shownIds.split(","))); }, [shownIds, keepOnly]);
+  // A ticked link that was deleted or filed out of the collection is no longer on the page.
+  useEffect(() => { drop(new Set(all.gone.split(","))); }, [all.gone, drop]);
 
+  // Null when the user moved on while the pages loaded: they cancelled, or searched or sorted again.
   async function loadAllFor(kind: "open" | "select") {
+    if (loading !== null) return null;
+    const { session } = useSelection.getState();
+    const filtersThen = currentFilters.current;
     setLoading(kind);
     try {
-      return await all.loadAll();
+      const links = await all.loadAll();
+      const overtaken = currentFilters.current !== filtersThen || (kind === "select" && useSelection.getState().session !== session);
+      return overtaken ? null : links;
     } finally {
       setLoading(null);
     }
@@ -52,14 +61,26 @@ export function useCollectionOpening(collection: ListedCollection, filters: List
   const actions =
     collection.linkCount > 0 ? (
       <>
-        <Button variant="ghost" size="touch" disabled={!all.ready || loading !== null} onClick={() => void openAllLinks()} className={HEADER_BUTTON}>
+        {/* aria-disabled, not disabled, so the button keeps keyboard focus while it loads. */}
+        <Button
+          variant="ghost"
+          size="touch"
+          disabled={!all.ready}
+          aria-disabled={loading !== null || undefined}
+          aria-busy={loading === "open"}
+          onClick={() => void openAllLinks()}
+          className={cn(HEADER_BUTTON, loading !== null && "opacity-60")}
+        >
           {loading === "open" ? <LoaderCircle aria-hidden className="size-[15px] animate-spin" /> : <ExternalLink aria-hidden className="size-[15px]" />}
-          {loading === "open" ? "Loading…" : "Open all"}
+          Open all
         </Button>
         <Button variant="ghost" size="touch" aria-pressed={selecting} disabled={!all.ready} onClick={selecting ? cancel : start} className={HEADER_BUTTON}>
           <CheckSquare aria-hidden className="size-[15px]" />
           Select
         </Button>
+        <span role="status" className="sr-only">
+          {loading === null ? "" : "Loading all links…"}
+        </span>
       </>
     ) : null;
 
