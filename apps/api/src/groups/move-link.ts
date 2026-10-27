@@ -14,8 +14,7 @@ async function requireGroup(tx: Tx, { collectionId, groupId }: Move): Promise<vo
   const [row] = await tx
     .select({ id: collectionGroup.id })
     .from(collectionGroup)
-    .where(and(eq(collectionGroup.id, groupId), eq(collectionGroup.collectionId, collectionId)))
-    .for("key share");
+    .where(and(eq(collectionGroup.id, groupId), eq(collectionGroup.collectionId, collectionId)));
   if (row === undefined) throw new NotFoundError("Group not found");
 }
 

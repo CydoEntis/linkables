@@ -50,7 +50,7 @@ async function exportedLinks(tx: Tx, userId: string) {
   }));
 }
 
-// One repeatable-read snapshot, so a save or filing mid-export cannot leave a
+// One transaction snapshot, so a save or filing mid-export cannot leave a
 // link pointing at a collection the file does not contain.
 export function buildExport(db: Db, userId: string, exportedAt: Date): Promise<ExportResponse> {
   return db.transaction(
@@ -60,6 +60,5 @@ export function buildExport(db: Db, userId: string, exportedAt: Date): Promise<E
       links: await exportedLinks(tx, userId),
       collections: await exportedCollections(tx, userId),
     }),
-    { isolationLevel: "repeatable read", accessMode: "read only" },
   );
 }

@@ -7,8 +7,7 @@ describe("server startup", () => {
       PATH: process.env.PATH,
       SystemRoot: process.env.SystemRoot,
       NODE_ENV: "test",
-      MIGRATION_DATABASE_URL: "postgresql://u:p@localhost:5432/db",
-      SUPABASE_URL: "https://ref.supabase.co",
+      DATABASE_URL: "file::memory:",
       CORS_ORIGINS: "http://localhost:5173",
       WORKER_ENABLED: "false",
     };
@@ -21,6 +20,6 @@ describe("server startup", () => {
     });
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("DATABASE_URL");
+    expect(result.stderr).toContain("AUTH_SECRET");
   });
 });

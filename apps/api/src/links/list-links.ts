@@ -3,7 +3,7 @@ import { UNGROUPED } from "@linkables/shared/groups";
 import { and, eq, exists, isNull, notExists, sql } from "drizzle-orm";
 import { requireCollection } from "../collections/collections";
 import type { Db } from "../db/client";
-import { collection, collectionItem, resource, savedLink } from "../db/schema";
+import { collection, collectionItem, resource, savedLink, timestampText } from "../db/schema";
 import { encodeCursor, type Cursor } from "./cursor";
 import { matchesSearch } from "./search";
 import { after, cursorAt, orderBy, sortKeys } from "./sort";
@@ -63,17 +63,14 @@ function groupIn(collectionId: string | undefined) {
   )`;
 }
 
-// A date bound is a whole UTC day, computed in SQL so 9999-12-31 + 1 day still works.
 function savedFrom(from: string) {
-  return isDateOnly(from)
-    ? sql`${savedLink.savedAt} >= ${from}::date::timestamp at time zone 'UTC'`
-    : sql`${savedLink.savedAt} >= ${from}::timestamptz`;
+  const bound = isDateOnly(from) ? `${from}T00:00:00.000000Z` : timestampText(from);
+  return sql`${savedLink.savedAt} >= ${bound}`;
 }
 
 function savedThrough(to: string) {
-  return isDateOnly(to)
-    ? sql`${savedLink.savedAt} < (${to}::date + 1)::timestamp at time zone 'UTC'`
-    : sql`${savedLink.savedAt} <= ${to}::timestamptz`;
+  const bound = isDateOnly(to) ? `${to}T23:59:59.999999Z` : timestampText(to);
+  return sql`${savedLink.savedAt} <= ${bound}`;
 }
 
 function matchesFilters(db: Db, input: ListLinksInput) {

@@ -1,15 +1,12 @@
 import { serve } from "@hono/node-server";
 import {
-  resendDeletionNotifier,
   resendNotifier,
-  skipNotifyAccountDeleted,
   skipNotifyOwner,
-  type NotifyAccountDeleted,
 } from "./access/notify-owner";
 import { createApp } from "./app";
 import { parseEnv } from "./config/env";
 import { createDb } from "./db/client";
-import { supabaseAdmin as createSupabaseAdmin, testSupabaseAdmin, type SupabaseAdmin } from "./extension-sessions/supabase-admin";
+import { migrateDb } from "./db/migrate";
 import { createLogger } from "./log/logger";
 import { fetchHtml, fetchJson, fetchPage } from "./metadata/fetcher";
 import { startWorker } from "./metadata/worker";
@@ -23,38 +20,24 @@ if (!env.ok) {
 
 const logger = createLogger(env.config.logLevel);
 
-const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey, supabaseUrl, supabaseSecretKey } = env.config;
-const { db, close } = createDb(databaseUrl);
+const { nodeEnv, corsOrigins, auth, port, databaseUrl, workerEnabled, resendApiKey } = env.config;
+const { db, close, ready } = createDb(databaseUrl);
+await ready;
+await migrateDb(db);
 const notifyOwner = resendApiKey === undefined ? skipNotifyOwner : resendNotifier({ apiKey: resendApiKey });
-// Without Resend no account can be deleted, except under NODE_ENV=test, where the
-// e2e suite deletes accounts and there is no owner to email.
-function deletionNotifier(): NotifyAccountDeleted | undefined {
-  if (resendApiKey !== undefined) return resendDeletionNotifier({ apiKey: resendApiKey });
-  return nodeEnv === "test" ? skipNotifyAccountDeleted : undefined;
-}
-
-// Without the secret key the extension cannot sign in from linkables.app, except
-// under NODE_ENV=test, where the e2e suites sign it in with no Supabase.
-function extensionSignIn(): SupabaseAdmin | undefined {
-  if (supabaseSecretKey !== undefined) return createSupabaseAdmin({ url: supabaseUrl, secretKey: supabaseSecretKey });
-  return nodeEnv === "test" ? testSupabaseAdmin : undefined;
-}
-
 // Without Resend a private share cannot be turned on, except under NODE_ENV=test, where no mail goes out.
 function viewerCodeSender(): SendViewerCode | undefined {
   if (resendApiKey !== undefined) return resendViewerCodeSender({ apiKey: resendApiKey });
   return nodeEnv === "test" ? skipSendViewerCode : undefined;
 }
 
-const notifyAccountDeleted = deletionNotifier();
 const app = createApp({
   logger,
   corsOrigins,
+  trustProxy: env.config.trustProxy,
   auth: { ...auth, nodeEnv },
   db,
   notifyOwner,
-  notifyAccountDeleted,
-  supabaseAdmin: extensionSignIn(),
   sendViewerCode: viewerCodeSender(),
   fetchPage,
 });

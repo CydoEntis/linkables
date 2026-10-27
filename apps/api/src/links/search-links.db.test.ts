@@ -4,7 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
-import { collection, collectionItem, resource, savedLink } from "../db/schema";
+import { collection, collectionItem, resource, savedLink, timestampText } from "../db/schema";
 
 const { db, close } = connectTestDb();
 const { a, b } = await testUsers();
@@ -36,7 +36,7 @@ async function seed(user: TestUser, { url, title, description, titleOverride, sa
         resourceId: res.id,
         originalUrl: url,
         titleOverride,
-        ...(savedAt === undefined ? {} : { savedAt: sql`${savedAt}::timestamptz` }),
+        ...(savedAt === undefined ? {} : { savedAt: sql`${timestampText(savedAt)}` }),
       })
       .returning(),
   );
