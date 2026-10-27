@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { cn } from "cn";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { env } from "../config/env";
+import { FIREFOX_ADDON_URL, isFirefox } from "../extension-guide/browser";
 import { CHROME_WEB_STORE_URL, EXTENSION_GUIDE_PATH } from "../extension-guide/path";
 import { BookmarkletDialog } from "../save/BookmarkletDialog";
 import { useInstallPrompt } from "../save-anywhere/install-prompt";
@@ -13,15 +14,19 @@ import { SettingsSection } from "./SettingsSection";
 const TILE_ACTION = "h-9 px-[13px] text-[13px] font-bold";
 const TILE_LINK = cn(buttonVariants({ variant: "ghost" }), TILE_ACTION);
 
-type EverywhereSectionProps = { shortcutUrl?: string | undefined; storeUrl?: string | undefined };
+type EverywhereSectionProps = { shortcutUrl?: string | undefined; storeUrl?: string | undefined; firefox?: boolean };
 
 // shortcut: no tile shows "Installed ✓" yet; the web app cannot tell whether the extension is installed.
-export function EverywhereSection({ shortcutUrl = env.VITE_IOS_SHORTCUT_URL, storeUrl = CHROME_WEB_STORE_URL }: EverywhereSectionProps) {
+export function EverywhereSection({ shortcutUrl = env.VITE_IOS_SHORTCUT_URL, storeUrl = CHROME_WEB_STORE_URL, firefox = isFirefox() }: EverywhereSectionProps) {
   return (
     <SettingsSection title="Get linkables everywhere">
       <div className="grid gap-px bg-border sm:grid-cols-2">
-        <Tile icon={<Puzzle />} name="Chrome extension" detail="Save the tab you're on in one click.">
-          {storeUrl ? (
+        <Tile icon={<Puzzle />} name={firefox ? "Firefox extension" : "Chrome extension"} detail="Save the tab you're on in one click.">
+          {firefox ? (
+            <a href={FIREFOX_ADDON_URL} className={TILE_LINK}>
+              Add to Firefox
+            </a>
+          ) : storeUrl ? (
             <a href={storeUrl} target="_blank" rel="noopener noreferrer" className={TILE_LINK}>
               Add to Chrome
               <ExternalLink aria-hidden />

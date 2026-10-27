@@ -47,4 +47,17 @@ test.describe("at 1440 px", () => {
     await expect(page.getByRole("heading", { name: /Save your first link/ })).toBeVisible();
     await expect(card).toHaveCount(0);
   });
+
+  test.describe("in Firefox", () => {
+    test.use({ userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0" });
+
+    test("the sidebar card and the settings tile offer Add to Firefox", async ({ page }) => {
+      await page.goto("/");
+      const card = page.getByRole("region", { name: "Firefox extension" });
+      await expect(card.getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
+      await page.goto("/settings");
+      await expect(page.getByRole("main").getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
+      await expect(page.getByRole("link", { name: /Add to Chrome/ })).toHaveCount(0);
+    });
+  });
 });

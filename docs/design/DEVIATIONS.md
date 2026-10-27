@@ -127,6 +127,7 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **No "Installed ✓" on the Chrome tile.** The web app has no reliable way to tell whether the extension is installed; the tile always offers Add to Chrome, which opens the store listing.
 - **A puzzle-piece icon on the Chrome tile.** Lucide has no Chrome logo.
 - **The Chrome tile doesn't mention a side panel**, which the extension doesn't have yet.
+- **The extension tile, the sidebar card and the first-links card follow the browser.** In desktop Firefox they read "Firefox extension" and "Add to Firefox", linking to the signed add-on (`/downloads/linkables-firefox.xpi`); every other browser, phones included, still gets Chrome. The landing page is prerendered, so it stays Chrome-only and points to `/extension`, which is Firefox-aware.
 - **iPhone and Install tiles can have no button.** With no Shortcut link configured the iPhone tile says it's coming soon; where the browser offers no install dialog the app tile says how to install by hand, and in the installed app it says so.
 - **"All the ways to save"** under the tiles keeps Save from anywhere reachable now that it has left the account menu.
 - **"Turn off link", not "Turn off"**, on each shared collection row: it uses `TurnOffLinkButton`, with the same two-tap rule as the sharing menu's Turn off link.

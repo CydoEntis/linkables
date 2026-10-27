@@ -2,7 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { Copy, Share } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { AddToChromeLink, ChromeMark } from "../extension-guide/AddToChrome";
+import { AddExtensionLink, ChromeMark } from "../extension-guide/AddToChrome";
+import { isFirefox } from "../extension-guide/browser";
 import { CHROME_WEB_STORE_URL, EXTENSION_GUIDE_PATH } from "../extension-guide/path";
 import { useWideScreen } from "../shell/use-wide-screen";
 import { useInstallPrompt } from "../save-anywhere/install-prompt";
@@ -21,6 +22,7 @@ export function FirstLinks() {
 const DESKTOP_ACTION = "mt-auto h-[42px] w-full font-bold";
 
 function DesktopWays() {
+  const firefox = isFirefox();
   const ways: Way[] = [
     {
       title: "Paste a link",
@@ -43,10 +45,10 @@ function DesktopWays() {
       ),
     },
     {
-      title: "Chrome extension",
-      text: "Save the tab you're on in one click, and see your links in a side panel.",
+      title: firefox ? "Firefox extension" : "Chrome extension",
+      text: firefox ? "Save the tab you're on in one click." : "Save the tab you're on in one click, and see your links in a side panel.",
       art: <ChromePicture />,
-      action: <AddToChromeLink look={{ size: "touch", className: DESKTOP_ACTION }}>Add to Chrome</AddToChromeLink>,
+      action: <AddExtensionLink firefox={firefox} look={{ size: "touch", className: DESKTOP_ACTION }} />,
     },
   ];
 

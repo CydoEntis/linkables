@@ -1,7 +1,7 @@
 import { CHROME_WEB_STORE_URL } from "../extension-guide/path";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWithRouter } from "../test/render-with-router";
 import { resetViewport, stubViewport } from "../test/viewport";
 import { FirstLinks } from "./FirstLinks";
@@ -10,6 +10,7 @@ import { useLinksUi } from "./links-ui-store";
 const onDesktop = () => { stubViewport(1440); };
 
 afterEach(() => {
+  vi.restoreAllMocks();
   resetViewport();
   useLinksUi.getState().setSaveSheetOpen(false);
 });
@@ -21,6 +22,14 @@ describe("FirstLinks on a computer", () => {
     expect(screen.getByRole("heading", { name: "Save your first link" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", CHROME_WEB_STORE_URL);
     expect(screen.getByRole("link", { name: "Set up your phone" })).toHaveAttribute("href", "/save-from-anywhere");
+  });
+
+  it("offers the Firefox add-on to a Firefox visitor", async () => {
+    onDesktop();
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0");
+    await renderWithRouter(<FirstLinks />);
+    expect(screen.getByRole("heading", { name: "Firefox extension" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
   });
 
   it("takes Paste a link to the save bar", async () => {
