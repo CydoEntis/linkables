@@ -13,6 +13,7 @@ import {
   UNSAFE_TEXT_CHARS,
   URL_MAX_LENGTH,
 } from "./constants";
+import { UNGROUPED } from "../groups/constants";
 import { isDateOnly } from "./dates";
 
 export const saveLinkRequestSchema = z.object({
@@ -43,6 +44,8 @@ export const savedLinkSchema = z.strictObject({
   savedFrom: z.enum(LINK_SOURCES).nullable(),
   // The caller's collections holding this link, ordered by name ignoring case.
   collections: z.array(z.strictObject({ id: z.uuid(), name: z.string() })),
+  // Only in a list scoped to one collection: the group the link sits in there, null if none.
+  groupId: z.uuid().nullable().optional(),
   resource: resourceSummarySchema,
 });
 
@@ -83,6 +86,8 @@ export const listLinksQuerySchema = z
     cursor: z.string().min(1).optional(),
     limit: z.coerce.number().int().min(1).max(LIST_LIMIT_MAX).default(LIST_LIMIT_DEFAULT),
     collectionId: z.uuid().optional(),
+    // A group of that collection, or "none" for its ungrouped links.
+    groupId: z.union([z.uuid(), z.literal(UNGROUPED)]).optional(),
     // A blank search is no search, so clients can send the box's value as-is.
     q: z
       .string()
@@ -104,6 +109,10 @@ export const listLinksQuerySchema = z
   .refine((query) => !(query.view === "inbox" && query.collectionId !== undefined), {
     error: "view=inbox cannot be combined with collectionId",
     path: ["collectionId"],
+  })
+  .refine((query) => !(query.groupId !== undefined && query.collectionId === undefined), {
+    error: "groupId needs collectionId",
+    path: ["groupId"],
   });
 
 // cursor: pass back to get the next page; null on the last page. A title-sort
