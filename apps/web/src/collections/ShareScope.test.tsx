@@ -1,6 +1,6 @@
 import type { ShareScopeRequest, ShareState } from "@linkables/shared/sharing";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -98,6 +98,21 @@ describe("the What's shared checklist", () => {
 
     expect(await screen.findByText("Couldn't change what's shared. Try again.")).toBeInTheDocument();
     await waitFor(() => { expect(screen.getByRole("menuitemcheckbox", { name: "Food" })).toBeChecked(); });
+  });
+
+  it("builds each save from the ticks already made, so two in a row both count", async () => {
+    const puts = serve({ token: TOKEN, ungrouped: true, groups: [FOOD, HOTELS] });
+    await openMenu();
+    const food = await screen.findByRole("menuitemcheckbox", { name: "Food" });
+    const hotels = screen.getByRole("menuitemcheckbox", { name: "Hotels" });
+
+    act(() => {
+      fireEvent.click(food);
+      fireEvent.click(hotels);
+    });
+
+    await waitFor(() => { expect(puts).toHaveLength(2); });
+    expect(puts[1]).toEqual({ ungrouped: true, groupIds: [] });
   });
 
   it("keeps the menu open so several ticks can be changed in a row", async () => {

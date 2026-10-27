@@ -15,31 +15,27 @@ export function useShareScope(collectionId: string) {
   });
 }
 
-function withScope(state: ShareState, { ungrouped, groupIds }: ShareScopeRequest): ShareState {
-  const chosen = new Set(groupIds);
-  return { ...state, ungrouped, groups: state.groups?.map((group) => ({ ...group, shared: chosen.has(group.id) })) };
+function requestOf({ ungrouped = true, groups = [] }: ShareState): ShareScopeRequest {
+  return { ungrouped, groupIds: groups.filter((group) => group.shared).map((group) => group.id) };
 }
 
+type Save = { scope: ShareScopeRequest; previous: ShareState };
+
 // Each tick saves at once: the box flips first and goes back if the save fails.
-export function useSetShareScope(collectionId: string) {
+// change gets the latest state, ticks still in flight included, so quick ticks add up.
+export function useChangeShareScope(collectionId: string): (change: (current: ShareState) => ShareState) => void {
   const queryClient = useQueryClient();
   const key = scopeKey(collectionId);
-  return useMutation({
+  const save = useMutation({
     mutationKey: mutationKey(collectionId),
-    mutationFn: (scope: ShareScopeRequest) =>
+    mutationFn: ({ scope }: Save) =>
       api.request(`/collections/${collectionId}/share/scope`, shareStateSchema, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(scope),
       }),
-    onMutate: async (scope) => {
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<ShareState>(key);
-      if (previous) queryClient.setQueryData<ShareState>(key, withScope(previous, scope));
-      return { previous };
-    },
-    onError: (_error, _scope, context) => {
-      if (context?.previous) queryClient.setQueryData(key, context.previous);
+    onError: (_error, { previous }) => {
+      queryClient.setQueryData(key, previous);
       toast.error("Couldn't change what's shared. Try again.");
     },
     // Refetch once the last of a quick run of ticks has landed, so an older answer never overwrites a newer tick.
@@ -49,4 +45,11 @@ export function useSetShareScope(collectionId: string) {
       }
     },
   });
+  return (change) => {
+    const previous = queryClient.getQueryData<ShareState>(key);
+    if (previous === undefined) return;
+    const next = change(previous);
+    queryClient.setQueryData(key, next);
+    save.mutate({ scope: requestOf(next), previous });
+  };
 }
