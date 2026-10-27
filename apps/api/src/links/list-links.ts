@@ -91,7 +91,7 @@ function matchesFilters(db: Db, input: ListLinksInput) {
 }
 
 export async function listLinks(db: Db, input: ListLinksInput): Promise<ListLinksResponse> {
-  const { userId, sort, limit, cursor, collectionId } = input;
+  const { userId, sort, limit, cursor, collectionId, groupId } = input;
   if (collectionId !== undefined) await requireCollection(db, { userId, id: collectionId });
   const rows = await db
     .select({ link: savedLink, resource, collections: collectionsOf(userId), groupId: groupIn(collectionId), ...sortKeys })
@@ -106,7 +106,7 @@ export async function listLinks(db: Db, input: ListLinksInput): Promise<ListLink
   return {
     items: page.map((row) => {
       const link = toSavedLink(row.link, row.resource, row.collections);
-      return collectionId === undefined ? link : { ...link, groupId: row.groupId };
+      return groupId === undefined ? link : { ...link, groupId: row.groupId };
     }),
     cursor:
       rows.length > limit && last

@@ -42,8 +42,10 @@ collection or group is `NOT_FOUND`):
   `VALIDATION`).
 - `PATCH /collections/:id/links/:linkId` `{ groupId: uuid | null }` moves a link.
 - `GET /links?collectionId=X&groupId=<uuid>|none` so each section pages on its
-  own. Saved links gain an optional `groupId` only in a list scoped to one
-  collection.
+  own. Saved links gain an optional `groupId` only when the request carries the
+  `groupId` filter, never on a plain `collectionId` list: web bundles already
+  cached in browsers parse list items with a strict schema and would reject the
+  extra key.
 
 The migration only adds a table and a nullable column, so the previous image
 keeps working against the new schema (add before you use).
