@@ -61,8 +61,9 @@ or later, for AMO's required `data_collection_permissions`). The code is shared:
 `src/side-panel/open-side-panel.ts` picks `sidebarAction` where `sidePanel` is
 missing, the worker judges a message by `sender.url` (Firefox has no
 `MessageSender.origin`, `src/connect/sender.ts`), and Firefox lets people switch
-host permissions off, so the pop-up and panel show an **Allow access** button
-(`src/permissions`) until `permissions.contains` says yes.
+host permissions off, so in Firefox only (Chrome's "on click" site access also
+makes `permissions.contains` false) the pop-up and panel show an **Allow access**
+button (`src/permissions`) until it says yes.
 
 ```sh
 pnpm --filter extension release:firefox   # builds dist-firefox/ (production env, like release:store) and runs web-ext lint
@@ -80,6 +81,12 @@ and commit it: CI cannot sign (no keys), so it serves that committed file at
 `https://linkables.app/downloads/linkables-firefox.xpi` with the content type
 `application/x-xpinstall` (`apps/web/Caddyfile`), which is what makes Firefox
 install it on click. `/extension` shows "Add to Firefox" to Firefox visitors.
+
+Re-sign and recommit the xpi whenever anything under `apps/extension/src` (or the
+manifest) changes, bumping `version` first. The build is reproducible, so CI runs
+`release:firefox` with the production env and `pnpm --filter extension check:firefox`,
+which fails when any file in `dist-firefox/` differs from the xpi (ignoring its
+`META-INF` signature). Run the same two commands locally after signing.
 
 Google sign-in: Firefox's `identity.getRedirectURL()` is
 `https://<sha1 of the add-on id>.extensions.allizom.org/`, here

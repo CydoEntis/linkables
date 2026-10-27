@@ -176,6 +176,13 @@ jobs:
           cp apps/extension/release/linkables-chrome-[0-9]*.zip apps/web/dist/downloads/linkables-chrome.zip
           # Signed by hand with the owner's AMO keys (apps/extension/README.md), so it is committed, not built here.
           cp apps/extension/firefox/linkables-firefox.xpi apps/web/dist/downloads/linkables-firefox.xpi
+      # The committed xpi must hold what this source builds (apps/extension/README.md, Firefox).
+      - name: Check the signed Firefox add-on is current
+        run: pnpm --filter extension release:firefox && pnpm --filter extension check:firefox
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_URL: ${{ vars.APP_ORIGIN }}
       # The Web Store upload (apps/extension/STORE.md): kept as a run artifact, not served.
       - run: pnpm --filter extension release:store
         env:
