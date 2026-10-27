@@ -72,7 +72,7 @@ export function SignInScreen({ linkProblem, focusHeading, title = "Sign in to li
           <EmailForm
             defaultEmail={email}
             offline={offline}
-            initialProblem={landingProblem === "invalid" ? landingProblem : null}
+            initialProblem={landingProblem === "invalid" || landingProblem === "offline" ? landingProblem : null}
             focusEmail={startFocus === "email"}
             onSent={(address) => {
               setEmail(address);
@@ -147,7 +147,7 @@ function Divider() {
 type EmailFormProps = {
   defaultEmail: string;
   offline: boolean;
-  initialProblem: "invalid" | null;
+  initialProblem: "invalid" | "offline" | null;
   focusEmail: boolean;
   onSent: (email: string) => void;
 };

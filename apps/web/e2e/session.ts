@@ -6,7 +6,7 @@ export type TestUser = { id: string; email: string; accessToken: string };
 
 // supabase-js derives its default storage key from the first hostname label
 // (SupabaseClient's defaultStorageKey); the app does not override it.
-const STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0] ?? ""}-auth-token`;
+export const STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0] ?? ""}-auth-token`;
 
 // supabase-js refreshes a session within 90 s of expires_at, and a refresh would
 // call the dummy Supabase origin, so the session outlives any test run.

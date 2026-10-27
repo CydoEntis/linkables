@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { isSignInReturn } from "./sign-in-return";
+import { isSignInReturn, removeRejectedTokensFromUrl } from "./sign-in-return";
 
 it("recognises a Google or email sign-in coming back with tokens in the hash", () => {
   expect(isSignInReturn("https://app.test/sign-in#access_token=a&refresh_token=b")).toBe(true);
@@ -15,4 +15,20 @@ it("recognises an expired email link coming back with an error in the hash", () 
 
 it("ignores an ordinary page load", () => {
   expect(isSignInReturn("https://app.test/save?url=https%3A%2F%2Fexample.test#top")).toBe(false);
+});
+
+it("recognises a PKCE return carrying a code in the query", () => {
+  expect(isSignInReturn("https://app.test/sign-in?code=abc&sb_flow_id=f1")).toBe(true);
+});
+
+it("removes tokens from the fragment and keeps the path and query", () => {
+  window.history.replaceState(null, "", "/links?q=a#access_token=a&refresh_token=b");
+  removeRejectedTokensFromUrl();
+  expect(window.location.pathname + window.location.search + window.location.hash).toBe("/links?q=a");
+});
+
+it("leaves an ordinary fragment alone", () => {
+  window.history.replaceState(null, "", "/links#top");
+  removeRejectedTokensFromUrl();
+  expect(window.location.hash).toBe("#top");
 });
