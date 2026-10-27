@@ -142,3 +142,9 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **A switch in Settings, "Ask before opening several links"** (new section Opening links, on by default), remembered per device in `localStorage` like the Grid/List choice. "Don't ask me again" turns it off; the switch turns it back on.
 - **More than 25 links always asks**, even with the switch off, and the dialog says why and that the browser may block some tabs. The setting is otherwise authoritative.
 - **The blocked pop-ups banner is the big-screen one on phones too**, with its Open the other N button (one tab per tap there); owner rows are not ticked as they open.
+
+## Collection groups
+
+- **The groups UI is a proposal; no design exists.** The handoff's "group" means the day buckets. Sections, their headers (chevron, name, count, "…" menu), the "New group" button and the "Group" part of Add to… are built on the existing tokens and patterns, and need a design pass.
+- **Day headings are dropped inside a collection that has groups.** Each section lists its links in the page's order with no Today / Earlier headings, so there are never two header levels. A collection with no groups keeps the day headings.
+- **Moving a link to a group is a "Group" list inside Add to…** (popover and phone sheet), not a separate row action, so the hover actions don't grow.
