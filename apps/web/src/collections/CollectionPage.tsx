@@ -1,6 +1,6 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { Globe, Trash2 } from "lucide-react";
+import { FolderPlus, Globe, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { withoutOldLink } from "../link-page/old-link-address";
 import { useCollectionOpening } from "../open-links/use-collection-opening";
@@ -9,6 +9,7 @@ import { LinksScreen } from "../links/LinksScreen";
 import type { FiltersChange, ListFilters } from "../search/list-filters";
 import { useShareToken } from "../sharing/use-share";
 import { AppShell } from "../shell/AppShell";
+import { CollectionList } from "./CollectionList";
 import { CollectionTitle } from "./CollectionTitle";
 import { useCollectionsUi, type PendingDelete } from "./collections-ui-store";
 import { displayName } from "./display-name";
@@ -38,6 +39,7 @@ export function CollectionPage() {
       scope={{ collectionId }}
       filters={filters}
       onFiltersChange={onFiltersChange}
+      list={collection ? <CollectionList collection={collection} filters={filters} onFiltersChange={onFiltersChange} /> : undefined}
       heading={collection ? <CollectionHeader collection={collection} filters={filters} /> : <div aria-hidden className="h-[60px] md:mt-[30px] md:mb-3.5 md:h-[52px]" />}
     />
   );
@@ -48,6 +50,7 @@ function CollectionHeader({ collection, filters }: { collection: ListedCollectio
   const shared = useShareToken(collection.id) !== undefined;
   const wide = useWideScreen();
   const opening = useCollectionOpening(collection, filters);
+  const setCreatingGroupIn = useCollectionsUi((state) => state.setCreatingGroupIn);
 
   return (
     <>

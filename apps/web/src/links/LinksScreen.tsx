@@ -22,10 +22,12 @@ type LinksScreenProps = {
   // The search, sort and filters from the URL, and how to change them.
   filters: ListFilters;
   onFiltersChange: FiltersChange;
+  // Replaces the plain list, for a collection that lays its links out in sections.
+  list?: ReactNode;
 };
 
 // One list screen for the views and for a collection; only the heading differs.
-export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksScreenProps) {
+export function LinksScreen({ scope, heading, filters, onFiltersChange, list }: LinksScreenProps) {
   usePasteToSave();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -39,7 +41,7 @@ export function LinksScreen({ scope, heading, filters, onFiltersChange }: LinksS
       <SaveBar className="hidden md:block" query={filters.q} onQueryChange={onQueryChange} />
       {heading}
       <FilterBar scope={scope} filters={filters} onFiltersChange={onFiltersChange} trailing={<LayoutToggle />} />
-      <LinkList scope={scope} filters={filters} onFiltersChange={onFiltersChange} />
+      {list ?? <LinkList scope={scope} filters={filters} onFiltersChange={onFiltersChange} />}
       <SaveStatus />
       <SaveFab />
       <SaveSheet />

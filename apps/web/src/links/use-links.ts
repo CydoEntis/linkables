@@ -1,4 +1,5 @@
 import { ERROR_CODES } from "@linkables/shared/http";
+import { UNGROUPED } from "@linkables/shared/groups";
 import { listLinksResponseSchema, type ListLinksResponse, type SavedLink } from "@linkables/shared/links";
 import { useInfiniteQuery, useQueryClient, type InfiniteData, type QueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
@@ -18,8 +19,9 @@ const PENDING_BACKOFF = [
   { untilAgeMs: 120_000, intervalMs: 15_000 },
 ] as const;
 
-// A list is one of the views, or one collection's links.
-export type ListScope = { view: LinksView } | { collectionId: string };
+// A list is one of the views, or one collection's links; groupId narrows a
+// collection to one of its groups, or to UNGROUPED.
+export type ListScope = { view: LinksView } | { collectionId: string; groupId?: string };
 
 export const linksKeys = {
   all: ["links"] as const,
@@ -30,7 +32,9 @@ export const linksKeys = {
 };
 
 export function scopeKey(scope: ListScope) {
-  return "view" in scope ? linksKeys.list(scope.view) : linksKeys.collection(scope.collectionId);
+  if ("view" in scope) return linksKeys.list(scope.view);
+  const collection = linksKeys.collection(scope.collectionId);
+  return scope.groupId === undefined ? collection : ([...collection, "group", scope.groupId] as const);
 }
 
 // What the list really shows. A search covers every link (brief 5.9), so on the
@@ -56,10 +60,15 @@ export function belongsIn(scope: ListScope, link: SavedLink, filters: ListFilter
   if (filters.pinned && !link.pinned) return false;
   if (filters.collection !== undefined && !inCollection(filters.collection)) return false;
   const effective = effectiveScope(scope, filters);
-  if ("collectionId" in effective) return inCollection(effective.collectionId);
+  if ("collectionId" in effective) return inCollection(effective.collectionId) && inGroup(link, effective.groupId);
   if (effective.view === "inbox") return link.collections.length === 0;
   if (effective.view === "pinned") return link.pinned;
   return true;
+}
+
+function inGroup(link: SavedLink, groupId: string | undefined): boolean {
+  if (groupId === undefined) return true;
+  return groupId === UNGROUPED ? (link.groupId ?? null) === null : link.groupId === groupId;
 }
 
 export type LinksPages = InfiniteData<ListLinksResponse, string | undefined>;
@@ -77,8 +86,10 @@ function filterParams(params: URLSearchParams, { q, sort, kind, pinned, from, to
 function listPath(scope: ListScope, filters: ListFilters, cursor: string | undefined): string {
   const effective = effectiveScope(scope, filters);
   const params = new URLSearchParams();
-  if ("collectionId" in effective) params.set("collectionId", effective.collectionId);
-  else if (effective.view === "inbox") params.set("view", "inbox");
+  if ("collectionId" in effective) {
+    params.set("collectionId", effective.collectionId);
+    if (effective.groupId !== undefined) params.set("groupId", effective.groupId);
+  } else if (effective.view === "inbox") params.set("view", "inbox");
   else if (effective.view === "pinned") params.set("pinned", "true");
   filterParams(params, filters);
   if (cursor !== undefined) params.set("cursor", cursor);

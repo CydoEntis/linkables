@@ -15,11 +15,12 @@ import { belongsIn, useLinks, type ListScope } from "./use-links";
 import { useFocusReturningRow } from "./use-focus-returning-row";
 import { useHeldRow } from "./use-held-row";
 
-type LinkListProps = { scope: ListScope; filters?: ListFilters; onFiltersChange?: FiltersChange };
+// section: the list is one group of a collection, under that group's header on the page.
+type LinkListProps = { scope: ListScope; filters?: ListFilters; onFiltersChange?: FiltersChange; section?: { empty: ReactNode } };
 
 const noChange: FiltersChange = () => undefined;
 
-export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: LinkListProps) {
+export function LinkList({ scope, filters = {}, onFiltersChange = noChange, section }: LinkListProps) {
   const { query, loadMore } = useLinks(scope, filters);
   const now = useNow();
   const highlightFor = useRowHighlight();
@@ -39,20 +40,23 @@ export function LinkList({ scope, filters = {}, onFiltersChange = noChange }: Li
 
   const narrowed = isNarrowed(filters);
   // One status region in every state, so a change to "0 matches" is announced too.
-  const withStatus = (body: ReactNode, count: string | null = null) => (
-    <>
-      <ResultCount text={count} />
-      {body}
-    </>
-  );
-  if (query.isPending) return withStatus(<LinkListSkeleton />);
+  const withStatus = (body: ReactNode, count: string | null = null) =>
+    section ? (
+      body
+    ) : (
+      <>
+        <ResultCount text={count} />
+        {body}
+      </>
+    );
+  if (query.isPending) return withStatus(<LinkListSkeleton rows={section ? 2 : undefined} />);
   if (query.isError && query.data === undefined) {
     return withStatus(<LoadProblem error={query.error} onRetry={() => void query.refetch()} />);
   }
 
   const count = narrowed ? countLabel(links.length, query.hasNextPage, query.isPlaceholderData) : null;
   if (links.length === 0) {
-    return withStatus(narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : <LinksEmpty scope={scope} />, count);
+    return withStatus(narrowed ? <NoMatches filters={filters} onFiltersChange={onFiltersChange} /> : (section?.empty ?? <LinksEmpty scope={scope} />), count);
   }
 
   const itemProps = (link: SavedLink): LinkRowProps => ({
@@ -130,7 +134,7 @@ function LinkGrid({ links, itemProps }: { links: SavedLink[]; itemProps: ItemPro
 // Day groups follow the newest-first order; search results and other sorts are
 // one list in the API's order (pinned still first), as in the handoff's search.
 function listGroups(links: SavedLink[], now: number, scope: ListScope, filters: ListFilters): ListGroup[] {
-  if (filters.q !== undefined || (filters.sort ?? "newest") !== "newest") return [{ label: null, links }];
+  if ("groupId" in scope || filters.q !== undefined || (filters.sort ?? "newest") !== "newest") return [{ label: null, links }];
   const pinnedView = "view" in scope && scope.view === "pinned";
   return groupLinks(links, now, { pinnedGroup: !pinnedView });
 }
@@ -182,11 +186,11 @@ const SKELETON_WIDTHS = [
 
 const SHIMMER = "animate-shimmer bg-[linear-gradient(90deg,#1b1b1b_25%,#272727_50%,#1b1b1b_75%)] bg-size-[200%_100%]";
 
-function LinkListSkeleton() {
+export function LinkListSkeleton({ rows = SKELETON_WIDTHS.length }: { rows?: number | undefined }) {
   return (
     <div className="flex flex-col gap-0.5 pt-6">
       <p role="status" className="sr-only">Loading your links</p>
-      {SKELETON_WIDTHS.map(([title, meta], index) => (
+      {SKELETON_WIDTHS.slice(0, rows).map(([title, meta], index) => (
         <div
           key={index}
           aria-hidden
