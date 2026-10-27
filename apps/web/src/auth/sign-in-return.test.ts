@@ -16,3 +16,7 @@ it("recognises an expired email link coming back with an error in the hash", () 
 it("ignores an ordinary page load", () => {
   expect(isSignInReturn("https://app.test/save?url=https%3A%2F%2Fexample.test#top")).toBe(false);
 });
+
+it("recognises a PKCE return carrying a code in the query", () => {
+  expect(isSignInReturn("https://app.test/sign-in?code=abc&sb_flow_id=f1")).toBe(true);
+});

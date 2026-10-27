@@ -1,8 +1,12 @@
-export const SIGN_IN_ERROR_PARAMS = ["error", "error_code", "error_description"];
+const SIGN_IN_ERROR_PARAMS = ["error", "error_code", "error_description"];
+// supabase-js's own name for the id it adds to a PKCE return.
+const PKCE_PARAMS = ["code", "sb_flow_id"];
+export const SIGN_IN_QUERY_PARAMS = [...SIGN_IN_ERROR_PARAMS, ...PKCE_PARAMS];
 
-// Supabase returns tokens in the hash; errors come back in the hash or the query.
+// A PKCE return carries ?code=, an error comes back in the hash or the query, and tokens in the
+// hash are not a return this app asked for but are recognised so they can be refused and cleared.
 export function isSignInReturn(href: string): boolean {
   const url = new URL(href);
-  const found = (params: URLSearchParams) => params.has("access_token") || SIGN_IN_ERROR_PARAMS.some((key) => params.has(key));
+  const found = (params: URLSearchParams) => params.has("access_token") || params.has("code") || SIGN_IN_ERROR_PARAMS.some((key) => params.has(key));
   return found(new URLSearchParams(url.hash.slice(1))) || found(url.searchParams);
 }
