@@ -1,6 +1,7 @@
 import { ApiError } from "@linkables/shared/api-client";
 import type { Group } from "@linkables/shared/groups";
 import type { SavedLink } from "@linkables/shared/links";
+import { listedCollection } from "./test-collections";
 import { savedLink } from "../links/test-links";
 
 export function group(name: string, position: number, linkCount = 0): Group {
@@ -10,7 +11,7 @@ export function group(name: string, position: number, linkCount = 0): Group {
 type Filed = { link: SavedLink; groupId: string | null };
 
 // The API's group routes over memory, enough for the collection page to run against.
-export function fakeGroupServer(collectionId: string, groups: Group[], filed: Filed[]) {
+export function fakeGroupServer(collectionId: string, groups: Group[], filed: Filed[], outside: SavedLink[] = []) {
   const calls: { method: string; path: string; body: unknown }[] = [];
   const counted = () =>
     [...groups]
@@ -28,10 +29,28 @@ export function fakeGroupServer(collectionId: string, groups: Group[], filed: Fi
     const one = /\/groups\/([^/]+)$/.exec(path)?.[1];
     if (one !== undefined && method === "PATCH") return rename(one, (body as { name: string }).name);
     if (one !== undefined && method === "DELETE") return remove(one);
+    const own = /\/collections\/[^/]+\/links\/([^/]+)$/.exec(path)?.[1];
+    if (own !== undefined && method === "PUT") return fileLink(own);
+    if (own !== undefined && method === "DELETE") return unfile(own);
+    const deleted = /^\/links\/([^/]+)$/.exec(path)?.[1];
+    if (deleted !== undefined && method === "DELETE") return unfile(deleted);
+    if (path === "/collections") return Promise.resolve({ items: [{ ...listedCollection({ id: collectionId, name: "Rust" }), linkCount: filed.length }] });
     const moved = /\/links\/([^/]+)$/.exec(path)?.[1];
     if (moved !== undefined && method === "PATCH") return move(moved, (body as { groupId: string | null }).groupId);
     if (path.startsWith("/links?")) return Promise.resolve(list(new URLSearchParams(path.split("?")[1])));
     return Promise.resolve({ items: [] });
+  }
+
+  function fileLink(linkId: string) {
+    const known = outside.find((link) => link.id === linkId);
+    if (known && !filed.some((entry) => entry.link.id === linkId)) filed.push({ link: known, groupId: null });
+    return Promise.resolve(null);
+  }
+
+  function unfile(linkId: string) {
+    const index = filed.findIndex((entry) => entry.link.id === linkId);
+    if (index >= 0) filed.splice(index, 1);
+    return Promise.resolve(null);
   }
 
   function create(name: string) {
