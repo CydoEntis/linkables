@@ -19,6 +19,7 @@ import type { AppEnv } from "./http/env";
 import { notFound, onError } from "./http/error-handler";
 import { REQUEST_ID_HEADER, requestId } from "./http/request-id";
 import { requestLog } from "./http/request-log";
+import { groupRoutes } from "./groups/routes";
 import { linkRoutes } from "./links/routes";
 import type { HtmlPage } from "./metadata/fetcher";
 import { createExtractPool } from "./reader/extract-pool";
@@ -70,6 +71,7 @@ export function createApp({
     .route("/", linkRoutes({ db, now }))
     .route("/", readerRoutes({ db, fetchPage, extract, logger, now }))
     .route("/", collectionRoutes({ db }))
+    .route("/", groupRoutes({ db }))
     .route("/", exportRoutes({ db, now }))
     .route("/", shareRoutes({ db }));
 
