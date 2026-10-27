@@ -1,14 +1,28 @@
 import type { Group } from "@linkables/shared/groups";
 import { ChevronDown, Ellipsis } from "lucide-react";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "cn";
+import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteGroupConfirm } from "./DeleteGroupConfirm";
 import { linkCountLabel } from "./link-count";
 import { useGroupNameForm } from "./use-group-name-form";
 import { useDeleteGroup, useRenameGroup, useReorderGroups } from "./use-groups";
 
+export function focusSectionHeading(sectionId: string): boolean {
+  const heading = document.querySelector<HTMLElement>(`[data-section-toggle="${CSS.escape(sectionId)}"]`);
+  heading?.focus();
+  return heading !== null;
+}
+
+// Where focus goes once a group is deleted: the next section's heading, or New group when it was the last.
+function focusAfterDelete(nextId: string | undefined): HTMLElement | null {
+  const next = nextId === undefined ? null : document.querySelector<HTMLElement>(`[data-section-toggle="${CSS.escape(nextId)}"]`);
+  return next ?? document.querySelector<HTMLElement>('button[aria-label="New group"]');
+}
+
 type SectionHeaderProps = {
+  sectionId: string;
   title: string;
   count: number;
   collapsed: boolean;
@@ -20,13 +34,14 @@ type SectionHeaderProps = {
 };
 
 // A section's heading is a button that folds it; the menu beside it manages a group.
-export function SectionHeader({ title, count, collapsed, onToggle, bodyId, editor, menu }: SectionHeaderProps) {
+export function SectionHeader({ sectionId, title, count, collapsed, onToggle, bodyId, editor, menu }: SectionHeaderProps) {
   return (
     <div className="flex items-center gap-1 px-1 md:px-0">
       {editor ?? (
         <h2 className="min-w-0 flex-1">
           <button
             type="button"
+            data-section-toggle={sectionId}
             aria-expanded={!collapsed}
             aria-controls={bodyId}
             onClick={onToggle}
@@ -50,6 +65,20 @@ export function GroupMenu({ collectionId, group, groups, onRename }: GroupMenuPr
   const remove = useDeleteGroup(collectionId);
   const [confirming, setConfirming] = useState(false);
   const index = groups.findIndex((item) => item.id === group.id);
+
+  // The dialog goes with the group, so focus is moved on here once the group is gone, not by the dialog on close.
+  async function confirmDelete() {
+    const nextId = groups[index + 1]?.id;
+    try {
+      await remove.mutateAsync(group.id);
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      toast.error("Couldn't delete the group. Try again.");
+      setConfirming(false);
+      return;
+    }
+    requestAnimationFrame(() => { focusAfterDelete(nextId)?.focus(); });
+  }
 
   function move(by: -1 | 1) {
     const ids = groups.map((item) => item.id);
@@ -80,20 +109,21 @@ export function GroupMenu({ collectionId, group, groups, onRename }: GroupMenuPr
         open={confirming}
         pending={remove.isPending}
         onOpenChange={setConfirming}
-        onConfirm={() => { remove.mutate(group.id, { onSettled: () => { setConfirming(false); } }); }}
+        onConfirm={() => { void confirmDelete(); }}
       />
     </>
   );
 }
 
 // Enter or leaving the field saves, Esc cancels, as renaming a collection does.
-export function RenameGroupForm({ collectionId, group, onDone }: { collectionId: string; group: Group; onDone: () => void }) {
+export function RenameGroupForm({ collectionId, group, onDone }: { collectionId: string; group: Group; onDone: (refocus: boolean) => void }) {
   const rename = useRenameGroup(collectionId, group.id);
+  const viaEnter = useRef(false);
   const { register, onSubmit, error } = useGroupNameForm({
     defaultName: group.name,
     save: async (name) => {
       if (name !== group.name) await rename.mutateAsync(name);
-      onDone();
+      onDone(viaEnter.current);
     },
   });
   const errorId = useId();
@@ -112,8 +142,9 @@ export function RenameGroupForm({ collectionId, group, onDone }: { collectionId:
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
-            onDone();
+            onDone(true);
           }
+          viaEnter.current = event.key === "Enter";
         }}
         onBlur={(event) => {
           void field.onBlur(event);

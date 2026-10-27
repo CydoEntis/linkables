@@ -85,7 +85,7 @@ for (const [label, viewport, phone] of [
 
       await newGroup(page, "Reading");
       await expect(section(page, "Ungrouped").locator("[data-row-link]")).toHaveCount(2);
-      await expect(section(page, "Reading").getByText("No links yet. Move links here from the row menu.")).toBeVisible();
+      await expect(section(page, "Reading").getByText("No links yet. Move links here with Add to….")).toBeVisible();
       await expect(page.getByRole("heading", { level: 2, name: "Today" })).toHaveCount(0);
 
       await page.getByRole("button", { name: "New group", exact: true }).click();

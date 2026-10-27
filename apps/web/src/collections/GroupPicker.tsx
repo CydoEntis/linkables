@@ -22,8 +22,7 @@ export function GroupPicker({ link, collectionId, size }: GroupPickerProps) {
   function choose(target: Pick<Group, "id" | "name"> | null) {
     if ((target?.id ?? null) === currentId) return;
     const from = options.find((option) => (option?.id ?? null) === currentId) ?? null;
-    setCurrentId(target?.id ?? null);
-    move({ link, collectionId, from, to: target });
+    move({ link, collectionId, from, to: target }, { onMoved: setCurrentId });
   }
 
   if ((groups.data ?? []).length === 0) return null;

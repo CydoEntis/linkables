@@ -140,13 +140,13 @@ function listGroups(links: SavedLink[], now: number, scope: ListScope, filters: 
 }
 
 // A loaded count: past the first page the total is unknown, so it reads "50+".
-function countLabel(count: number, more: boolean, searching: boolean): string {
+export function countLabel(count: number, more: boolean, searching: boolean): string {
   if (searching) return "Searching…";
   return `${String(count)}${more ? "+" : ""} ${count === 1 && !more ? "match" : "matches"}`;
 }
 
 // "0 matches" is read out but not shown: the no-matches message says it on screen.
-function ResultCount({ text }: { text: string | null }) {
+export function ResultCount({ text }: { text: string | null }) {
   return (
     <p
       role="status"

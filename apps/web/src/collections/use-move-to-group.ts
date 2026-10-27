@@ -12,6 +12,10 @@ import { refreshGroups } from "./use-groups";
 type GroupRef = Pick<Group, "id" | "name"> | null;
 export type MoveChange = { link: SavedLink; collectionId: string; from: GroupRef; to: GroupRef };
 
+// onMoved: told of every group the link should show in, including Undo and a revert.
+type MoveOptions = { undoable?: boolean; onMoved?: ((groupId: string | null) => void) | undefined };
+type MoveVariables = MoveChange & { toastId?: string | undefined; onMoved?: MoveOptions["onMoved"] };
+
 const UNDO_MS = 5000;
 // One queue, so a move and its Undo reach the server in the order they were made.
 const MOVE_SCOPE = { id: "move-to-group" };
@@ -26,13 +30,13 @@ export function cachedGroupId(queryClient: QueryClient, collectionId: string, li
   return undefined;
 }
 
-const label =(group: GroupRef) => (group === null ? "Ungrouped" : group.name);
+const label = (group: GroupRef) => (group === null ? "Ungrouped" : group.name);
 
 export function useMoveToGroup() {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     scope: MOVE_SCOPE,
-    mutationFn: ({ link, collectionId, to }: MoveChange & { toastId?: string | undefined }) =>
+    mutationFn: ({ link, collectionId, to }: MoveVariables) =>
       api.request(`/collections/${collectionId}/links/${link.id}`, z.null(), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -41,19 +45,21 @@ export function useMoveToGroup() {
     onMutate: ({ link, to }) => {
       updateCachedLink(queryClient, link.id, (item) => ({ ...item, groupId: to?.id ?? null }));
     },
-    onError: (_error, { link, from, toastId }) => {
+    onError: (_error, { link, from, toastId, onMoved }) => {
+      onMoved?.(from?.id ?? null);
       updateCachedLink(queryClient, link.id, (item) => ({ ...item, groupId: from?.id ?? null }));
       toast.error("Couldn't move the link. Try again.", toastId === undefined ? {} : { id: toastId, action: null });
     },
     onSettled: (_data, _error, { collectionId }) => refreshGroups(queryClient, collectionId),
   });
 
-  function move(change: MoveChange, { undoable = true } = {}) {
+  function move(change: MoveChange, { undoable = true, onMoved }: MoveOptions = {}) {
     useLinksUi.getState().leave(change.link.id);
+    onMoved?.(change.to?.id ?? null);
     const toastId = undoable
-      ? toastWithUndo(change, () => { move({ ...change, from: change.to, to: change.from }, { undoable: false }); })
+      ? toastWithUndo(change, () => { move({ ...change, from: change.to, to: change.from }, { undoable: false, onMoved }); })
       : undefined;
-    mutation.mutate({ ...change, toastId });
+    mutation.mutate({ ...change, toastId, onMoved });
   }
 
   return move;
