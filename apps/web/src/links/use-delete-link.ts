@@ -6,6 +6,7 @@ import { api } from "../api/api";
 import { isApiError } from "@linkables/shared/api-client";
 import { DELETE_UNDO_MS } from "../collections/use-delete-collection";
 import { collectionsKeys } from "../collections/use-collections";
+import { invalidateGroups } from "../collections/use-groups";
 import { useLinksUi } from "./links-ui-store";
 import { linksKeys, type LinksPages } from "./use-links";
 
@@ -34,6 +35,7 @@ async function sendDelete(queryClient: QueryClient, linkId: string) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: linksKeys.all }),
     queryClient.invalidateQueries({ queryKey: collectionsKeys.all }),
+    invalidateGroups(queryClient),
   ]);
 }
 

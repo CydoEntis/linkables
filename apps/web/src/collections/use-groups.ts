@@ -5,6 +5,7 @@ import { api } from "../api/api";
 import { linksKeys } from "../links/use-links";
 
 export const groupsKeys = {
+  all: ["groups"] as const,
   collection: (collectionId: string) => ["groups", collectionId] as const,
 };
 
@@ -16,6 +17,12 @@ export function useGroups(collectionId: string) {
     queryFn: ({ signal }) => api.request(`/collections/${collectionId}/groups`, listGroupsResponseSchema, { signal }),
     select: (data: ListGroupsResponse): Group[] => data.items,
   });
+}
+
+// Every group count on the page comes from here, so anything that changes which links a collection
+// holds (filing, unfiling, deleting a link) calls this next to its collections refresh.
+export function invalidateGroups(queryClient: QueryClient, options: { refetchType?: "none" } = {}) {
+  return queryClient.invalidateQueries({ queryKey: groupsKeys.all, ...options });
 }
 
 // Counts and a section's links both come from the server, so a change that moves links refreshes both.
