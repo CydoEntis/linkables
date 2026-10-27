@@ -16,8 +16,16 @@ choosing a collection. The Inbox is derived, not stored. The UI labels it
 **New** (renamed from "To sort" in the 2026-10-24 handoff); code and the API keep the name Inbox (`view=inbox`).
 
 **Collection**
-A named group of a user's saved links. One saved link can belong to several
-collections.
+A named set of a user's saved links. One saved link can belong to several
+collections. A collection holds no other collections; it can be split into
+Groups, one level deep.
+
+**Group**
+A named heading inside one collection (at most 20 per collection). A link in a
+collection is in one group or ungrouped, and that placement belongs to the
+filing, so the same link can sit in a group in one collection and ungrouped in
+another. Deleting a group leaves its links in the collection, ungrouped. Not the
+day buckets (Today, Yesterday, ...) the design calls "group by".
 
 **Save**
 Creating a Saved link in the user's Inbox (or a chosen collection) and, when the
