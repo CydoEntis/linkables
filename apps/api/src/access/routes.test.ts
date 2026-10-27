@@ -94,7 +94,7 @@ describe("POST /access-requests", () => {
 
   it("warns once in production when the proxy sent no client address", async () => {
     const { logger, lines } = captureLogger();
-    const app = createTestApp({ logger, auth: { ...TEST_AUTH, nodeEnv: "production", testJwks: undefined } });
+    const app = createTestApp({ logger, auth: { ...TEST_AUTH, nodeEnv: "production" }, trustProxy: true });
 
     await post(app, BOT);
     await post(app, BOT);

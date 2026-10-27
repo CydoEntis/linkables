@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
-import { collection, collectionItem, resource, savedLink } from "../db/schema";
+import { collection, collectionItem, resource, savedLink, timestampText } from "../db/schema";
 
 const { db, close } = connectTestDb();
 const { a, b } = await testUsers();
@@ -37,7 +37,7 @@ async function seedLink(user: TestUser, savedAt: string): Promise<string> {
         userId: user.id,
         resourceId: res.id,
         originalUrl: res.canonicalUrl,
-        savedAt: sql`${savedAt}::timestamptz`,
+        savedAt: sql`${timestampText(savedAt)}`,
       })
       .returning(),
   );
@@ -60,7 +60,7 @@ async function seedLinks(user: TestUser, count: number): Promise<string[]> {
         userId: user.id,
         resourceId: resourceIdByUrl.get(url) ?? "",
         originalUrl: url,
-        savedAt: sql`${new Date(Date.UTC(2026, 0, 1) + i * 1000).toISOString()}::timestamptz`,
+        savedAt: sql`${timestampText(new Date(Date.UTC(2026, 0, 1) + i * 1000).toISOString())}`,
       })),
     )
     .returning();
