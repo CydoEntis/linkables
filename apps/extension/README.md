@@ -76,8 +76,11 @@ supabase-js use `Function`, a dependency sets `innerHTML`) and the guarded
 `WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET` (addons.mozilla.org, Tools, Manage
 API Keys); never write them to a file in the repo. AMO accepts each version once,
 so bump `version` in `package.json` (the Chrome build moves with it) before every
-new signing. Then copy the signed file over `apps/extension/firefox/linkables-firefox.xpi`
-and commit it: CI cannot sign (no keys), so it serves that committed file at
+new signing. Then copy the signed file over `apps/web/public/downloads/linkables-firefox.xpi`
+and commit it. It lives in the web app's `public/` because the production server
+builds `main` with its own script, which only copies the Chrome zip into the web
+build; anything under `public/` reaches the image by itself. Nobody can sign in a
+build (no keys), so the app serves that committed file at
 `https://linkables.app/downloads/linkables-firefox.xpi` with the content type
 `application/x-xpinstall` (`apps/web/Caddyfile`), which is what makes Firefox
 install it on click. `/extension` shows "Add to Firefox" to Firefox visitors.

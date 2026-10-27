@@ -169,14 +169,13 @@ jobs:
           VITE_APP_URL: ${{ vars.APP_ORIGIN }}
       # After the web build, which empties apps/web/dist. The web image then serves
       # the zip at a stable address for the install guide (/extension).
-      - name: Add the extension zip and Firefox add-on to the web build
+      - name: Add the extension zip to the web build
         run: |
           pnpm --filter extension release
           mkdir -p apps/web/dist/downloads
           cp apps/extension/release/linkables-chrome-[0-9]*.zip apps/web/dist/downloads/linkables-chrome.zip
-          # Signed by hand with the owner's AMO keys (apps/extension/README.md), so it is committed, not built here.
-          cp apps/extension/firefox/linkables-firefox.xpi apps/web/dist/downloads/linkables-firefox.xpi
-      # The committed xpi must hold what this source builds (apps/extension/README.md, Firefox).
+      # The signed xpi is committed under apps/web/public/downloads, so the web build already carries it.
+      # It must hold what this source builds (apps/extension/README.md, Firefox).
       # shortcut: advisory, not a gate. It has only been run on Windows, and the Supabase key
       # secret may differ from the one the xpi was built with, so a false alarm must not block a deploy.
       - name: Check the signed Firefox add-on is current
