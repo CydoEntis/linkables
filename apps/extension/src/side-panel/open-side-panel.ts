@@ -4,8 +4,12 @@ import { env } from "../config/env";
 
 // Named in manifest.ts. Chrome has no built-in command for the side panel, so the
 // worker opens it; Firefox's built-in command for the sidebar is _execute_sidebar_action.
+export function isFirefox(): boolean {
+  return chrome.sidebarAction !== undefined;
+}
+
 export function openSidePanelCommand(): string {
-  return chrome.sidebarAction ? "_execute_sidebar_action" : "open-side-panel";
+  return isFirefox() ? "_execute_sidebar_action" : "open-side-panel";
 }
 
 export function canOpenSidePanel(): boolean {

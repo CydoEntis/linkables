@@ -10,6 +10,7 @@ export const HOST_ACCESS = { origins: [pattern(env.VITE_APP_URL), pattern(env.VI
 // undefined while the browser is asked.
 export function useHostAccess() {
   const [granted, setGranted] = useState<boolean | undefined>(undefined);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let current = true;
@@ -30,7 +31,18 @@ export function useHostAccess() {
 
   return {
     granted,
+    failed,
     // Firefox asks only from inside the click, so call this from the handler itself.
-    grant: () => void chrome.permissions.request(HOST_ACCESS),
+    grant: () => {
+      setFailed(false);
+      chrome.permissions.request(HOST_ACCESS).then(
+        (accepted) => {
+          setFailed(!accepted);
+        },
+        () => {
+          setFailed(true);
+        },
+      );
+    },
   };
 }
