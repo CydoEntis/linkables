@@ -95,7 +95,6 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 - AI features (Phase 4)
 - Billing and team plans (Phase 5)
 - Native mobile apps, nested collections, marketing site (Phase 6 or later)
-- Firefox extension
 - Tags, archive, bulk actions (not asked for; add when wanted)
 - Automated sign-in removal: Settings deletes a user's data at once, and the server's optional Supabase secret key is used only for extension sign-in, so the owner removes the sign-in record by hand within 30 days (emailed on each deletion)
 
@@ -122,6 +121,8 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
   Since 2026-10-26 it is in the Chrome Web Store (unlisted), which `/extension`
   links to; the zip stays for existing by-hand installs. The side panel and
   sign-in from linkables.app or Google (LNK-55, LNK-56) were pulled forward.
+  A Firefox build (LNK-58), signed as an unlisted add-on and served at
+  `/downloads/linkables-firefox.xpi`, was added on the same terms.
 - Deferred: the rest of the browser extension (Phase 2), any sharing.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.

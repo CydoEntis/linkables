@@ -1,4 +1,4 @@
-# linkables for Chrome (beta)
+# linkables for Chrome and Firefox (beta)
 
 A Manifest V3 extension: click the toolbar button and the pop-up saves the tab
 you're on, then lets you pin it or file it in a collection. Signed in on
@@ -51,6 +51,45 @@ panel, the service worker (`worker.js`) and the content script
 from `package.json`; bump it for each
 release.
 
+## Firefox
+
+`manifest.ts` also builds a Firefox MV3 manifest (`buildFirefoxManifest`): the
+worker is an event page (`background.scripts`), the panel is `sidebar_action`
+(Alt+Shift+L is Firefox's own `_execute_sidebar_action` command), there is no
+`key` or `sidePanel`, and the add-on id is `linkables@linkables.app` (Firefox 140
+or later, for AMO's required `data_collection_permissions`). The code is shared:
+`src/side-panel/open-side-panel.ts` picks `sidebarAction` where `sidePanel` is
+missing, the worker judges a message by `sender.url` (Firefox has no
+`MessageSender.origin`, `src/connect/sender.ts`), and Firefox lets people switch
+host permissions off, so the pop-up and panel show an **Allow access** button
+(`src/permissions`) until `permissions.contains` says yes.
+
+```sh
+pnpm --filter extension release:firefox   # builds dist-firefox/ (production env, like release:store) and runs web-ext lint
+pnpm --filter extension sign:firefox      # web-ext sign --channel=unlisted; writes release/linkables-firefox.xpi
+```
+
+Lint must show no errors. Its five warnings come from bundled libraries (zod and
+supabase-js use `Function`, a dependency sets `innerHTML`) and the guarded
+`sidePanel.open` call. Signing needs the owner's AMO API keys in the shell as
+`WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET` (addons.mozilla.org, Tools, Manage
+API Keys); never write them to a file in the repo. AMO accepts each version once,
+so bump `version` in `package.json` (the Chrome build moves with it) before every
+new signing. Then copy the signed file over `apps/extension/firefox/linkables-firefox.xpi`
+and commit it: CI cannot sign (no keys), so it serves that committed file at
+`https://linkables.app/downloads/linkables-firefox.xpi` with the content type
+`application/x-xpinstall` (`apps/web/Caddyfile`), which is what makes Firefox
+install it on click. `/extension` shows "Add to Firefox" to Firefox visitors.
+
+Google sign-in: Firefox's `identity.getRedirectURL()` is
+`https://<sha1 of the add-on id>.extensions.allizom.org/`, here
+`https://640b8f04beeba484cf71ab3c8c653e175be4fd3a.extensions.allizom.org/`. Add
+`https://640b8f04beeba484cf71ab3c8c653e175be4fd3a.extensions.allizom.org/**` to
+Supabase's Redirect URLs next to the chromiumapp.org ones. The API needs no CORS
+entry: a Firefox extension page with host permission for linkables.app is exempt
+from CORS (the `moz-extension://` origin is a random id per install, so none could
+be listed anyway).
+
 ## Load unpacked
 
 1. `chrome://extensions`, turn on **Developer mode** (top right).
@@ -82,7 +121,8 @@ On every push to `main`, CI builds the extension against production, zips it,
 and the web image serves the zip at
 `https://linkables.app/downloads/linkables-chrome.zip` for anyone who installed
 it by hand. Everyone else installs it from the Chrome Web Store, which
-`https://linkables.app/extension` links to. The same run builds the
+`https://linkables.app/extension` links to; Firefox visitors get the signed
+add-on described above. The same run builds the
 Web Store zip and keeps it as the `linkables-chrome-store` run artifact, which
 is not served publicly.
 
