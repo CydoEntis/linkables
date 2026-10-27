@@ -36,7 +36,7 @@ function DesktopWays() {
     },
     {
       title: "Share from your phone",
-      text: "Open linkables.app on your phone and add it to your Home Screen. Then it shows up when you tap Share.",
+      text: "Open this server on your phone and add it to your Home Screen. Supported browsers can receive shared links.",
       art: <SharePicture />,
       action: (
         <Link to={SAVE_ANYWHERE_PATH} className={buttonVariants({ variant: "ghost", size: "touch", className: DESKTOP_ACTION })}>

@@ -30,7 +30,7 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
       <FollowTabsSetting />
       <Group title="Shortcuts">
         <Row label="Open side panel">
-          <kbd className="rounded-md bg-accent px-2 py-1 font-mono text-[12px]">{shortcut ?? "â€¦"}</kbd>
+          <kbd className="rounded-md bg-accent px-2 py-1 font-mono text-[12px]">{shortcut ?? "…"}</kbd>
         </Row>
         {chrome.sidebarAction ? (
           // Firefox's pages cannot open about:addons, so point at it.
@@ -46,7 +46,7 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
         )}
       </Group>
       <Group title="Account">
-        <Row label={<span className="break-all">{email ?? "â€¦"}</span>}>
+        <Row label={<span className="break-all">{email ?? "…"}</span>}>
           <button type="button" onClick={() => void signOut()} className={GHOST_BUTTON}>
             Sign out
           </button>
@@ -54,7 +54,7 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
         <button type="button" onClick={() => void disconnectServer()} className={GHOST_BUTTON}>Change server</button>
       </Group>
       <a href={appUrl("/settings")} target="_blank" rel="noreferrer" className="self-start rounded-md px-1 text-[13px] font-semibold hover:text-primary">
-        All settings in linkables â†—
+        All settings in linkables ↗
       </a>
     </main>
   );

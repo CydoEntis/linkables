@@ -71,7 +71,7 @@ test("signs in with a local password, then saves the tab the user is on", async 
   expect(await savedLinks(request, user)).toMatchObject([{ originalUrl: ARTICLE_URL, savedFrom: "extension", pinned: false, collections: [] }]);
 });
 
-test("a saved page gets a âœ“ on the toolbar button until its tab moves on", async ({ context, openPopup, user }) => {
+test("a saved page gets a ✓ on the toolbar button until its tab moves on", async ({ context, openPopup, user }) => {
   const article = await openArticle(context);
   const popup = await openPopup();
   await signIn(popup, user.email);
@@ -80,7 +80,7 @@ test("a saved page gets a âœ“ on the toolbar button until its tab moves on",
 
   await saveFromPopup(popup, article);
   await expect(popup.getByRole("heading", { name: "Saved", exact: true })).toBeVisible();
-  await expect.poll(() => badgeText(popup, tabId)).toBe("âœ“");
+  await expect.poll(() => badgeText(popup, tabId)).toBe("✓");
 
   const next = `${APP_URL}/e2e/next-page`;
   await context.route(next, (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Next</title>" }));
@@ -99,7 +99,7 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
   await expect(popup.getByRole("heading", { name: "Already saved" })).toBeVisible();
 
   await popup.getByLabel("Search collections").fill("Recipes");
-  await popup.getByRole("button", { name: "+ Create â€œRecipesâ€" }).click();
+  await popup.getByRole("button", { name: "+ Create “Recipes”" }).click();
   await expect(popup.getByRole("button", { name: "Recipes", pressed: true })).toBeVisible();
   await expect(popup.getByText("In Recipes")).toBeVisible();
 
@@ -107,7 +107,7 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
   await expect(popup.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
   const copies = await recordCopies(popup);
   await popup.getByRole("button", { name: "Share link" }).click();
-  await expect(popup.getByRole("button", { name: "Copied âœ“" })).toBeVisible();
+  await expect(popup.getByRole("button", { name: "Copied ✓" })).toBeVisible();
   expect(await copies()).toEqual([ARTICLE_URL]);
   await expect(popup.getByText("Alt+Shift+S saves quietly")).toBeVisible();
   await snap(popup, testInfo, "popup-already-saved-filed");

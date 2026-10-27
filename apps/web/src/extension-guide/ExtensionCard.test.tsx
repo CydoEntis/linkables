@@ -18,11 +18,11 @@ describe("ExtensionCard", () => {
     expect(screen.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", CHROME_WEB_STORE_URL);
   });
 
-  it("offers the signed add-on to a Firefox visitor", async () => {
+  it("offers the self-hosted installation guide to a Firefox visitor", async () => {
     await renderWithRouter(<ExtensionCard firefox />);
     const card = screen.getByRole("region", { name: "Firefox extension" });
     expect(within(card).getByText("Save any tab in one click")).toBeInTheDocument();
-    expect(within(card).getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
+    expect(within(card).getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/extension");
   });
 
   it("stays dismissed on this device once dismissed", async () => {

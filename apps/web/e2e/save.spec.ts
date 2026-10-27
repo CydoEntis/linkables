@@ -36,7 +36,7 @@ test.describe("at 375 px", () => {
 
     await page.goto(shared);
     await expect(page.getByRole("heading", { name: "Already saved" })).toBeVisible();
-    await expect(page.getByText(/^You saved this on .+ Â· in New$/)).toBeVisible();
+    await expect(page.getByText(/^You saved this on .+ · in New$/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
     await testInfo.attach("save-already-375", { body: await page.screenshot({ animations: "disabled" }), contentType: "image/png" });
     expect(await savedUrls(db, user)).toEqual(["https://example.test/b"]);
@@ -71,7 +71,7 @@ test.describe("at 375 px", () => {
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
     await page.goto(`/save?url=${encodeURIComponent(longUrl)}`);
-    await expect(page.getByRole("heading", { name: "Savingâ€¦" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Saving…" })).toBeVisible();
     expect(await overflow()).toBeLessThanOrEqual(0);
 
     releaseSave();

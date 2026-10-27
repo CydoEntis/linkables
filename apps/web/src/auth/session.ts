@@ -29,6 +29,7 @@ async function request(path: string, body?: unknown) {
     response = await fetch(`${env.VITE_API_URL}/api/v1/auth/${path}`, {
       method: body === undefined ? "GET" : "POST",
       credentials: "include",
+      redirect: "error",
       headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });

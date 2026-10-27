@@ -245,5 +245,5 @@ test("the gear opens extension settings with the shortcut and the account", asyn
   await expect(panel.locator("kbd")).toHaveText("Alt+Shift+L");
 
   await panel.getByRole("button", { name: "Sign out" }).click();
-  await expect(panel.getByRole("heading", { name: "Sign in to save this page" })).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Sign in to your server" })).toBeVisible();
 });
