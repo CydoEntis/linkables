@@ -68,7 +68,7 @@ export function createApp({
   const v1 = new Hono<AuthEnv>()
     // Over the cap, bodyLimit throws a 413 HTTPException, which onError maps to VALIDATION.
     .use(bodyLimit({ maxSize: MAX_BODY_BYTES }))
-    .use(requireAuth(localAuth))
+    .use(requireAuth(localAuth, auth))
     .route("/", me)
     .route("/", accountRoutes({ db, logger, now, notifyAccountDeleted }))
     .route("/", linkRoutes({ db, now }))
