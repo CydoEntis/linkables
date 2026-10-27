@@ -38,3 +38,10 @@ it("skips the by-hand steps when the extension comes from the Web Store", async 
   const steps = screen.getAllByRole("listitem").map((step) => step.textContent);
   expect(steps).toEqual([expect.stringContaining("Add linkables"), expect.stringContaining("Pin"), expect.stringContaining("Sign in")]);
 });
+
+it("offers Add to Firefox, installed from the signed add-on, to a Firefox visitor", async () => {
+  await renderWithRouter(<ExtensionGuidePage storeUrl={STORE_URL} firefox />);
+  expect(screen.getByRole("heading", { level: 1, name: "linkables for Firefox" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
+  expect(screen.queryByRole("link", { name: "Add to Chrome" })).not.toBeInTheDocument();
+});

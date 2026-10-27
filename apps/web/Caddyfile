@@ -48,6 +48,17 @@
 		file_server
 	}
 
+	# Firefox installs an add-on on click only when it is served as this type;
+	# file_server would guess application/zip. The file is signed, so it never
+	# changes between releases: re-check it each time.
+	@xpi path /downloads/*.xpi
+	handle @xpi {
+		root * /srv
+		header Content-Type application/x-xpinstall
+		header Cache-Control "no-cache"
+		file_server
+	}
+
 	# Everything else (pages, the manifest, icons) is re-checked so a deploy
 	# shows up. / and the public pages are prerendered HTML (landing.html,
 	# privacy.html, ...); the landing page itself loads the app for a signed-in

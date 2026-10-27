@@ -66,6 +66,7 @@ test.describe("the extension download", () => {
   test.beforeAll(() => {
     mkdirSync(downloads, { recursive: true });
     writeFileSync(`${downloads}linkables-chrome.zip`, emptyZip);
+    writeFileSync(`${downloads}linkables-firefox.xpi`, emptyZip);
   });
   test.afterAll(() => { rmSync(downloads, { recursive: true, force: true }); });
 
@@ -73,6 +74,13 @@ test.describe("the extension download", () => {
     const response = await request.get("/downloads/linkables-chrome.zip");
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toBe("application/zip");
+    expect(await response.body()).toEqual(emptyZip);
+  });
+
+  test("serves the Firefox add-on as an installable add-on, not a zip", async ({ request }) => {
+    const response = await request.get("/downloads/linkables-firefox.xpi");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("application/x-xpinstall");
     expect(await response.body()).toEqual(emptyZip);
   });
 });
