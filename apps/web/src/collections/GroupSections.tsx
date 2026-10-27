@@ -5,7 +5,9 @@ import { NoMatches } from "../search/NoMatches";
 import { countLabel, LinkList, ResultCount } from "../links/LinkList";
 import { useLinks, type ListScope } from "../links/use-links";
 import { useCollectionsUi } from "./collections-ui-store";
+import { GroupGrip, useHeaderDrop, type GroupDrag } from "./GroupDrop";
 import { focusSectionHeading, GroupMenu, RenameGroupForm, SectionHeader } from "./GroupHeader";
+import { useReorderGroups } from "./use-groups";
 
 type SectionsProps = {
   collectionId: string;
@@ -35,7 +37,22 @@ export function GroupSections({ collectionId, linkCount, groups, filters, onFilt
   const narrowed = isNarrowed(filters);
   const reported = sectionIds.map((id) => matches[id]);
   const noneMatch = narrowed && reported.every((match) => match !== undefined && match.count === 0);
-  const common = { collectionId, filters, onFiltersChange, report };
+  const [draggingGroupId, setDraggingGroupId] = useState<string | null>(null);
+  const reorder = useReorderGroups(collectionId);
+  const groupDrag: GroupDrag = {
+    draggingId: draggingGroupId,
+    setDraggingId: setDraggingGroupId,
+    reorder: (fromId, toId) => {
+      setDraggingGroupId(null);
+      const ids = groups.map((group) => group.id);
+      const from = ids.indexOf(fromId);
+      const to = ids.indexOf(toId);
+      if (from < 0 || to < 0 || from === to) return;
+      ids.splice(to, 0, ...ids.splice(from, 1));
+      reorder.mutate(ids);
+    },
+  };
+  const common = { collectionId, filters, onFiltersChange, report, groupDrag };
 
   // One status region in every state, as the plain list has, so the total is announced as it changes.
   const total = reported.reduce((sum, match) => sum + (match?.count ?? 0), 0);
@@ -62,6 +79,7 @@ type CommonProps = {
   filters: ListFilters;
   onFiltersChange: FiltersChange;
   report: (sectionId: string, matches: Matches | undefined) => void;
+  groupDrag: GroupDrag;
 };
 
 function UngroupedSection({ count, ...common }: CommonProps & { count: number }) {
@@ -71,6 +89,7 @@ function UngroupedSection({ count, ...common }: CommonProps & { count: number })
       {...common}
       sectionId={sectionId}
       scope={{ collectionId: common.collectionId, groupId: UNGROUPED }}
+      group={null}
       title="Ungrouped"
       count={count}
       empty={null}
@@ -90,6 +109,7 @@ function GroupSection({ group, groups, ...common }: CommonProps & { group: Group
       {...common}
       sectionId={group.id}
       scope={{ collectionId: common.collectionId, groupId: group.id }}
+      group={group}
       title={group.name}
       count={group.linkCount}
       empty={<p className="px-3 py-3 text-sm text-muted-foreground md:px-3.5">No links yet. Move links here with Add to….</p>}
@@ -102,6 +122,7 @@ function GroupSection({ group, groups, ...common }: CommonProps & { group: Group
 type SectionProps = CommonProps & {
   sectionId: string;
   scope: ListScope;
+  group: Group | null;
   title: string;
   count: number;
   empty: ReactNode;
@@ -109,7 +130,8 @@ type SectionProps = CommonProps & {
   menu?: ReactNode;
 };
 
-function Section({ sectionId, scope, title, count, empty, editor, menu, filters, onFiltersChange, report }: SectionProps) {
+function Section({ sectionId, scope, group, title, count, empty, editor, menu, filters, onFiltersChange, report, collectionId, groupDrag }: SectionProps) {
+  const drop = useHeaderDrop(collectionId, group, groupDrag);
   const collapsed = useCollectionsUi((state) => sectionId in state.collapsed);
   const toggle = useCollectionsUi((state) => state.toggleCollapsed);
   const bodyId = useId();
@@ -127,7 +149,7 @@ function Section({ sectionId, scope, title, count, empty, editor, menu, filters,
   if (noMatch) return null;
   return (
     <section aria-label={title}>
-      <SectionHeader sectionId={sectionId} title={title} count={count} collapsed={collapsed} onToggle={() => { toggle(sectionId); }} bodyId={bodyId} editor={editor} menu={menu} />
+      <SectionHeader sectionId={sectionId} title={title} count={count} collapsed={collapsed} onToggle={() => { toggle(sectionId); }} bodyId={bodyId} editor={editor} menu={menu} drop={drop} grip={group === null ? undefined : <GroupGrip group={group} groupDrag={groupDrag} />} />
       <div id={bodyId} hidden={collapsed}>
         {collapsed ? null : <LinkList scope={scope} filters={filters} onFiltersChange={onFiltersChange} section={{ empty }} />}
       </div>
