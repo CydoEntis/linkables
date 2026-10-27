@@ -5,6 +5,8 @@ import { useRef, useState, type DragEvent } from "react";
 import { cn } from "cn";
 import { AddToPopover } from "../collections/AddToPopover";
 import { displayTitle, domainOf, filedLabel, relativeTime, safeHref, savedFromLabel } from "./link-display";
+import { SelectBox, useSelectable } from "../open-links/use-selectable";
+import { useSelection } from "../open-links/selection-store";
 import { MatchedText } from "../search/MatchedText";
 import { LinkThumb } from "./LinkThumb";
 import { useLinksUi } from "./links-ui-store";
@@ -59,6 +61,7 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
   });
   const textOpacity = Math.max(0, 1 + swipe.offset / TEXT_FADE_PX);
   const rowRef = useRef<HTMLDivElement | null>(null);
+  const selectable = useSelectable(link);
 
   return (
     <div ref={rowRef} data-row className={cn("group/row relative rounded-xl max-md:overflow-hidden", leaving && "pointer-events-none animate-leave")}>
@@ -72,15 +75,18 @@ export function LinkRow({ link, now, inCollection = false, highlight, belongs = 
         draggable
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
-        {...swipe.handlers}
+        {...(selectable.selecting ? {} : swipe.handlers)}
+        {...selectable.anchorProps}
         data-row-link
         data-link-id={link.id}
         className={cn(
           "flex touch-pan-y items-center gap-3 rounded-xl py-2.5 pr-3.5 pl-3 transition-colors group-hover/row:bg-row-hover focus-visible:outline-offset-0 max-md:select-none md:gap-4 md:px-3.5",
+          selectable.selected && "bg-row-hover",
           highlight === "hop" && "animate-hop",
           highlight === "flash" && "animate-glow",
         )}
       >
+        {selectable.selecting ? <SelectBox selected={selectable.selected} /> : null}
         <LinkThumb link={link} />
         <RowText link={link} now={now} inCollection={inCollection} pinned={pin.pinned} opacity={textOpacity} query={query} />
       </a>
@@ -197,6 +203,7 @@ export function RowActions({ link, belongs, pinned, onPin, placement = "row" }: 
   const [pickerOpen, setPickerOpen] = useState(false);
   const dragging = useLinksUi((state) => state.draggingId !== null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const selecting = useSelection((state) => state.selecting);
 
   // A row leaving the list may unmount before the popover finishes closing,
   // which would take the popover's own focus return with it; so focus moves
@@ -209,6 +216,7 @@ export function RowActions({ link, belongs, pinned, onPin, placement = "row" }: 
     if (!open) ui.leave(link.id);
   }
 
+  if (selecting) return null;
   return (
     <div
       role="group"

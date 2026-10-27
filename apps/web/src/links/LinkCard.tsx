@@ -1,6 +1,7 @@
 import type { SavedLink } from "@linkables/shared/links";
 import { Pin } from "lucide-react";
 import { cn } from "cn";
+import { SelectBox, useSelectable } from "../open-links/use-selectable";
 import { MatchedText } from "../search/MatchedText";
 import { displayTitle, domainOf, filedLabel, relativeTime, safeHref } from "./link-display";
 import { RowActions, startDrag, type LinkRowProps } from "./LinkRow";
@@ -14,6 +15,7 @@ import { usePinLink } from "./use-pin-link";
 export function LinkCard({ link, now, inCollection = false, highlight, belongs = true, leaving = false, query }: LinkRowProps) {
   const pin = usePinLink(link);
   const href = safeHref(link.originalUrl);
+  const selectable = useSelectable(link);
 
   return (
     <div
@@ -32,10 +34,12 @@ export function LinkCard({ link, now, inCollection = false, highlight, belongs =
         draggable
         onDragStart={(event) => { startDrag(event, link); }}
         onDragEnd={() => { useLinksUi.getState().setDraggingId(null); }}
+        {...selectable.anchorProps}
         data-row-link
         data-link-id={link.id}
         className={cn(
           "flex h-full flex-col overflow-hidden rounded-2xl bg-card shadow-[0_0_0_1px_var(--border)] transition-shadow",
+          selectable.selected && "shadow-[0_0_0_2px_var(--primary)]",
           highlight === "hop" && "animate-hop",
           highlight === "flash" && "animate-glow",
         )}
@@ -43,6 +47,7 @@ export function LinkCard({ link, now, inCollection = false, highlight, belongs =
         <span className="relative">
           <LinkThumb link={link} variant="card" />
           {pin.pinned ? <PinnedTag /> : null}
+          {selectable.selecting ? <SelectBox selected={selectable.selected} className="absolute top-2.5 right-2.5" /> : null}
         </span>
         <CardText link={link} now={now} inCollection={inCollection} query={query} />
         {pin.pinned ? <span className="sr-only">Pinned</span> : null}
