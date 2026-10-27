@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { DeleteGroupConfirm } from "./DeleteGroupConfirm";
 import { DropCue } from "./GroupDrop";
 import { linkCountLabel } from "./link-count";
+import { useShareToken } from "../sharing/use-share";
 import { useGroupNameForm } from "./use-group-name-form";
 import { useDeleteGroup, useRenameGroup, useReorderGroups } from "./use-groups";
 
@@ -71,6 +72,7 @@ type GroupMenuProps = { collectionId: string; group: Group; groups: readonly Gro
 export function GroupMenu({ collectionId, group, groups, onRename }: GroupMenuProps) {
   const reorder = useReorderGroups(collectionId);
   const remove = useDeleteGroup(collectionId);
+  const sharedToken = useShareToken(collectionId);
   const [confirming, setConfirming] = useState(false);
   const index = groups.findIndex((item) => item.id === group.id);
 
@@ -116,6 +118,7 @@ export function GroupMenu({ collectionId, group, groups, onRename }: GroupMenuPr
         name={group.name}
         open={confirming}
         pending={remove.isPending}
+        becomesPublic={!group.shared && sharedToken !== undefined}
         onOpenChange={setConfirming}
         onConfirm={() => { void confirmDelete(); }}
       />
