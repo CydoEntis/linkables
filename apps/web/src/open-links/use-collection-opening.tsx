@@ -18,33 +18,42 @@ export function useCollectionOpening(collection: ListedCollection, filters: List
   const opening = useOpenLinks();
   const all = useAllCollectionLinks(collection.id);
   const selecting = useSelection((state) => state.selecting);
-  const { start, cancel, chooseAll, drop } = useSelection.getState();
+  const { start, cancel, chooseAll } = useSelection.getState();
   const [loading, setLoading] = useState<"open" | "select" | null>(null);
+  // The session the running load belongs to; null when none runs. A second click while one runs does nothing.
+  const loadingSession = useRef<number | null>(null);
   // Stringified so an equal filter object from a new render does not count as a change.
   const filtersKey = JSON.stringify(filters);
-  const currentFilters = useRef(filtersKey);
-  currentFilters.current = filtersKey;
 
-  // Choosing is per collection and per visit: leaving the page ends it.
-  useEffect(() => cancel, [collection.id, cancel]);
+  // The ticks were made on one collection's list under one search, filter and sort; a change ends them
+  // and any load still running (cancel bumps the session, which every load checks when it lands).
+  useEffect(() => {
+    cancel();
+    loadingSession.current = null;
+    setLoading(null);
+  }, [collection.id, filtersKey, cancel]);
+  // Leaving the page ends it too, with no state left to update.
+  useEffect(() => () => {
+    cancel();
+    loadingSession.current = null;
+  }, [cancel]);
 
-  // The ticks were made on a list that a new search, filter or sort replaces.
-  useEffect(cancel, [filtersKey, cancel]);
-  // A ticked link that was deleted or filed out of the collection is no longer on the page.
-  useEffect(() => { drop(new Set(all.gone.split(","))); }, [all.gone, drop]);
-
-  // Null when the user moved on while the pages loaded: they cancelled, or searched or sorted again.
+  // Null when the user moved on while the pages loaded.
   async function loadAllFor(kind: "open" | "select") {
-    if (loading !== null) return null;
+    if (loadingSession.current !== null) return null;
     const { session } = useSelection.getState();
-    const filtersThen = currentFilters.current;
+    const isCurrent = () => useSelection.getState().session === session;
+    loadingSession.current = session;
     setLoading(kind);
     try {
-      const links = await all.loadAll();
-      const overtaken = currentFilters.current !== filtersThen || (kind === "select" && useSelection.getState().session !== session);
-      return overtaken ? null : links;
+      const links = await all.loadAll(isCurrent);
+      return isCurrent() ? links : null;
     } finally {
-      setLoading(null);
+      // Not this load's to clear once the user has moved on: the reset above (or a newer load) owns it.
+      if (loadingSession.current === session) {
+        loadingSession.current = null;
+        setLoading(null);
+      }
     }
   }
 
@@ -88,7 +97,7 @@ export function useCollectionOpening(collection: ListedCollection, filters: List
     <>
       {opening.banner}
       {opening.dialog}
-      {selecting ? <SelectionBar loading={loading === "select"} onOpen={(urls) => { opening.request(urls, cancel); }} onSelectAll={() => void selectAll()} /> : null}
+      {selecting ? <SelectionBar loading={loading === "select"} onOpen={() => { opening.request(all.stillChosen(useSelection.getState().chosen), cancel); }} onSelectAll={() => void selectAll()} /> : null}
     </>
   );
   return { actions, extras };

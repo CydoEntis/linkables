@@ -9,8 +9,10 @@ import { toast } from "sonner";
 import type { ListFilters } from "../search/list-filters";
 import { useLinksUi } from "../links/links-ui-store";
 import { linksKeys } from "../links/use-links";
+import { ApiError } from "@linkables/shared/api-client";
 import { LinkList } from "../links/LinkList";
 import { savedLink } from "../links/test-links";
+import type { ListedCollection } from "@linkables/shared/collections";
 import { listedCollection } from "../collections/test-collections";
 import { testQueryClient } from "../test/render-with-router";
 import { TestRouter } from "../test/router";
@@ -36,24 +38,24 @@ function serve(pages: SavedLink[][]) {
   });
 }
 
-function Page({ filters }: { filters: ListFilters }) {
-  const opening = useCollectionOpening(COLLECTION, filters);
+function Page({ filters, collection = COLLECTION }: { filters: ListFilters; collection?: ListedCollection }) {
+  const opening = useCollectionOpening(collection, filters);
   return (
     <>
       {opening.actions}
       {opening.extras}
-      <LinkList scope={{ collectionId: COLLECTION.id }} filters={filters} />
+      <LinkList scope={{ collectionId: collection.id }} filters={filters} />
     </>
   );
 }
 
 const queryClient = testQueryClient();
 
-function ui(filters: ListFilters) {
+function ui(filters: ListFilters, collection = COLLECTION) {
   return (
     <QueryClientProvider client={queryClient}>
       <TestRouter>
-        <Page filters={filters} />
+        <Page filters={filters} collection={collection} />
       </TestRouter>
       <Toaster />
     </QueryClientProvider>
@@ -64,7 +66,11 @@ async function renderPage() {
   const view = render(ui({}));
   await screen.findByText("Link 1");
   await waitFor(() => { expect(screen.getByRole("button", { name: "Open all" })).toBeEnabled(); });
-  return { changeFilters: (filters: ListFilters) => { view.rerender(ui(filters)); } };
+  return {
+    changeFilters: (filters: ListFilters) => { view.rerender(ui(filters)); },
+    changeCollection: (collection: ListedCollection) => { view.rerender(ui({}, collection)); },
+    unmount: view.unmount,
+  };
 }
 
 type Tab = { opener: unknown; location: { href: string } };
@@ -288,17 +294,44 @@ describe("Select to open", () => {
     await waitFor(() => { expect(screen.getByText("1 selected")).toBeInTheDocument(); });
   });
 
-  it("drops a ticked link that is filed out of the collection", async () => {
+  function fileOutFirstLink(updatedAt?: number) {
+    act(() => {
+      queryClient.setQueryData<InfiniteData<ListLinksResponse>>(
+        linksKeys.collection(COLLECTION.id),
+        (data) => {
+          const [first, ...rest] = data?.pages[0]?.items ?? [];
+          return data && first && { ...data, pages: [{ items: [{ ...first, collections: [] }, ...rest], cursor: null }] };
+        },
+        updatedAt === undefined ? undefined : { updatedAt },
+      );
+    });
+  }
+
+  it("does not open a ticked link whose freshest copy was filed out of the collection", async () => {
     await startSelecting();
     await userEvent.click(screen.getByRole("checkbox", { name: /Link 1/ }));
     await userEvent.click(screen.getByRole("checkbox", { name: /Link 3/ }));
+    fileOutFirstLink();
+    await userEvent.click(screen.getByRole("button", { name: "Open 2" }));
+    expect(opened()).toEqual(["https://site3.example/"]);
+  });
+
+  it("keeps a ticked link when only a stale copy in another list lacks the collection", async () => {
+    await startSelecting();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 1/ }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Link 3/ }));
+    const first = queryClient.getQueryData<InfiniteData<ListLinksResponse>>(linksKeys.collection(COLLECTION.id))?.pages[0]?.items[0];
+    if (first === undefined) throw new Error("no cached link");
     act(() => {
-      queryClient.setQueryData<InfiniteData<ListLinksResponse>>(linksKeys.collection(COLLECTION.id), (data) => {
-        const [first, ...rest] = data?.pages[0]?.items ?? [];
-        return data && first && { ...data, pages: [{ items: [{ ...first, collections: [] }, ...rest], cursor: null }] };
-      });
+      queryClient.setQueryData<InfiniteData<ListLinksResponse>>(
+        linksKeys.list("all"),
+        { pages: [{ items: [{ ...first, collections: [] }], cursor: null }], pageParams: [undefined] },
+        { updatedAt: 1 },
+      );
     });
-    await waitFor(() => { expect(screen.getByText("1 selected")).toBeInTheDocument(); });
+    await userEvent.click(screen.getByRole("button", { name: "Open 2" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(opened()).toEqual(["https://site1.example/", "https://site3.example/"]);
   });
 
   it("shows loading and disables Select all while it pages through the collection", async () => {
@@ -411,5 +444,78 @@ describe("ticks made in a searched view", () => {
 
     expect(screen.getByText("1 selected")).toBeInTheDocument();
     expect(useSelection.getState().chosen).toEqual({ [hidden.id]: "https://hidden.example/" });
+  });
+});
+
+describe("a load that the page moved on from", () => {
+  const OTHER = listedCollection({ name: "Other", linkCount: 1 });
+
+  function hold() {
+    const second = { release: (): void => undefined, fail: (): void => undefined };
+    request.mockImplementation((path) => {
+      const params = new URLSearchParams(path.split("?")[1]);
+      if (params.get("collectionId") === OTHER.id) {
+        return Promise.resolve({ items: [savedLink({ collections: [{ id: OTHER.id, name: OTHER.name }], originalUrl: "https://other.example/", resource: { title: "Other link" } })], cursor: null });
+      }
+      if (params.get("cursor") === null) return Promise.resolve({ items: [link(1), link(2)], cursor: "1" });
+      return new Promise((resolve, reject) => {
+        second.release = () => { resolve({ items: [link(3)], cursor: null }); };
+        second.fail = () => { reject(new ApiError("VALIDATION", "down")); };
+      });
+    });
+    return second;
+  }
+  const settle = async (action: () => void) => { await act(async () => { action(); await Promise.resolve(); }); };
+
+  it.each(["Open all", "Select all"])("%s started on one collection shows nothing on the next and leaves it usable", async (name) => {
+    const second = hold();
+    const { changeCollection } = await renderPage();
+    if (name === "Select all") await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("button", { name }));
+    changeCollection(OTHER);
+    await screen.findByText("Other link");
+    await settle(second.release);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(useSelection.getState().chosen).toEqual({});
+    expect(screen.queryByText("Loading all links…")).not.toBeInTheDocument();
+    await waitFor(() => { expect(screen.getByRole("button", { name: "Open all" })).not.toHaveAttribute("aria-disabled"); });
+  });
+
+  it.each(["Open all", "Select all"])("%s clicked twice while loading loads once", async (name) => {
+    hold();
+    await renderPage();
+    if (name === "Select all") await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    const button = screen.getByRole("button", { name });
+    await userEvent.dblClick(button);
+    const secondPageRequests = request.mock.calls.filter(([path]) => path.includes("cursor=1"));
+    expect(secondPageRequests).toHaveLength(1);
+  });
+
+  it("says nothing about a failed load the user already left", async () => {
+    const second = hold();
+    const { changeFilters } = await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Open all" }));
+    changeFilters({ q: "link" });
+    await settle(second.fail);
+    expect(screen.queryByText("Couldn't load all the links. Try again.")).not.toBeInTheDocument();
+  });
+
+  it("still reports a failed load the user is waiting on", async () => {
+    const second = hold();
+    await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Open all" }));
+    await settle(second.fail);
+    expect(await screen.findByText("Couldn't load all the links. Try again.")).toBeInTheDocument();
+  });
+
+  it("opens no confirm when the page is left mid-load", async () => {
+    const second = hold();
+    const { unmount } = await renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Open all" }));
+    unmount();
+    await settle(second.release);
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    expect(open).not.toHaveBeenCalled();
   });
 });

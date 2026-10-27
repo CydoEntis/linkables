@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSelection } from "./selection-store";
 
-type SelectionBarProps = { onOpen: (urls: string[]) => void; onSelectAll: () => void; loading: boolean };
+type SelectionBarProps = { onOpen: () => void; onSelectAll: () => void; loading: boolean };
 
 // An open dialog, sheet or popover takes Escape for itself first.
 const OVERLAY = "[data-slot=dialog-content],[data-slot=sheet-content],[data-slot=popover-content]";
@@ -33,7 +33,7 @@ export function SelectionBar({ onOpen, onSelectAll, loading }: SelectionBarProps
       <Button variant="ghost" size="touch" onClick={cancel}>
         Cancel
       </Button>
-      <Button size="touch" disabled={urls.length === 0} onClick={() => { onOpen(urls); }} className="font-bold max-md:w-full">
+      <Button size="touch" disabled={urls.length === 0} onClick={onOpen} className="font-bold max-md:w-full">
         {`Open ${String(urls.length)}`}
       </Button>
     </div>
