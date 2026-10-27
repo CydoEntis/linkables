@@ -32,13 +32,18 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
         <Row label="Open side panel">
           <kbd className="rounded-md bg-accent px-2 py-1 font-mono text-[12px]">{shortcut ?? "…"}</kbd>
         </Row>
-        <button
-          type="button"
-          onClick={() => void chrome.tabs.create({ url: "chrome://extensions/shortcuts" })}
-          className="self-start rounded-md px-1 text-[12.5px] text-muted-foreground hover:text-foreground"
-        >
-          Change shortcuts
-        </button>
+        {chrome.sidebarAction ? (
+          // Firefox's pages cannot open about:addons, so point at it.
+          <p className="text-[12.5px] text-muted-foreground">Change it in Add-ons Manager: the gear, then Manage Extension Shortcuts.</p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void chrome.tabs.create({ url: "chrome://extensions/shortcuts" })}
+            className="self-start rounded-md px-1 text-[12.5px] text-muted-foreground hover:text-foreground"
+          >
+            Change shortcuts
+          </button>
+        )}
       </Group>
       <Group title="Account">
         <Row label={<span className="break-all">{email ?? "…"}</span>}>

@@ -1,6 +1,7 @@
 import type { ListedCollection } from "@linkables/shared/collections";
 import { Settings } from "lucide-react";
 import { useState } from "react";
+import { HostAccessGate } from "../permissions/HostAccessGate";
 import { SignIn } from "../auth/SignIn";
 import { useSession } from "../auth/use-session";
 import { Wordmark } from "../ui";
@@ -12,7 +13,7 @@ import { ThisPage } from "./ThisPage";
 export function SidePanel() {
   const session = useSession();
   if (session === "loading") return <div aria-busy className="h-[72px]" />;
-  return session === "signed-in" ? <SignedIn /> : <SignIn />;
+  return <HostAccessGate>{session === "signed-in" ? <SignedIn /> : <SignIn />}</HostAccessGate>;
 }
 
 function SignedIn() {
