@@ -38,7 +38,7 @@ export function LinkRows({ tab, query }: { tab: LinkTab; query: string }) {
   );
 }
 
-function LinkRow({ link, now }: { link: SavedLink; now: number }) {
+export function LinkRow({ link, now }: { link: SavedLink; now: number }) {
   return (
     <a
       href={safeHref(link.originalUrl)}

@@ -6,6 +6,7 @@ import { displayName } from "../collections/picker";
 import { useCopy, type CopyState } from "../copy/use-copy";
 import { Alert, PRIMARY_BUTTON } from "../ui";
 import { linkCount } from "./link-list";
+import { ShareScope } from "./ShareScope";
 import { sharedUrl, useSetSharing, useShareTokens } from "./queries";
 import { Mosaic } from "./Thumb";
 import { useTwoTap } from "./use-two-tap";
@@ -80,6 +81,7 @@ function ShareContent({ collection, titleId, onDone }: ShareContentProps) {
       ) : (
         <LinkOff collectionId={collection.id} focusFirst={changed} />
       )}
+      <ShareScope collectionId={collection.id} />
       <p role="status" className="sr-only">
         {changed ? (on ? "Link is on. Anyone with it can view." : "Link turned off. It no longer works.") : null}
       </p>

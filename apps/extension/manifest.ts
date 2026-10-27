@@ -23,6 +23,12 @@ type ManifestOptions = { version: string; appUrl: string; supabaseUrl: string; s
 
 const hostPattern = (origin: string) => `${origin.replace(/\/+$/, "")}/*`;
 
+// Both browsers hand this command to the worker. It must stay a different key from
+// the side panel's Alt+Shift+L.
+const QUIET_SAVE_COMMANDS = {
+  "save-quietly": { suggested_key: { default: "Alt+Shift+S" }, description: "Save the current tab quietly, with no pop-up" },
+};
+
 // What both browsers' manifests share.
 function sharedFields({ version, appUrl, supabaseUrl }: Omit<ManifestOptions, "store">) {
   return {
@@ -61,6 +67,7 @@ export function buildManifest({ store = false, ...options }: ManifestOptions) {
     // Chrome has no built-in command for the side panel, so the worker opens it.
     commands: {
       "open-side-panel": { suggested_key: { default: "Alt+Shift+L" }, description: "Open the linkables side panel" },
+      ...QUIET_SAVE_COMMANDS,
     },
   };
 }
@@ -81,6 +88,7 @@ export function buildFirefoxManifest(options: Omit<ManifestOptions, "store">) {
     },
     commands: {
       _execute_sidebar_action: { suggested_key: { default: "Alt+Shift+L" } },
+      ...QUIET_SAVE_COMMANDS,
     },
     browser_specific_settings: {
       gecko: {

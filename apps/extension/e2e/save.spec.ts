@@ -41,6 +41,12 @@ async function savedLinks(request: APIRequestContext, user: TestUser): Promise<L
   return body.data.items;
 }
 
+async function seed<T>(request: APIRequestContext, user: TestUser, path: string, data: unknown): Promise<T> {
+  const response = await request.post(`${API_URL}/api/v1${path}`, { headers: { Authorization: `Bearer ${user.accessToken}` }, data });
+  expect(response.ok(), path).toBe(true);
+  return ((await response.json()) as { data: T }).data;
+}
+
 async function snap(popup: Page, testInfo: TestInfo, name: string) {
   await testInfo.attach(name, { body: await popup.locator("#root").screenshot({ animations: "disabled" }), contentType: "image/png" });
 }
@@ -99,14 +105,41 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
   await popup.getByRole("button", { name: "Pin", exact: true }).click();
   await expect(popup.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
   const copies = await recordCopies(popup);
-  await popup.getByRole("button", { name: "Share" }).click();
+  await popup.getByRole("button", { name: "Share link" }).click();
   await expect(popup.getByRole("button", { name: "Copied ✓" })).toBeVisible();
   expect(await copies()).toEqual([ARTICLE_URL]);
+  await expect(popup.getByText("Alt+Shift+S saves quietly")).toBeVisible();
   await snap(popup, testInfo, "popup-already-saved-filed");
 
   await expect
     .poll(() => savedLinks(request, user))
     .toMatchObject([{ originalUrl: ARTICLE_URL, pinned: true, collections: [{ name: "Recipes" }] }]);
+});
+
+test("a saved page can be filed in a group of its collection", async ({ context, openPopup, request, user }) => {
+  const collection = await seed<{ id: string }>(request, user, "/collections", { name: "Dinners" });
+  const mains = await seed<{ id: string }>(request, user, `/collections/${collection.id}/groups`, { name: "Mains" });
+  const article = await openArticle(context);
+  const popup = await openPopup();
+  await signIn(popup, user.email);
+  await saveFromPopup(popup, article);
+  await expect(popup.getByRole("heading", { name: "Saved", exact: true })).toBeVisible();
+  await expect(popup.getByRole("group", { name: /^Group in/ })).toHaveCount(0);
+
+  await popup.getByRole("button", { name: "Dinners", exact: true }).click();
+  const choice = popup.getByRole("group", { name: "Group in Dinners" });
+  await expect(choice.getByRole("button", { name: "Ungrouped" })).toHaveAttribute("aria-pressed", "true");
+  await choice.getByRole("button", { name: "Mains" }).click();
+  await expect(choice.getByRole("button", { name: "Mains" })).toHaveAttribute("aria-pressed", "true");
+
+  await expect
+    .poll(async () => {
+      const response = await request.get(`${API_URL}/api/v1/links?collectionId=${collection.id}&groupId=${mains.id}`, {
+        headers: { Authorization: `Bearer ${user.accessToken}` },
+      });
+      return ((await response.json()) as { data: { items: { originalUrl: string }[] } }).data.items.map((link) => link.originalUrl);
+    })
+    .toEqual([ARTICLE_URL]);
 });
 
 test("the code step survives the pop-up closing while the user reads the email", async ({ context, openPopup, request, user }) => {

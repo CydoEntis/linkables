@@ -4,6 +4,7 @@ import { Ban, BookOpen, Check, ExternalLink, Link2, LoaderCircle, Pin } from "lu
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { markSaved } from "../badge/saved-badge";
 import { CollectionPicker } from "../collections/CollectionPicker";
+import { FiledGroups } from "../collections/FiledGroups";
 import { locationLabel } from "../collections/picker";
 import { useFiling } from "../collections/use-collections";
 import { useCopy, type CopyState } from "../copy/use-copy";
@@ -147,6 +148,7 @@ function SavedPage({ link, pageTitle, onSaved }: SavedPageProps) {
         </span>
         <AddTo filedIds={new Set(filing.filed.map((collection) => collection.id))} onFile={filing.setFiledIn} />
       </div>
+      <FiledGroups linkId={link.id} filed={filing.filed} initial={link.collections} />
       <div className={cn("grid gap-1.5", canRead(link) ? "grid-cols-4" : "grid-cols-3")}>
         <button
           type="button"

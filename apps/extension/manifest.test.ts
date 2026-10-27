@@ -72,6 +72,25 @@ describe("side panel", () => {
   });
 });
 
+describe("quiet save shortcut", () => {
+  const firefox = buildFirefoxManifest({ version: "0.3.1", appUrl: "https://linkables.app", supabaseUrl: "https://ref.supabase.co" });
+
+  it("suggests Alt+Shift+S to save the tab in Chrome", () => {
+    expect(manifest.commands["save-quietly"].suggested_key).toEqual({ default: "Alt+Shift+S" });
+  });
+
+  it("suggests the same shortcut in Firefox, as a command the worker handles", () => {
+    expect(firefox.commands["save-quietly"].suggested_key).toEqual({ default: "Alt+Shift+S" });
+  });
+
+  it("gives each shortcut one command, so it does not clash with Alt+Shift+L", () => {
+    for (const { commands } of [manifest, firefox]) {
+      const keys = Object.values(commands).map((command) => command.suggested_key.default);
+      expect(new Set(keys).size).toBe(keys.length);
+    }
+  });
+});
+
 describe("buildFirefoxManifest", () => {
   const firefox = buildFirefoxManifest({ version: "0.3.1", appUrl: "https://linkables.app", supabaseUrl: "https://ref.supabase.co" });
 

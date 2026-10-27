@@ -11,14 +11,14 @@ export const MENU_HINTS = {
   refresh: "Click the linkables button to refresh your sign-in, then try again.",
 } as const;
 
-type MenuDeps = {
+export type MenuDeps = {
   save: (request: SaveRequest) => Promise<SaveLinkResponse>;
   signedIn: () => Promise<boolean>;
   // The worker has no page to speak in, so the toolbar badge and tooltip on the clicked tab answer for a moment.
   flash: (tabId: number, ok: boolean, hint: string) => Promise<void>;
 };
 
-function hintFor(outcome: SaveOutcome): string {
+export function hintFor(outcome: SaveOutcome): string {
   if (outcome.status === "saved") return MENU_HINTS.saved;
   if (outcome.status === "cant") return outcome.reason;
   if (outcome.message === SAVE_MESSAGES.signedOut) return MENU_HINTS.signedOut;

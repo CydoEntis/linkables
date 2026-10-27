@@ -5,15 +5,23 @@ import { api } from "../api/api";
 import { env } from "../config/env";
 import { saveCurrentTab } from "../save/save-flow";
 import { saveLink } from "../save/save-link";
+import { collectionLinksPath } from "./group-sections";
 import { linksPath, pinnedFirst, type LinkTab } from "./link-list";
 import { findPageLink, lookupQuery, type PageLookup } from "./this-page";
 
+// Everything the panel lists from /links: a change to a link refreshes all of it.
+export const PANEL_LISTS_KEY = ["panel", "links"] as const;
+
 const keys = {
-  lists: ["panel", "links"] as const,
+  lists: PANEL_LISTS_KEY,
   list: (tab: LinkTab, query: string) => ["panel", "links", tab, query] as const,
+  section: (collectionId: string, groupId: string | undefined) => ["panel", "links", "collection", collectionId, groupId ?? "all"] as const,
   page: (url: string) => ["panel", "page", url] as const,
   shared: ["panel", "shared"] as const,
 };
+
+// A section stays short; the rest is a click away in the web app.
+const SECTION_LINKS = 5;
 
 // The web app's shared page path (apps/web/src/sharing/path.ts).
 const SHARED_PATH_PREFIX = "/s/";
@@ -31,6 +39,15 @@ export function usePanelLinks(tab: LinkTab, query: string) {
     queryKey: keys.list(tab, query),
     queryFn: () => api.request(linksPath(tab, query), listLinksResponseSchema),
     select: (data) => ({ items: pinnedFirst(data.items), more: data.cursor !== null }),
+  });
+}
+
+// The first few links of a collection, or of one of its groups (UNGROUPED for the links in none).
+export function useCollectionLinks(collectionId: string, groupId: string | undefined) {
+  return useQuery({
+    queryKey: keys.section(collectionId, groupId),
+    queryFn: () => api.request(collectionLinksPath(collectionId, groupId, SECTION_LINKS), listLinksResponseSchema),
+    select: (data) => ({ items: data.items, more: data.cursor !== null }),
   });
 }
 

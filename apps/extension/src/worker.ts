@@ -1,5 +1,6 @@
 import "./background/side-panel-command";
 import "./background/context-menu";
+import "./background/quiet-save-command";
 import { hasSession, signInWithGoogle, verifyTokenHash } from "./auth/worker-sign-in";
 import { env } from "./config/env";
 import { isAllowedSender } from "./connect/sender";
