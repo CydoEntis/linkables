@@ -23,6 +23,7 @@ function setup({ groups, links = [], filters = {} }: { groups: Group[]; links?: 
   render(
     <QueryClientProvider client={queryClient}>
       <TestRouter>
+        <button type="button" aria-label="New group" />
         <CollectionList collection={{ ...collection, linkCount: links.length }} filters={filters} onFiltersChange={vi.fn()} />
       </TestRouter>
     </QueryClientProvider>,
@@ -76,7 +77,42 @@ describe("CollectionList", () => {
 
   it("says an empty group has no links yet", async () => {
     setup({ groups: [group("Later", 0)] });
-    expect(await screen.findByText("No links yet. Move links here from the row menu.")).toBeInTheDocument();
+    expect(await screen.findByText("No links yet. Move links here with Add to….")).toBeInTheDocument();
+  });
+
+  it("reads out one match count for all sections while searching", async () => {
+    const [reading, tools] = [group("Reading", 0), group("Tools", 1)];
+    setup({
+      groups: [reading, tools],
+      links: [filedLink("Alpha post", collection.id, reading.id), filedLink("Alpha tool", collection.id, tools.id), filedLink("Beta", collection.id, null)],
+      filters: { q: "alpha" },
+    });
+    await waitFor(() => { expect(screen.getByRole("status")).toHaveTextContent("2 matches"); });
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+  });
+
+  it("moves focus to the next section's heading after a group is deleted", async () => {
+    const { user } = setup({ groups: [group("Reading", 0), group("Tools", 1)], links: [filedLink("Any", collection.id, null)] });
+    await openMenu(user, "Reading", "Delete");
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete group" }));
+    await waitFor(() => { expect(screen.getByRole("button", { name: /^Tools/ })).toHaveFocus(); });
+  });
+
+  it("moves focus to New group after the last group is deleted", async () => {
+    const { user } = setup({ groups: [group("Reading", 0), group("Tools", 1)], links: [filedLink("Any", collection.id, null)] });
+    await openMenu(user, "Tools", "Delete");
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete group" }));
+    await waitFor(() => { expect(document.activeElement).toHaveAttribute("aria-label", "New group"); });
+  });
+
+  it("puts focus back on the heading after a rename, on Enter and on Escape", async () => {
+    const { user } = setup({ groups: [group("Reading", 0)], links: [filedLink("Any", collection.id, null)] });
+    await openMenu(user, "Reading", "Rename");
+    await user.type(await screen.findByRole("textbox", { name: "Group name" }), "{Enter}");
+    await waitFor(() => { expect(screen.getByRole("button", { name: /^Reading/ })).toHaveFocus(); });
+    await openMenu(user, "Reading", "Rename");
+    await user.type(await screen.findByRole("textbox", { name: "Group name" }), "{Escape}");
+    await waitFor(() => { expect(screen.getByRole("button", { name: /^Reading/ })).toHaveFocus(); });
   });
 
   it("folds a section and opens it again", async () => {

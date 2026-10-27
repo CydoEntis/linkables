@@ -48,6 +48,7 @@ describe("GroupPicker", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
     await vi.waitFor(() => { expect(patches(calls)).toEqual([{ groupId: reading.id }, { groupId: null }]); });
+    expect(screen.getByRole("button", { name: "Ungrouped" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("moves a link back to Ungrouped", async () => {
