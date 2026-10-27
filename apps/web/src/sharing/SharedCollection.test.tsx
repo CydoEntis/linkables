@@ -36,7 +36,7 @@ describe("SharedCollection with groups", () => {
     expect(headings).toEqual(["Food2", "Hotels1"]);
     const order = screen.getAllByRole("link").map((item) => item.textContent);
     expect(order[0]).toContain("Map");
-    expect(order.findIndex((text) => text?.includes("Ramen"))).toBeGreaterThan(0);
+    expect(order.findIndex((text) => text.includes("Ramen"))).toBeGreaterThan(0);
   });
 
   it("puts each group's links inside its own section", () => {
