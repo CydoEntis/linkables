@@ -44,7 +44,8 @@ export const savedLinkSchema = z.strictObject({
   savedFrom: z.enum(LINK_SOURCES).nullable(),
   // The caller's collections holding this link, ordered by name ignoring case.
   collections: z.array(z.strictObject({ id: z.uuid(), name: z.string() })),
-  // Only in a list scoped to one collection: the group the link sits in there, null if none.
+  // Only when the list request carries the groupId filter: the link's group in that collection, null
+  // if none. Never otherwise, so a cached client with a strict older schema keeps parsing plain lists.
   groupId: z.uuid().nullable().optional(),
   resource: resourceSummarySchema,
 });

@@ -61,6 +61,11 @@ async function listLinks(user: TestUser, query: string) {
   return data(res, listLinksResponseSchema);
 }
 
+async function idsIn(user: TestUser, collectionId: string, group: string) {
+  const page = await listLinks(user, `collectionId=${collectionId}&groupId=${group}`);
+  return page.items.map((item) => item.id);
+}
+
 async function move(user: TestUser, collectionId: string, linkId: string, groupId: string | null) {
   return send(user, "PATCH", `/collections/${collectionId}/links/${linkId}`, { groupId });
 }
@@ -337,14 +342,14 @@ describe("moving a link", () => {
     const linkId = await saveLink(a, "https://example.com/one", collectionId);
 
     const into = await move(a, collectionId, linkId, group.id);
-    const grouped = await listLinks(a, `collectionId=${collectionId}`);
+    const grouped = await idsIn(a, collectionId, group.id);
     const out = await move(a, collectionId, linkId, null);
-    const ungrouped = await listLinks(a, `collectionId=${collectionId}`);
+    const ungrouped = await idsIn(a, collectionId, "none");
 
     expect(into.status).toBe(200);
-    expect(grouped.items[0]?.groupId).toBe(group.id);
+    expect(grouped).toEqual([linkId]);
     expect(out.status).toBe(200);
-    expect(ungrouped.items[0]?.groupId).toBeNull();
+    expect(ungrouped).toEqual([linkId]);
   });
 
   it("keeps the group when the link is filed again", async () => {
@@ -355,7 +360,7 @@ describe("moving a link", () => {
 
     await send(a, "PUT", `/collections/${collectionId}/links/${linkId}`);
 
-    expect((await listLinks(a, `collectionId=${collectionId}`)).items[0]?.groupId).toBe(group.id);
+    expect(await idsIn(a, collectionId, group.id)).toEqual([linkId]);
   });
 
   it("files a link ungrouped when it joins a collection with groups", async () => {
@@ -364,7 +369,7 @@ describe("moving a link", () => {
 
     const linkId = await saveLink(a, "https://example.com/one", collectionId);
 
-    expect((await listLinks(a, `collectionId=${collectionId}`)).items.find((item) => item.id === linkId)?.groupId).toBeNull();
+    expect(await idsIn(a, collectionId, "none")).toEqual([linkId]);
   });
 
   it("keeps a link's group per collection", async () => {
@@ -375,11 +380,8 @@ describe("moving a link", () => {
     await send(a, "PUT", `/collections/${second}/links/${linkId}`);
     await move(a, first, linkId, inFirst.id);
 
-    const inOne = await listLinks(a, `collectionId=${first}`);
-    const inTwo = await listLinks(a, `collectionId=${second}`);
-
-    expect(inOne.items[0]?.groupId).toBe(inFirst.id);
-    expect(inTwo.items[0]?.groupId).toBeNull();
+    expect(await idsIn(a, first, inFirst.id)).toEqual([linkId]);
+    expect(await idsIn(a, second, "none")).toEqual([linkId]);
   });
 
   it("is NOT_FOUND for a group of another collection", async () => {
@@ -391,7 +393,7 @@ describe("moving a link", () => {
     const res = await move(a, first, linkId, elsewhere.id);
 
     expect(res.status).toBe(404);
-    expect((await listLinks(a, `collectionId=${first}`)).items[0]?.groupId).toBeNull();
+    expect(await idsIn(a, first, "none")).toEqual([linkId]);
   });
 
   it("is NOT_FOUND for a link that is not in the collection", async () => {
@@ -470,12 +472,17 @@ describe("filtering links by group", () => {
     expect(page.items).toEqual([]);
   });
 
-  it("omits groupId from links outside a collection-scoped list", async () => {
-    await seedThree();
+  it("carries each item's groupId only when the groupId filter is sent", async () => {
+    const { collectionId, group } = await seedThree();
 
-    const page = await listLinks(a, "");
+    const plain = await listLinks(a, `collectionId=${collectionId}`);
+    const everything = await listLinks(a, "");
+    const grouped = await listLinks(a, `collectionId=${collectionId}&groupId=${group.id}`);
+    const loose = await listLinks(a, `collectionId=${collectionId}&groupId=none`);
 
-    for (const item of page.items) expect(item).not.toHaveProperty("groupId");
+    for (const item of [...plain.items, ...everything.items]) expect(item).not.toHaveProperty("groupId");
+    expect(grouped.items.map((item) => item.groupId)).toEqual([group.id, group.id]);
+    expect(loose.items.map((item) => item.groupId)).toEqual([null]);
   });
 
   it.each([["groupId=none"], ["groupId=not-a-uuid&collectionId=" + randomUUID()]])(
