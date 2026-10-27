@@ -14,7 +14,7 @@ import { DrizzleQueryError } from "drizzle-orm/errors";
 import type { Db, Tx } from "../db/client";
 import { collection, collectionGroup, collectionItem, resource, savedLink, shareCode, shareViewerSession } from "../db/schema";
 import { lockCollection } from "../groups/groups";
-import { NotFoundError, UnauthenticatedError } from "../http/errors";
+import { ForbiddenError, NotFoundError } from "../http/errors";
 import { hasViewerSession } from "./private-share";
 
 type Owned = { userId: string; id: string };
@@ -214,7 +214,7 @@ async function holdsSession(db: Db, collectionId: string, { session, now }: View
 export type ViewerAccess = { session: string | undefined; now: number };
 
 // An unknown token and a turned-off one are the same NOT_FOUND. A private share without a valid
-// session answers UNAUTHENTICATED before it reads anything of the collection, its name included.
+// session answers FORBIDDEN (never UNAUTHENTICATED, which signs an owner out of the web app) before it reads anything of the collection, its name included.
 export async function sharedCollection(db: Db, token: string, viewer: ViewerAccess): Promise<SharedCollection> {
   const [found] = await withoutParams(
     db
@@ -223,7 +223,7 @@ export async function sharedCollection(db: Db, token: string, viewer: ViewerAcce
       .where(eq(collection.shareToken, token)),
   );
   if (found === undefined) throw new NotFoundError("Shared collection not found");
-  if (found.sharePrivate && !(await holdsSession(db, found.id, viewer))) throw new UnauthenticatedError(PRIVATE_SHARE_MESSAGE);
+  if (found.sharePrivate && !(await holdsSession(db, found.id, viewer))) throw new ForbiddenError(PRIVATE_SHARE_MESSAGE);
   const [rows, counts] = await Promise.all([visibleLinks(db, found.id), visibleCounts(db, found.id)]);
   const groups = groupsOf(rows, counts);
   return {

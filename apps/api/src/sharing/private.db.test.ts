@@ -168,15 +168,15 @@ describe("the owner's access choice", () => {
 });
 
 describe("opening a private share", () => {
-  it("asks for a sign-in instead of showing the collection, without naming it", async () => {
+  it("refuses the collection until a code is entered, without naming it", async () => {
     const s = setup();
     const { token } = await makePrivate(s, a, "Secret trip");
 
     const res = await view(s, token);
     const text = await res.text();
 
-    expect(res.status).toBe(401);
-    expect(JSON.parse(text)).toMatchObject({ ok: false, error: { code: "UNAUTHENTICATED" } });
+    expect(res.status).toBe(403);
+    expect(JSON.parse(text)).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
     expect(text).not.toContain("Secret trip");
   });
 
@@ -241,8 +241,8 @@ describe("opening a private share", () => {
 
     const res = await verify(s, token, OUTSIDER, s.sent[0]?.code ?? "");
 
-    expect(res.status).toBe(401);
-    expect((await errorCode(res)).code).toBe("UNAUTHENTICATED");
+    expect(res.status).toBe(403);
+    expect((await errorCode(res)).code).toBe("FORBIDDEN");
   });
 
   it("gives the same answer to a wrong code, an unlisted email and an unknown link", async () => {
@@ -260,7 +260,7 @@ describe("opening a private share", () => {
     );
 
     expect(new Set(bodies.map((x) => JSON.stringify(x))).size).toBe(1);
-    expect(bodies[0]?.status).toBe(401);
+    expect(bodies[0]?.status).toBe(403);
   });
 
   it("takes a code once", async () => {
@@ -270,7 +270,7 @@ describe("opening a private share", () => {
     const code = s.sent[0]?.code ?? "";
 
     expect((await verify(s, token, SAM, code)).status).toBe(200);
-    expect((await verify(s, token, SAM, code)).status).toBe(401);
+    expect((await verify(s, token, SAM, code)).status).toBe(403);
   });
 
   it("lets only one of two simultaneous right answers through", async () => {
@@ -281,7 +281,7 @@ describe("opening a private share", () => {
 
     const results = await Promise.all([verify(s, token, SAM, code, "198.51.100.1"), verify(s, token, SAM, code, "198.51.100.2")]);
 
-    expect(results.map((r) => r.status).sort()).toEqual([200, 401]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 403]);
   });
 
   it("expires a code after ten minutes", async () => {
@@ -290,7 +290,7 @@ describe("opening a private share", () => {
     await askForCode(s, token, SAM);
     s.clock.at += 10 * MINUTE + 1;
 
-    expect((await verify(s, token, SAM, s.sent[0]?.code ?? "")).status).toBe(401);
+    expect((await verify(s, token, SAM, s.sent[0]?.code ?? "")).status).toBe(403);
   });
 
   it("accepts a code just inside the ten minutes", async () => {
@@ -309,9 +309,9 @@ describe("opening a private share", () => {
     const real = s.sent[0]?.code ?? "";
     const wrong = real === "000000" ? "000001" : "000000";
 
-    for (let i = 0; i < 5; i += 1) expect((await verify(s, token, SAM, wrong, `198.51.100.${String(i + 10)}`)).status).toBe(401);
+    for (let i = 0; i < 5; i += 1) expect((await verify(s, token, SAM, wrong, `198.51.100.${String(i + 10)}`)).status).toBe(403);
 
-    expect((await verify(s, token, SAM, real, "198.51.100.99")).status).toBe(401);
+    expect((await verify(s, token, SAM, real, "198.51.100.99")).status).toBe(403);
   });
 
   it("replaces the earlier code when a new one is asked for", async () => {
@@ -324,7 +324,7 @@ describe("opening a private share", () => {
 
     expect(await db.select().from(shareCode)).toHaveLength(1);
     // The old code is dead unless the two happen to match (one in a million).
-    if (first !== second) expect((await verify(s, token, SAM, first ?? "")).status).toBe(401);
+    if (first !== second) expect((await verify(s, token, SAM, first ?? "")).status).toBe(403);
     expect((await verify(s, token, SAM, second ?? "")).status).toBe(200);
   });
 
@@ -412,7 +412,7 @@ describe("a viewer's session", () => {
     s.clock.at += 12 * 60 * MINUTE - 1000;
     expect((await view(s, token, session)).status).toBe(200);
     s.clock.at += 2000;
-    expect((await view(s, token, session)).status).toBe(401);
+    expect((await view(s, token, session)).status).toBe(403);
   });
 
   it("opens only the collection it was issued for", async () => {
@@ -422,15 +422,15 @@ describe("a viewer's session", () => {
     const session = await signIn(s, first.token);
 
     expect((await view(s, first.token, session)).status).toBe(200);
-    expect((await view(s, second.token, session)).status).toBe(401);
+    expect((await view(s, second.token, session)).status).toBe(403);
   });
 
   it("is refused when it is garbage", async () => {
     const s = setup();
     const { token } = await makePrivate(s, a, "Trip");
 
-    expect((await view(s, token, "x".repeat(32))).status).toBe(401);
-    expect((await view(s, token, "short")).status).toBe(401);
+    expect((await view(s, token, "x".repeat(32))).status).toBe(403);
+    expect((await view(s, token, "short")).status).toBe(403);
   });
 
   it("stops working when the owner removes that email", async () => {
@@ -440,7 +440,7 @@ describe("a viewer's session", () => {
 
     await putAccess(s, a, col.id, { mode: "emails", emails: ["kim@example.com"] });
 
-    expect((await view(s, token, session)).status).toBe(401);
+    expect((await view(s, token, session)).status).toBe(403);
   });
 
   it("stops working when the owner turns the link off, and a new link starts clean", async () => {
@@ -453,7 +453,7 @@ describe("a viewer's session", () => {
     expect(await db.select().from(shareViewerSession)).toEqual([]);
     const fresh = await turnOn(s, a, col.id);
 
-    expect((await view(s, fresh, session)).status).toBe(401);
+    expect((await view(s, fresh, session)).status).toBe(403);
   });
 
   it("is stored only as a hash", async () => {

@@ -3,7 +3,7 @@ import { and, asc, eq, gt, lt, notInArray, sql } from "drizzle-orm";
 import type { Db, Tx } from "../db/client";
 import { collection, shareAllowedEmail, shareCode, shareViewerSession } from "../db/schema";
 import { lockCollection } from "../groups/groups";
-import { NotFoundError, UnauthenticatedError, UpstreamError } from "../http/errors";
+import { ForbiddenError, NotFoundError, UpstreamError } from "../http/errors";
 import type { Logger } from "../log/logger";
 import type { SendViewerCode } from "./send-viewer-code";
 import { codeMatches, hashCode, hashSessionToken, newCode, newSessionToken } from "./viewer-code";
@@ -138,7 +138,7 @@ async function startSession(db: Db, collectionId: string, email: string, at: Dat
   return { session, expiresAt: expiresAt.toISOString() };
 }
 
-// Every failure is the same UNAUTHENTICATED. When there is no code to check, one is hashed anyway,
+// Every failure is the same FORBIDDEN, not UNAUTHENTICATED, which the web client takes as a signed-out owner. When there is no code to check, one is hashed anyway,
 // so a wrong guess costs the same whether or not the address is listed.
 export async function verifyViewerCode({ db, now }: ViewerDeps, token: string, email: string, code: string): Promise<ViewerSession> {
   const at = new Date(now());
@@ -147,10 +147,10 @@ export async function verifyViewerCode({ db, now }: ViewerDeps, token: string, e
   const row = id === undefined ? undefined : await spendAttempt(db, id, email, at);
   if (id === undefined || row === undefined) {
     await hashCode(code);
-    throw new UnauthenticatedError(BAD_CODE);
+    throw new ForbiddenError(BAD_CODE);
   }
   if (!(await codeMatches(code, { salt: row.salt, hash: row.codeHash })) || !(await consume(db, row.id))) {
-    throw new UnauthenticatedError(BAD_CODE);
+    throw new ForbiddenError(BAD_CODE);
   }
   return startSession(db, id, email, at);
 }

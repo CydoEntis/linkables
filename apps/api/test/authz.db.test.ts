@@ -585,7 +585,7 @@ describe("authz", () => {
       const res = await send(app, "GET", { path: `/api/v1/shared/${A_SHARE_TOKEN}` });
       const text = await res.text();
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
       for (const secret of ids.secrets.filter((s) => s !== A_SHARE_TOKEN)) expect(text).not.toContain(secret);
     });
 
@@ -613,7 +613,7 @@ describe("authz", () => {
       const res = await send(app, "POST", { path: `/api/v1/shared/${token}/verify`, body: { email: OUTSIDER, code: real } });
       const text = await res.text();
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
       expect(text).not.toContain("user-b collection");
       expect(text).not.toContain("session");
     });
@@ -631,7 +631,7 @@ describe("authz", () => {
       const text = await theirs.text();
 
       expect(own.status).toBe(200);
-      expect(theirs.status).toBe(401);
+      expect(theirs.status).toBe(403);
       for (const secret of ids.secrets.filter((s) => s !== A_SHARE_TOKEN)) expect(text).not.toContain(secret);
     });
 
@@ -645,7 +645,7 @@ describe("authz", () => {
       await send(app, "DELETE", { path: `/api/v1/collections/${ids.b.collectionId}/share` }, b);
 
       expect(await rowsOfA()).toEqual(before);
-      expect((await asViewer(`/api/v1/shared/${A_SHARE_TOKEN}/verify`, { email: OUTSIDER, code: "000000" })).status).toBe(401);
+      expect((await asViewer(`/api/v1/shared/${A_SHARE_TOKEN}/verify`, { email: OUTSIDER, code: "000000" })).status).toBe(403);
     });
   });
 
