@@ -26,6 +26,7 @@ import { createExtractPool } from "./reader/extract-pool";
 import type { ReaderDeps } from "./reader/get-reader";
 import { readerRoutes } from "./reader/routes";
 import { sharedRoutes, shareRoutes } from "./sharing/routes";
+import type { SendViewerCode } from "./sharing/send-viewer-code";
 
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -43,6 +44,8 @@ export type AppDeps = {
   // The SSRF-guarded whole-page fetch (metadata/fetcher.ts); tests pass a stub.
   fetchPage: (url: string) => Promise<HtmlPage>;
   extract?: ReaderDeps["extract"];
+  // Unset when Resend is not configured; a private share then cannot be turned on.
+  sendViewerCode?: SendViewerCode | undefined;
 };
 
 const PREFLIGHT_MAX_AGE_SECONDS = 2 * 60 * 60;
@@ -57,6 +60,7 @@ export function createApp({
   notifyAccountDeleted,
   supabaseAdmin,
   fetchPage,
+  sendViewerCode,
   // One pool per app, which is one per process, so concurrent reads share its bounds.
   extract = createExtractPool({ logger }).extract,
 }: AppDeps) {
@@ -73,7 +77,7 @@ export function createApp({
     .route("/", collectionRoutes({ db }))
     .route("/", groupRoutes({ db }))
     .route("/", exportRoutes({ db, now }))
-    .route("/", shareRoutes({ db }));
+    .route("/", shareRoutes({ db, canSendMail: sendViewerCode !== undefined }));
 
   const app = new Hono<AppEnv>()
     .use(requestLog(logger))
@@ -85,7 +89,7 @@ export function createApp({
     .get("/health", (c) => ok(c, { status: "ok" as const }))
     // Mounted before v1, so a request it answers never reaches v1's auth middleware.
     .route(API_V1_PREFIX, accessRequestRoutes({ db, logger, now, notifyOwner, behindProxy }))
-    .route(API_V1_PREFIX, sharedRoutes({ db, logger, now, behindProxy }))
+    .route(API_V1_PREFIX, sharedRoutes({ db, logger, now, behindProxy, sendViewerCode }))
     .route(API_V1_PREFIX, v1);
 
   app.onError(onError(logger));

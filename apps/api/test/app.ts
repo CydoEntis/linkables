@@ -4,6 +4,7 @@ import { testSupabaseAdmin } from "../src/extension-sessions/supabase-admin";
 import { createDb } from "../src/db/client";
 import { createLogger, type LogLevel } from "../src/log/logger";
 import { FetchError } from "../src/metadata/fetcher";
+import { skipSendViewerCode } from "../src/sharing/send-viewer-code";
 import { mintToken, testJwks } from "./auth/tokens";
 
 export const TEST_SUPABASE_URL = "https://test-ref.supabase.co";
@@ -35,6 +36,7 @@ export function createTestApp(deps: Partial<AppDeps> = {}) {
     db: unreachableDb,
     notifyAccountDeleted: skipNotifyAccountDeleted,
     supabaseAdmin: testSupabaseAdmin,
+    sendViewerCode: skipSendViewerCode,
     fetchPage: offlineFetchPage,
     ...deps,
   });

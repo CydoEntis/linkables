@@ -5,9 +5,10 @@ import tseslint from "typescript-eslint";
 // Rule 2: only the SSRF-guarded fetcher makes outbound HTTP from the API.
 const GUARDED_FETCHER = "apps/api/src/metadata/fetcher.ts";
 // The exceptions, which never fetch a user-supplied URL and so need no SSRF guard:
-// the owner's emails go to Resend's fixed API host with our own key, and the
+// the owner's emails and the viewers' one-time codes go to Resend's fixed API host with our own key, and the
 // extension's sign-in token comes from the configured SUPABASE_URL's auth admin API.
 const RESEND_CLIENT = "apps/api/src/access/notify-owner.ts";
+const RESEND_VIEWER_CODE_CLIENT = "apps/api/src/sharing/send-viewer-code.ts";
 const SUPABASE_ADMIN_CLIENT = "apps/api/src/extension-sessions/supabase-admin.ts";
 const OUTBOUND_HTTP_MESSAGE = "Outbound HTTP goes through apps/api/src/metadata/fetcher.ts (ADR-0003).";
 const restrictImports = (names, patterns = []) => [
@@ -33,7 +34,7 @@ export default defineConfig(
   },
   {
     files: ["apps/api/**/*.ts"],
-    ignores: [GUARDED_FETCHER, RESEND_CLIENT, SUPABASE_ADMIN_CLIENT],
+    ignores: [GUARDED_FETCHER, RESEND_CLIENT, RESEND_VIEWER_CODE_CLIENT, SUPABASE_ADMIN_CLIENT],
     rules: {
       "no-restricted-globals": ["error", { name: "fetch", message: OUTBOUND_HTTP_MESSAGE }],
       "no-restricted-properties": [

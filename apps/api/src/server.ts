@@ -13,6 +13,7 @@ import { supabaseAdmin as createSupabaseAdmin, testSupabaseAdmin, type SupabaseA
 import { createLogger } from "./log/logger";
 import { fetchHtml, fetchJson, fetchPage } from "./metadata/fetcher";
 import { startWorker } from "./metadata/worker";
+import { resendViewerCodeSender, skipSendViewerCode, type SendViewerCode } from "./sharing/send-viewer-code";
 
 const env = parseEnv(process.env);
 if (!env.ok) {
@@ -39,6 +40,12 @@ function extensionSignIn(): SupabaseAdmin | undefined {
   return nodeEnv === "test" ? testSupabaseAdmin : undefined;
 }
 
+// Without Resend a private share cannot be turned on, except under NODE_ENV=test, where no mail goes out.
+function viewerCodeSender(): SendViewerCode | undefined {
+  if (resendApiKey !== undefined) return resendViewerCodeSender({ apiKey: resendApiKey });
+  return nodeEnv === "test" ? skipSendViewerCode : undefined;
+}
+
 const notifyAccountDeleted = deletionNotifier();
 const app = createApp({
   logger,
@@ -48,6 +55,7 @@ const app = createApp({
   notifyOwner,
   notifyAccountDeleted,
   supabaseAdmin: extensionSignIn(),
+  sendViewerCode: viewerCodeSender(),
   fetchPage,
 });
 
