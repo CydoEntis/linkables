@@ -1,24 +1,27 @@
 {
-  "name": "linkables",
-  "private": true,
-  "type": "module",
-  "packageManager": "pnpm@12.14.0",
-  "engines": {
-    "node": ">=24 <25",
-    "pnpm": "12.14.x"
-  },
-  "scripts": {
-    "typecheck": "pnpm -r typecheck",
-    "lint": "eslint .",
-    "test": "pnpm -r test",
-    "verify": "pnpm typecheck && pnpm lint && pnpm test",
-    "e2e": "pnpm --filter web e2e",
-    "db:migrate": "pnpm --filter api db:migrate"
-  },
-  "devDependencies": {
-    "@eslint/js": "10.0.1",
-    "eslint": "10.13.0",
-    "typescript": "6.0.3",
-    "typescript-eslint": "8.72.0"
-  }
+    "name":  "linkables",
+    "private":  true,
+    "type":  "module",
+    "packageManager":  "pnpm@12.14.0",
+    "engines":  {
+                    "node":  "\u003e=24 \u003c25",
+                    "pnpm":  "12.14.x"
+                },
+    "scripts":  {
+                    "typecheck":  "pnpm -r typecheck",
+                    "lint":  "eslint .",
+                    "test":  "pnpm -r test",
+                    "verify":  "pnpm typecheck \u0026\u0026 pnpm lint \u0026\u0026 pnpm test",
+                    "e2e":  "pnpm --filter web e2e",
+                    "db:migrate":  "pnpm --filter api db:migrate",
+                    "maintenance":  "pnpm --filter api exec tsx src/maintenance/cli.ts",
+                    "export:postgres":  "pnpm --filter api exec tsx src/maintenance/export-postgres.ts"
+                },
+    "devDependencies":  {
+                            "@eslint/js":  "10.0.1",
+                            "eslint":  "10.13.0",
+                            "typescript":  "6.0.3",
+                            "typescript-eslint":  "8.72.0"
+                        },
+    "license":  "AGPL-3.0-only"
 }
