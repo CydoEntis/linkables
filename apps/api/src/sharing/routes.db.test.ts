@@ -1,6 +1,7 @@
 import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
 import {
   ownSharedCollectionsResponseSchema,
+  SHARED_LINKS_MAX,
   sharedCollectionSchema,
   shareStateSchema,
   shareTokenSchema,
@@ -9,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
-import { collection, collectionItem, resource, savedLink } from "../db/schema";
+import { collection, collectionGroup, collectionItem, resource, savedLink } from "../db/schema";
 
 const { db, close } = connectTestDb();
 const { a, b } = await testUsers();
@@ -263,5 +264,285 @@ describe("GET /collections/shared", () => {
     await share(app, a, "DELETE", col.id);
 
     expect(await ownShared(app, a)).toEqual([]);
+  });
+});
+
+describe("sharing by group", () => {
+  async function insertGroup(collectionId: string, name: string, position: number, shared = true) {
+    const [row] = await db.insert(collectionGroup).values({ collectionId, name, position, shared }).returning();
+    if (row === undefined) throw new Error("no group");
+    return row;
+  }
+
+  async function fileIn(collectionId: string, savedLinkId: string, groupId: string | null) {
+    await db
+      .insert(collectionItem)
+      .values({ collectionId, savedLinkId, groupId })
+      .onConflictDoUpdate({ target: [collectionItem.collectionId, collectionItem.savedLinkId], set: { groupId } });
+  }
+
+  function putScope(app: App, user: TestUser, collectionId: string, body: unknown) {
+    return app.request(`/api/v1/collections/${collectionId}/share/scope`, {
+      method: "PUT",
+      headers: { ...user.headers, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async function stateOf(res: Response) {
+    expect(res.status).toBe(200);
+    return successEnvelopeSchema(shareStateSchema).parse(await res.json()).data;
+  }
+
+  // A trip with Food (shared, one link), Hotels (one link) and one ungrouped link.
+  async function seedTrip() {
+    const col = await insertCollection(a.id, "Trip");
+    const food = await insertGroup(col.id, "Food", 0);
+    const hotels = await insertGroup(col.id, "Hotels", 1);
+    const ramen = await insertLink(a.id, null, { url: "https://example.com/ramen", title: "Ramen" });
+    const ryokan = await insertLink(a.id, null, { url: "https://example.com/ryokan", title: "Ryokan" });
+    const map = await insertLink(a.id, null, { url: "https://example.com/map", title: "Map" });
+    await fileIn(col.id, ramen.id, food.id);
+    await fileIn(col.id, ryokan.id, hotels.id);
+    await fileIn(col.id, map.id, null);
+    return { col, food, hotels, ramen, ryokan, map };
+  }
+
+  describe("the owner's share state", () => {
+    it("is only the token for a collection with no groups", async () => {
+      const app = createTestApp({ db });
+      const col = await insertCollection(a.id, "Trip");
+
+      expect(await stateOf(await share(app, a, "GET", col.id))).toEqual({ token: null });
+    });
+
+    it("lists the groups in order with the ungrouped switch, everything on to start with", async () => {
+      const app = createTestApp({ db });
+      const { col, food, hotels } = await seedTrip();
+
+      expect(await stateOf(await share(app, a, "GET", col.id))).toEqual({
+        token: null,
+        ungrouped: true,
+        groups: [
+          { id: food.id, name: "Food", shared: true },
+          { id: hotels.id, name: "Hotels", shared: true },
+        ],
+      });
+    });
+
+    it("comes back with the scope when the link is turned on", async () => {
+      const app = createTestApp({ db });
+      const { col, food } = await seedTrip();
+
+      const state = await stateOf(await share(app, a, "POST", col.id));
+
+      expect(state.groups?.[0]).toEqual({ id: food.id, name: "Food", shared: true });
+      expect(state.token).not.toBeNull();
+    });
+  });
+
+  describe("PUT /collections/:id/share/scope", () => {
+    it("shares exactly the listed groups and unlists the rest", async () => {
+      const app = createTestApp({ db });
+      const { col, food, hotels } = await seedTrip();
+
+      const state = await stateOf(await putScope(app, a, col.id, { ungrouped: false, groupIds: [food.id] }));
+
+      expect(state).toEqual({
+        token: null,
+        ungrouped: false,
+        groups: [
+          { id: food.id, name: "Food", shared: true },
+          { id: hotels.id, name: "Hotels", shared: false },
+        ],
+      });
+    });
+
+    it("gives the same result when sent twice and can share a group again", async () => {
+      const app = createTestApp({ db });
+      const { col, food, hotels } = await seedTrip();
+      await putScope(app, a, col.id, { ungrouped: true, groupIds: [] });
+
+      const body = { ungrouped: true, groupIds: [hotels.id, food.id] };
+      const first = await stateOf(await putScope(app, a, col.id, body));
+
+      expect(await stateOf(await putScope(app, a, col.id, body))).toEqual(first);
+      expect(first.groups?.map((group) => group.shared)).toEqual([true, true]);
+    });
+
+    it("keeps the scope while the link is turned off and on again", async () => {
+      const app = createTestApp({ db });
+      const { col, food } = await seedTrip();
+      await turnOn(app, a, col.id);
+      await putScope(app, a, col.id, { ungrouped: false, groupIds: [food.id] });
+
+      await share(app, a, "DELETE", col.id);
+      const again = await stateOf(await share(app, a, "POST", col.id));
+
+      expect(again.ungrouped).toBe(false);
+      expect(again.groups?.map((group) => group.shared)).toEqual([true, false]);
+    });
+
+    it("answers a group of another collection as not found and changes nothing", async () => {
+      const app = createTestApp({ db });
+      const { col, hotels } = await seedTrip();
+      const other = await insertCollection(a.id, "Other");
+      const foreign = await insertGroup(other.id, "Foreign", 0);
+
+      await notFound(await putScope(app, a, col.id, { ungrouped: false, groupIds: [hotels.id, foreign.id] }));
+      await notFound(await putScope(app, a, col.id, { ungrouped: false, groupIds: [crypto.randomUUID()] }));
+
+      const state = await stateOf(await share(app, a, "GET", col.id));
+      expect(state.ungrouped).toBe(true);
+      expect(state.groups?.every((group) => group.shared)).toBe(true);
+    });
+
+    it("answers another user's collection as not found and changes nothing", async () => {
+      const app = createTestApp({ db });
+      const { col, food } = await seedTrip();
+
+      await notFound(await putScope(app, b, col.id, { ungrouped: false, groupIds: [] }));
+      await notFound(await putScope(app, b, col.id, { ungrouped: false, groupIds: [food.id] }));
+
+      expect(await stateOf(await share(app, a, "GET", col.id))).toMatchObject({ ungrouped: true });
+    });
+
+    it("rejects a body that is not a scope", async () => {
+      const app = createTestApp({ db });
+      const { col, food } = await seedTrip();
+
+      for (const body of [{}, { ungrouped: true }, { ungrouped: true, groupIds: [food.id, food.id] }, { ungrouped: true, groupIds: ["x"] }]) {
+        const res = await putScope(app, a, col.id, body);
+        expect(res.status).toBe(400);
+        expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("VALIDATION");
+      }
+    });
+  });
+
+  describe("the public view", () => {
+    it("sends the ungrouped links in links and each shared group after them, in group order", async () => {
+      const app = createTestApp({ db });
+      const { col } = await seedTrip();
+      const token = await turnOn(app, a, col.id);
+
+      const data = await viewed(await view(app, token));
+
+      expect(data.links.map((link) => link.title)).toEqual(["Map"]);
+      expect(data.groups?.map((group) => ({ name: group.name, linkCount: group.linkCount, titles: group.links.map((link) => link.title) }))).toEqual([
+        { name: "Food", linkCount: 1, titles: ["Ramen"] },
+        { name: "Hotels", linkCount: 1, titles: ["Ryokan"] },
+      ]);
+      expect(data.linkCount).toBe(3);
+    });
+
+    it("leaves out an unshared group: its name, its links and its share of the count", async () => {
+      const app = createTestApp({ db });
+      const { col, food, ryokan } = await seedTrip();
+      const token = await turnOn(app, a, col.id);
+      await putScope(app, a, col.id, { ungrouped: true, groupIds: [food.id] });
+
+      const res = await view(app, token);
+      const text = await res.clone().text();
+      const data = await viewed(res);
+
+      expect(data.groups?.map((group) => group.name)).toEqual(["Food"]);
+      expect(data.linkCount).toBe(2);
+      for (const trace of ["Hotels", "Ryokan", "ryokan", ryokan.id]) expect(text).not.toContain(trace);
+    });
+
+    it("leaves out the ungrouped links when that switch is off", async () => {
+      const app = createTestApp({ db });
+      const { col, food, hotels } = await seedTrip();
+      const token = await turnOn(app, a, col.id);
+      await putScope(app, a, col.id, { ungrouped: false, groupIds: [food.id, hotels.id] });
+
+      const data = await viewed(await view(app, token));
+
+      expect(data.links).toEqual([]);
+      expect(data.linkCount).toBe(2);
+      expect(data.groups).toHaveLength(2);
+    });
+
+    it("sends no groups key when nothing in a group is shown", async () => {
+      const app = createTestApp({ db });
+      const { col } = await seedTrip();
+      const token = await turnOn(app, a, col.id);
+      await putScope(app, a, col.id, { ungrouped: true, groupIds: [] });
+
+      const data = await viewed(await view(app, token));
+
+      expect(Object.keys(data)).toEqual(["name", "linkCount", "updatedAt", "links"]);
+      expect(data.links.map((link) => link.title)).toEqual(["Map"]);
+    });
+
+    it("hides a shared group that has no links", async () => {
+      const app = createTestApp({ db });
+      const { col } = await seedTrip();
+      await insertGroup(col.id, "Empty", 2);
+      const token = await turnOn(app, a, col.id);
+
+      const data = await viewed(await view(app, token));
+
+      expect(data.groups?.map((group) => group.name)).toEqual(["Food", "Hotels"]);
+    });
+
+    it("keeps a link that sits in an unshared group of another collection", async () => {
+      const app = createTestApp({ db });
+      const { col, food, ramen } = await seedTrip();
+      const other = await insertCollection(a.id, "Other");
+      const secret = await insertGroup(other.id, "Secret", 0, false);
+      await fileIn(other.id, ramen.id, secret.id);
+      const token = await turnOn(app, a, col.id);
+      await putScope(app, a, col.id, { ungrouped: true, groupIds: [food.id] });
+
+      const data = await viewed(await view(app, token));
+
+      expect(data.groups?.[0]?.links.map((link) => link.title)).toEqual(["Ramen"]);
+    });
+
+    it("is exactly today's shape for a collection with no groups", async () => {
+      const app = createTestApp({ db });
+      const col = await insertCollection(a.id, "Trip");
+      await insertLink(a.id, col.id, { url: "https://example.com/one" });
+      const token = await turnOn(app, a, col.id);
+
+      const text = await (await view(app, token)).text();
+
+      expect(Object.keys((JSON.parse(text) as { data: object }).data)).toEqual(["name", "linkCount", "updatedAt", "links"]);
+    });
+
+    it("caps the links across the ungrouped ones and the groups together", async () => {
+      const app = createTestApp({ db });
+      const col = await insertCollection(a.id, "Big");
+      const group = await insertGroup(col.id, "Many", 0);
+      const total = SHARED_LINKS_MAX + 5;
+      const resources = await db
+        .insert(resource)
+        .values(Array.from({ length: total }, (_, i) => ({ canonicalUrl: `https://example.com/${String(i)}`, kind: "page" as const })))
+        .returning();
+      const links = await db
+        .insert(savedLink)
+        .values(resources.map((res) => ({ userId: a.id, resourceId: res.id, originalUrl: res.canonicalUrl })))
+        .returning();
+      await db.insert(collectionItem).values(links.map((link, i) => ({ collectionId: col.id, savedLinkId: link.id, groupId: i % 2 === 0 ? group.id : null })));
+      const token = await turnOn(app, a, col.id);
+
+      const data = await viewed(await view(app, token));
+
+      expect(data.linkCount).toBe(total);
+      expect(data.links.length + (data.groups ?? []).reduce((sum, g) => sum + g.links.length, 0)).toBe(SHARED_LINKS_MAX);
+    });
+
+    it("answers a turned-off link the same as an unknown one, whatever the scope", async () => {
+      const app = createTestApp({ db });
+      const { col, food } = await seedTrip();
+      const token = await turnOn(app, a, col.id);
+      await putScope(app, a, col.id, { ungrouped: false, groupIds: [food.id] });
+      await share(app, a, "DELETE", col.id);
+
+      const off = await notFound(await view(app, token));
+
+      expect(off).toEqual(await notFound(await view(app, "A".repeat(token.length))));
+    });
   });
 });

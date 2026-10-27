@@ -1,0 +1,1 @@
+ALTER TABLE "collection" ADD COLUMN "share_ungrouped" boolean DEFAULT true NOT NULL;

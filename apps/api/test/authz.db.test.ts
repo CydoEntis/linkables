@@ -147,11 +147,19 @@ const cases: Record<string, Case> = {
     request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/share` }),
     idFields: ["collectionId"],
   },
+  "PUT /api/v1/collections/:id/share/scope": {
+    request: ({ collectionId, groupId }) => ({
+      path: `/api/v1/collections/${collectionId}/share/scope`,
+      body: { ungrouped: false, groupIds: [groupId] },
+    }),
+    idFields: ["collectionId", "groupId"],
+  },
 };
 
 // Public on purpose (Rule 3): the health check, the request-access form, which
 // only inserts, and a shared collection, which reads only the one collection its
-// owner turned a link on for. Each public API route is probed below for what it gives back.
+// owner turned a link on for, and only the groups the owner chose to show in it.
+// Each public API route is probed below for what it gives back.
 const PUBLIC_ROUTES = new Set(["GET /health", "POST /api/v1/access-requests", "GET /api/v1/shared/:token"]);
 
 const INSERT_ONLY_ROUTES: Record<string, Probe> = {
@@ -394,8 +402,99 @@ describe("authz", () => {
     const res = await send(app, "GET", { path: `/api/v1/shared/${String(token)}` });
     const text = await res.text();
 
-    expect(successEnvelopeSchema(sharedCollectionSchema).parse(JSON.parse(text)).data.links).toHaveLength(1);
+    const shown = successEnvelopeSchema(sharedCollectionSchema).parse(JSON.parse(text)).data;
+    expect(shown.groups?.map((group) => group.links.length)).toEqual([1]);
+    expect(shown.links).toEqual([]);
     for (const secret of [...ids.secrets, b.id, ids.b.collectionId, ids.b.linkId]) expect(text).not.toContain(secret);
+  });
+
+  describe("GET /api/v1/shared/:token with groups", () => {
+    const HIDDEN_GROUP = "b-hidden-group";
+    const HIDDEN_URL = "https://hidden.example/in-hidden-group";
+    const UNGROUPED_URL = "https://ungrouped.example/loose";
+
+    async function insertBLink(url: string, collectionId: string, groupId: string | null) {
+      const [res] = await db.insert(resource).values({ canonicalUrl: url, title: url, kind: "page" }).returning();
+      if (res === undefined) throw new Error("no resource");
+      const [link] = await db.insert(savedLink).values({ userId: b.id, resourceId: res.id, originalUrl: url }).returning();
+      if (link === undefined) throw new Error("no link");
+      await db.insert(collectionItem).values({ collectionId, savedLinkId: link.id, groupId });
+      return link;
+    }
+
+    // B shares a collection with a shared group, an unshared one and a loose link.
+    async function shareB(app: App, ids: Seed) {
+      const [hidden] = await db
+        .insert(collectionGroup)
+        .values({ collectionId: ids.b.collectionId, name: HIDDEN_GROUP, position: 1, shared: false })
+        .returning();
+      if (hidden === undefined) throw new Error("no group");
+      await insertBLink(HIDDEN_URL, ids.b.collectionId, hidden.id);
+      await insertBLink(UNGROUPED_URL, ids.b.collectionId, null);
+      const turnedOn = await send(app, "POST", { path: `/api/v1/collections/${ids.b.collectionId}/share` }, b);
+      const { token } = successEnvelopeSchema(shareStateSchema).parse(await turnedOn.json()).data;
+      return String(token);
+    }
+
+    async function publicView(app: App, token: string) {
+      const text = await (await send(app, "GET", { path: `/api/v1/shared/${token}` })).text();
+      return { text, data: successEnvelopeSchema(sharedCollectionSchema).parse(JSON.parse(text)).data };
+    }
+
+    it("shows a group the owner left out nowhere: not its name, its links or its count", async () => {
+      const app = createTestApp({ db });
+      const ids = await seed();
+      const token = await shareB(app, ids);
+
+      const { text, data } = await publicView(app, token);
+
+      expect(data.groups?.map((group) => group.name)).toEqual(["user-b group"]);
+      expect(data.linkCount).toBe(2);
+      for (const trace of [HIDDEN_GROUP, "hidden.example"]) expect(text).not.toContain(trace);
+    });
+
+    it("leaves out the ungrouped links when the owner switched them off", async () => {
+      const app = createTestApp({ db });
+      const ids = await seed();
+      const token = await shareB(app, ids);
+      await db.update(collection).set({ shareUngrouped: false }).where(eq(collection.id, ids.b.collectionId));
+
+      const { text, data } = await publicView(app, token);
+
+      expect(data.links).toEqual([]);
+      expect(data.groups?.map((group) => group.name)).toEqual(["user-b group"]);
+      expect(text).not.toContain("ungrouped.example");
+    });
+
+    it("keeps a link visible in a shared group when it is also in an unshared group of another collection", async () => {
+      const app = createTestApp({ db });
+      const ids = await seed();
+      const token = await shareB(app, ids);
+      const [other] = await db.insert(collection).values({ userId: b.id, name: "Elsewhere" }).returning();
+      if (other === undefined) throw new Error("no collection");
+      const [secret] = await db.insert(collectionGroup).values({ collectionId: other.id, name: "Secret", position: 0, shared: false }).returning();
+      if (secret === undefined) throw new Error("no group");
+      await db.insert(collectionItem).values({ collectionId: other.id, savedLinkId: ids.b.linkId, groupId: secret.id });
+
+      const { data } = await publicView(app, token);
+
+      expect(data.groups?.[0]?.links).toHaveLength(1);
+    });
+
+    it("hides a shared group with no links, and answers an unknown token as before", async () => {
+      const app = createTestApp({ db });
+      const ids = await seed();
+      const token = await shareB(app, ids);
+      await db.insert(collectionGroup).values({ collectionId: ids.b.collectionId, name: "empty-group", position: 2 });
+
+      const { text } = await publicView(app, token);
+      const unknown = await send(app, "GET", { path: `/api/v1/shared/${"A".repeat(token.length)}` });
+      await send(app, "DELETE", { path: `/api/v1/collections/${ids.b.collectionId}/share` }, b);
+      const off = await send(app, "GET", { path: `/api/v1/shared/${token}` });
+
+      expect(text).not.toContain("empty-group");
+      expect(await notFoundError(off)).toEqual(await notFoundError(unknown));
+    });
   });
 
   it("knows what every public API route gives back", () => {
