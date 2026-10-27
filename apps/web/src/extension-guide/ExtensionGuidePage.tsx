@@ -3,13 +3,11 @@ import { Download, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { Wordmark } from "../shell/Wordmark";
+import { FIREFOX_ADDON_URL, isFirefox } from "./browser";
 import { CHROME_WEB_STORE_URL } from "./path";
 
 // CI copies the latest extension build here (apps/extension/README.md).
 const DOWNLOAD_URL = "/downloads/linkables-chrome.zip";
-
-// The signed add-on (apps/extension/README.md). Firefox installs it on click; a new release is a new download.
-const FIREFOX_ADDON_URL = "/downloads/linkables-firefox.xpi";
 
 const PRIMARY_LINK = buttonVariants({ size: "xl", className: "mt-3 w-full gap-2 sm:w-auto sm:self-start" });
 
@@ -75,8 +73,6 @@ function storeSteps(storeUrl: string): Step[] {
     ...AFTER_INSTALL,
   ];
 }
-
-const isFirefox = () => navigator.userAgent.includes("Firefox/");
 
 export function ExtensionGuidePage({ storeUrl = CHROME_WEB_STORE_URL, firefox = isFirefox() }: { storeUrl?: string | undefined; firefox?: boolean }) {
   const steps = firefox ? FIREFOX_STEPS : storeUrl ? storeSteps(storeUrl) : BY_HAND_STEPS;

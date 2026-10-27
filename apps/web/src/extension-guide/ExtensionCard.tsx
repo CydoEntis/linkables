@@ -1,11 +1,12 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { AddToChromeLink, ChromeMark } from "./AddToChrome";
+import { AddExtensionLink, ChromeMark } from "./AddToChrome";
+import { isFirefox } from "./browser";
 import { dismissExtensionCard, extensionCardDismissed } from "./extension-card";
 
 // The sidebar's nudge towards the extension, until the user dismisses it on this device.
-export function ExtensionCard() {
+export function ExtensionCard({ firefox = isFirefox() }: { firefox?: boolean }) {
   const [dismissed, setDismissed] = useState(extensionCardDismissed);
   if (dismissed) return null;
 
@@ -31,13 +32,14 @@ export function ExtensionCard() {
           <ChromeMark className="size-[17px]" />
         </span>
         <span className="flex flex-col gap-px">
-          <span id="extension-card-title" className="text-sm font-bold">Chrome extension</span>
+          <span id="extension-card-title" className="text-sm font-bold">{firefox ? "Firefox" : "Chrome"} extension</span>
           <span className="text-[12.5px] text-muted-foreground">Save any tab in one click</span>
         </span>
       </div>
-      <AddToChromeLink look={{ variant: "ghost", className: "h-9 rounded-[10px] bg-accent text-[13px] font-bold hover:bg-accent-hover" }}>
-        Add to Chrome
-      </AddToChromeLink>
+      <AddExtensionLink
+        firefox={firefox}
+        look={{ variant: "ghost", className: "h-9 rounded-[10px] bg-accent text-[13px] font-bold hover:bg-accent-hover" }}
+      />
     </section>
   );
 }

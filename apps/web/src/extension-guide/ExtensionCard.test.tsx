@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { renderWithRouter } from "../test/render-with-router";
@@ -16,6 +16,13 @@ describe("ExtensionCard", () => {
     await renderWithRouter(<ExtensionCard />);
     expect(screen.getByRole("region", { name: "Chrome extension" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", CHROME_WEB_STORE_URL);
+  });
+
+  it("offers the signed add-on to a Firefox visitor", async () => {
+    await renderWithRouter(<ExtensionCard firefox />);
+    const card = screen.getByRole("region", { name: "Firefox extension" });
+    expect(within(card).getByText("Save any tab in one click")).toBeInTheDocument();
+    expect(within(card).getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
   });
 
   it("stays dismissed on this device once dismissed", async () => {
