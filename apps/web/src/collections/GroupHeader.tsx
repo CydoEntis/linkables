@@ -1,10 +1,11 @@
 import type { Group } from "@linkables/shared/groups";
 import { ChevronDown, Ellipsis } from "lucide-react";
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "cn";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteGroupConfirm } from "./DeleteGroupConfirm";
+import { DropCue } from "./GroupDrop";
 import { linkCountLabel } from "./link-count";
 import { useGroupNameForm } from "./use-group-name-form";
 import { useDeleteGroup, useRenameGroup, useReorderGroups } from "./use-groups";
@@ -31,12 +32,18 @@ type SectionHeaderProps = {
   // Replaces the title while a group is renamed in place.
   editor?: ReactNode;
   menu?: ReactNode;
+  // Drop handling, its look, the cue shown while held over, and the group's grip.
+  drop: { dropProps: DragEventHandlers; className: string; cue: "Already in" | "Move here" | null };
+  grip?: ReactNode;
 };
 
+type DragEventHandlers = Pick<HTMLAttributes<HTMLElement>, "onDragOver" | "onDragLeave" | "onDrop">;
+
 // A section's heading is a button that folds it; the menu beside it manages a group.
-export function SectionHeader({ sectionId, title, count, collapsed, onToggle, bodyId, editor, menu }: SectionHeaderProps) {
+export function SectionHeader({ sectionId, title, count, collapsed, onToggle, bodyId, editor, menu, drop, grip }: SectionHeaderProps) {
   return (
-    <div className="flex items-center gap-1 px-1 md:px-0">
+    <div {...drop.dropProps} className={cn("group/header relative flex items-center gap-1 px-1 md:px-0", drop.className)}>
+      {grip}
       {editor ?? (
         <h2 className="min-w-0 flex-1">
           <button
@@ -53,6 +60,7 @@ export function SectionHeader({ sectionId, title, count, collapsed, onToggle, bo
           </button>
         </h2>
       )}
+      {drop.cue === null ? null : <DropCue text={drop.cue} />}
       {menu}
     </div>
   );
