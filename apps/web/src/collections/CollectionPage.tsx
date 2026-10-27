@@ -6,7 +6,7 @@ import { withoutOldLink } from "../link-page/old-link-address";
 import { useCollectionOpening } from "../open-links/use-collection-opening";
 import { useWideScreen } from "../shell/use-wide-screen";
 import { LinksScreen } from "../links/LinksScreen";
-import type { FiltersChange } from "../search/list-filters";
+import type { FiltersChange, ListFilters } from "../search/list-filters";
 import { useShareToken } from "../sharing/use-share";
 import { AppShell } from "../shell/AppShell";
 import { CollectionTitle } from "./CollectionTitle";
@@ -38,16 +38,16 @@ export function CollectionPage() {
       scope={{ collectionId }}
       filters={filters}
       onFiltersChange={onFiltersChange}
-      heading={collection ? <CollectionHeader collection={collection} /> : <div aria-hidden className="h-[60px] md:mt-[30px] md:mb-3.5 md:h-[52px]" />}
+      heading={collection ? <CollectionHeader collection={collection} filters={filters} /> : <div aria-hidden className="h-[60px] md:mt-[30px] md:mb-3.5 md:h-[52px]" />}
     />
   );
 }
 
-function CollectionHeader({ collection }: { collection: ListedCollection }) {
+function CollectionHeader({ collection, filters }: { collection: ListedCollection; filters: ListFilters }) {
   const deleteCollection = useDeleteCollection();
   const shared = useShareToken(collection.id) !== undefined;
   const wide = useWideScreen();
-  const opening = useCollectionOpening(collection);
+  const opening = useCollectionOpening(collection, filters);
 
   return (
     <>

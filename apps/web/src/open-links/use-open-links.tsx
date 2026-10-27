@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import { safeHref } from "../links/link-display";
 import { BlockedBanner } from "../sharing/BlockedBanner";
 import { openAll } from "../sharing/open-all";
 import { needsConfirm, useAskBeforeOpening } from "./confirm-setting";
@@ -34,9 +36,12 @@ export function useOpenLinks(): OpenLinks {
   }
 
   const request: OpenLinks["request"] = (urls, onOpened) => {
-    if (urls.length === 0) return;
-    const next = { urls, onOpened };
-    if (needsConfirm(urls.length, ask)) setPending(next);
+    const openable = urls.filter((url) => safeHref(url) !== undefined);
+    const skipped = urls.length - openable.length;
+    if (skipped > 0) toast(`${String(skipped)} ${skipped === 1 ? "link" : "links"} skipped: not a web address`);
+    if (openable.length === 0) return;
+    const next = { urls: openable, onOpened };
+    if (needsConfirm(openable.length, ask)) setPending(next);
     else run(next);
   };
 
