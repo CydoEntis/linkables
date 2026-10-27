@@ -72,7 +72,9 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
   names of the groups the owner chose to share, each with only its links; a group
   the owner left out, or the ungrouped links when switched off, is absent from the
   response entirely, names included. The owner sets this per group; everything
-  starts shared. An unknown, malformed or turned-off token is the same NOT_FOUND, and
+  starts shared. Deleting or moving a link out of an unshared group makes it
+  ungrouped, hence public while the ungrouped tick is on, and the delete-group
+  confirmation says so. An unknown, malformed or turned-off token is the same NOT_FOUND, and
   it is rate-limited per IP. authz.db.test.ts lists these as public and checks
   what each gives back. A new public route needs the same reasoning written down
   here.

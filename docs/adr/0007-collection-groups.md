@@ -57,8 +57,10 @@ Migration 0008 adds `collection.share_ungrouped boolean not null default true`
 it decides what a share link shows. Everything starts shared, so existing links
 change nothing, and a group created later starts shared.
 
-- `GET /collections/:id/share` (and the POST and DELETE, which return the same
-  state) add `ungrouped` and `groups: [{ id, name, shared }]` in position order.
+- `GET /collections/:id/share` adds `ungrouped` and `groups: [{ id, name, shared }]`
+  in position order, for a collection that has groups. POST and DELETE keep
+  answering `{ token }` alone: the extension and cached web bundles parse them
+  strictly.
   `PUT /collections/:id/share/scope` `{ ungrouped, groupIds }` sets the whole scope
   in one transaction: listed groups become shared, the rest of that collection's
   groups do not, so it is idempotent. A group id from another collection is
@@ -72,13 +74,21 @@ change nothing, and a group created later starts shared.
   order). Filtering is in the query, on the filing's `group_id` joined inside that
   one collection, so a link that is also in an unshared group of another
   collection is unaffected.
-- Old bundles parse the response and the owner's share state with strict Zod
-  objects, so a new key would break a cached page (the lesson of PR #76). Both
-  new keys are therefore sent only when there is something in them: the public
-  `groups` only when a shared group has links, the owner's `ungrouped` and
-  `groups` only for a collection that has groups. A collection with no groups gets
-  byte-for-byte today's responses. A cached owner bundle still fails on a
-  collection that has groups, but it has no groups UI to reach one with.
+- Old bundles parse these responses with strict Zod objects, so a new key breaks
+  a cached page (the lesson of PR #76). The new keys are therefore sent only when
+  there is something in them: the public `groups` whenever a shared group has
+  links, the owner's `ungrouped` and `groups` on GET for a collection that has
+  groups. A collection with no groups gets byte-for-byte today's responses. A
+  cached pre-groups public-page bundle fails its strict parse on a collection that
+  has shared groups with links; it still renders collections without groups. A
+  cached owner bundle fails on GET for a collection with groups, but it has no
+  groups UI to reach one with.
+- Two safeguards keep the owner in control: deleting the last group sets
+  `share_ungrouped` back to true, and the public query treats the ungrouped links
+  of a collection with no groups as shared whatever the flag says.
+- Deleting an unshared group, or moving a link out of one, makes its links
+  ungrouped, so they become public while the ungrouped tick is on and the link is
+  on. The delete-group confirmation says so in that case.
 - The public-route reasoning in AGENTS.md changes by one fact: it also reads the
   names of the groups the owner chose to show.
 
