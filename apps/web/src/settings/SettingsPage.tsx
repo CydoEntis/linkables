@@ -7,6 +7,7 @@ import { AppearanceSection } from "./AppearanceSection";
 import { DataSection } from "./DataSection";
 import { EverywhereSection } from "./EverywhereSection";
 import { HelpSection } from "./HelpSection";
+import { OpeningLinksSection } from "./OpeningLinksSection";
 import { SharedCollectionsSection } from "./SharedCollectionsSection";
 
 export function SettingsPage() {
@@ -24,6 +25,7 @@ export function SettingsPage() {
         <AccountSection />
         <EverywhereSection />
         <SharedCollectionsSection />
+        <OpeningLinksSection />
         <AppearanceSection />
         <DataSection />
         <HelpSection />
