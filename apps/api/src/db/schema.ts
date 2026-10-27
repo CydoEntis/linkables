@@ -2,6 +2,7 @@ import {
   bigserial,
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -75,6 +76,26 @@ export const collection = pgTable(
   (table) => [uniqueIndex("collection_user_id_lower_name_unique").on(table.userId, sql`lower(${table.name})`)],
 ).enableRLS();
 
+// One level of named headings inside a collection. position is a dense 0-based
+// order that a reorder rewrites; shared is read by the sharing work that follows.
+export const collectionGroup = pgTable(
+  "collection_group",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collection.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    position: integer("position").notNull(),
+    shared: boolean("shared").notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("collection_group_collection_id_lower_name_unique").on(table.collectionId, sql`lower(${table.name})`),
+    unique("collection_group_collection_id_id_unique").on(table.collectionId, table.id),
+  ],
+).enableRLS();
+
 export const collectionItem = pgTable(
   "collection_item",
   {
@@ -84,10 +105,19 @@ export const collectionItem = pgTable(
     savedLinkId: uuid("saved_link_id")
       .notNull()
       .references(() => savedLink.id, { onDelete: "cascade" }),
+    // Null is ungrouped. The composite key below keeps a link in a group of its own collection.
+    groupId: uuid("group_id"),
     createdAt: createdAt(),
   },
   (table) => [
     primaryKey({ columns: [table.collectionId, table.savedLinkId] }),
+    // The migration narrows ON DELETE SET NULL to group_id, which drizzle cannot express;
+    // without that, deleting a group would try to null collection_id too.
+    foreignKey({
+      name: "collection_item_group_fk",
+      columns: [table.collectionId, table.groupId],
+      foreignColumns: [collectionGroup.collectionId, collectionGroup.id],
+    }).onDelete("set null"),
     index("collection_item_saved_link_id_idx").on(table.savedLinkId),
   ],
 ).enableRLS();
