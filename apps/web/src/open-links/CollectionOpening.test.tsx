@@ -498,6 +498,8 @@ describe("a load that the page moved on from", () => {
     await userEvent.click(screen.getByRole("button", { name: "Open all" }));
     changeFilters({ q: "link" });
     await settle(second.fail);
+    // The toast renders a tick later (the positive test uses findByText), so wait it out before asserting absence.
+    await new Promise((resolve) => setTimeout(resolve, 100));
     expect(screen.queryByText("Couldn't load all the links. Try again.")).not.toBeInTheDocument();
   });
 
