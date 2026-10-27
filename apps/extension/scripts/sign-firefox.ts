@@ -4,7 +4,7 @@
 // WEB_EXT_API_KEY and WEB_EXT_API_SECRET; they never go in a file in this repo.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 
 const root = join(import.meta.dirname, "..");
 const dist = join(root, "dist-firefox");
@@ -24,5 +24,6 @@ const xpi = readdirSync(signed).find((name) => name.endsWith(".xpi"));
 if (!xpi) throw new Error("web-ext signed nothing: no .xpi in release/signed-firefox");
 copyFileSync(join(signed, xpi), join(release, `linkables-firefox-${version}.xpi`));
 copyFileSync(join(signed, xpi), join(release, "linkables-firefox.xpi"));
+mkdirSync(dirname(published), { recursive: true });
 copyFileSync(join(signed, xpi), published);
 console.log(`Wrote ${relative(root, join(release, "linkables-firefox.xpi"))} and linkables-firefox-${version}.xpi, and updated ${relative(root, published)}`);
