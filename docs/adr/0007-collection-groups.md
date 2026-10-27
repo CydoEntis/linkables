@@ -50,30 +50,45 @@ collection or group is `NOT_FOUND`):
 The migration only adds a table and a nullable column, so the previous image
 keeps working against the new schema (add before you use).
 
-## Next step: sharing by group
+## Sharing by group
 
-Not built yet. The design, so the data model above is not changed again:
+Migration 0008 adds `collection.share_ungrouped boolean not null default true`
+(additive, so the previous image keeps working). With the groups' `shared` flag
+it decides what a share link shows. Everything starts shared, so existing links
+change nothing, and a group created later starts shared.
 
-- `collection.share_ungrouped` (default true) and the groups' `shared` flag decide
-  what a share link shows. Everything is shared by default, so existing links
-  change nothing.
-- `GET /collections/:id/share` also returns the scope; `PUT
-  /collections/:id/share/scope` `{ ungrouped, groupIds }` sets it in one
-  transaction. Turning the link off and on keeps the scope.
-- The public `GET /shared/:token` keeps `links` (the ungrouped shared links, so an
-  old web bundle still renders) and adds `groups: [{ name, linkCount, links }]` in
-  position order, with no group ids, flags or omitted group names, and empty
-  groups left out. Filtering is in the query on `collection_item.group_id`, in
-  that one collection only. The public-route reasoning in AGENTS.md changes by one
-  fact: it also reads the names of the groups the owner chose to show.
+- `GET /collections/:id/share` (and the POST and DELETE, which return the same
+  state) add `ungrouped` and `groups: [{ id, name, shared }]` in position order.
+  `PUT /collections/:id/share/scope` `{ ungrouped, groupIds }` sets the whole scope
+  in one transaction: listed groups become shared, the rest of that collection's
+  groups do not, so it is idempotent. A group id from another collection is
+  NOT_FOUND. It works while the link is off, and turning the link off and on keeps
+  the scope.
+- The public `GET /shared/:token` keeps `links` (now the shared ungrouped links, so
+  an old web bundle still renders them) and adds `groups: [{ name, linkCount,
+  links }]` in position order, with no group ids, flags or omitted group names, and
+  empty groups left out. `linkCount` counts only what the viewer can see, and
+  `SHARED_LINKS_MAX` caps the total across both (ungrouped first, then groups in
+  order). Filtering is in the query, on the filing's `group_id` joined inside that
+  one collection, so a link that is also in an unshared group of another
+  collection is unaffected.
+- Old bundles parse the response and the owner's share state with strict Zod
+  objects, so a new key would break a cached page (the lesson of PR #76). Both
+  new keys are therefore sent only when there is something in them: the public
+  `groups` only when a shared group has links, the owner's `ungrouped` and
+  `groups` only for a collection that has groups. A collection with no groups gets
+  byte-for-byte today's responses. A cached owner bundle still fails on a
+  collection that has groups, but it has no groups UI to reach one with.
+- The public-route reasoning in AGENTS.md changes by one fact: it also reads the
+  names of the groups the owner chose to show.
 
 ## Rollback caveat
 
 Rolling the image back is safe while every group is shared. Once any group is
-unshared (when sharing by group ships), do not roll back below that release: the
-old public page ignores `shared` and would show the omitted links. Until then the
-flag is never written to false, so rolling back to the image before this
-migration shows every link, as before.
+unshared, do not roll back below the release that added sharing by group: the old
+public page ignores `shared` and `share_ungrouped` and would show the omitted
+links. Only the scope route writes those flags, so an image from before it shows
+every link, as it always did, while nothing has been unshared.
 
 ## Consequences
 

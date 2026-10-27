@@ -68,7 +68,11 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
   its owner chose to show it to people without an account: the token is 192
   random bits that the owner turns on and off, it reads only that one
   collection's name and its links' display fields (no ids, notes, pins, dates or
-  owner), an unknown, malformed or turned-off token is the same NOT_FOUND, and
+  owner), and, when the collection has groups (one level, per collection), the
+  names of the groups the owner chose to share, each with only its links; a group
+  the owner left out, or the ungrouped links when switched off, is absent from the
+  response entirely, names included. The owner sets this per group; everything
+  starts shared. An unknown, malformed or turned-off token is the same NOT_FOUND, and
   it is rate-limited per IP. authz.db.test.ts lists these as public and checks
   what each gives back. A new public route needs the same reasoning written down
   here.
