@@ -1,22 +1,15 @@
 import { z } from "zod";
 
 const webEnvSchema = z.object({
-  VITE_SUPABASE_URL: z.url(),
-  VITE_SUPABASE_ANON_KEY: z.string().min(1),
-  VITE_API_URL: z.url(),
-  VITE_AUTH_REDIRECT_URL: z.url(),
-  // The iCloud link to the "Save to linkables" Shortcut; see docs/ios-shortcut.md.
-  // Optional until the owner shares it; an empty line in .env counts as unset.
-  VITE_IOS_SHORTCUT_URL: z.preprocess((value) => (value === "" ? undefined : value), z.url({ protocol: /^https$/, hostname: z.regexes.domain }).optional()),
+  VITE_API_URL: z.preprocess((value) => value === "" ? undefined : value, z.url().optional()),
+  VITE_IOS_SHORTCUT_URL: z.preprocess((value) => value === "" ? undefined : value, z.url({ protocol: /^https$/, hostname: z.regexes.domain }).optional()),
 });
 
-export type WebEnv = z.infer<typeof webEnvSchema>;
-
-export function parseWebEnv(raw: unknown): WebEnv {
+export function parseWebEnv(raw: unknown, origin = typeof window === "undefined" ? "" : window.location.origin) {
   const parsed = webEnvSchema.safeParse(raw);
-  if (parsed.success) return parsed.data;
-  const names = parsed.error.issues.map((issue) => issue.path.join("."));
-  throw new Error(`Invalid web env, check apps/web/.env: ${names.join(", ")}`);
+  if (!parsed.success) throw new Error(`Invalid web env: ${parsed.error.issues.map((issue) => issue.path.join(".")).join(", ")}`);
+  return { ...parsed.data, VITE_API_URL: (parsed.data.VITE_API_URL ?? origin).replace(/\/+$/, "") };
 }
 
+export type WebEnv = ReturnType<typeof parseWebEnv>;
 export const env = parseWebEnv(import.meta.env);

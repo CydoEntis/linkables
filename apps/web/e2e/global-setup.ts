@@ -1,5 +1,6 @@
-import { migrateTestDb, testDatabaseUrl } from "../../api/test/db-setup";
+
+import { migrateE2eDatabase } from "./database";
 
 export default async function globalSetup() {
-  await migrateTestDb(testDatabaseUrl());
+  await migrateE2eDatabase();
 }

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "cn";
 import { useId, type ReactNode } from "react";
-import { signOut, supabase } from "../auth/supabase";
+import { signOut, readConnection, disconnectServer } from "../auth/session";
 import { GHOST_BUTTON } from "../ui";
 import { appUrl } from "./queries";
 import { useFollowTabs } from "./use-follow-tabs";
@@ -11,7 +11,7 @@ import { useShortcut } from "./use-shortcut";
 function useAccountEmail() {
   return useQuery({
     queryKey: ["panel", "account"],
-    queryFn: async () => (await supabase.auth.getSession()).data.session?.user.email ?? null,
+    queryFn: async () => (await readConnection())?.session?.user.email ?? null,
   }).data;
 }
 
@@ -30,7 +30,7 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
       <FollowTabsSetting />
       <Group title="Shortcuts">
         <Row label="Open side panel">
-          <kbd className="rounded-md bg-accent px-2 py-1 font-mono text-[12px]">{shortcut ?? "…"}</kbd>
+          <kbd className="rounded-md bg-accent px-2 py-1 font-mono text-[12px]">{shortcut ?? "â€¦"}</kbd>
         </Row>
         {chrome.sidebarAction ? (
           // Firefox's pages cannot open about:addons, so point at it.
@@ -46,14 +46,15 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
         )}
       </Group>
       <Group title="Account">
-        <Row label={<span className="break-all">{email ?? "…"}</span>}>
+        <Row label={<span className="break-all">{email ?? "â€¦"}</span>}>
           <button type="button" onClick={() => void signOut()} className={GHOST_BUTTON}>
             Sign out
           </button>
         </Row>
+        <button type="button" onClick={() => void disconnectServer()} className={GHOST_BUTTON}>Change server</button>
       </Group>
       <a href={appUrl("/settings")} target="_blank" rel="noreferrer" className="self-start rounded-md px-1 text-[13px] font-semibold hover:text-primary">
-        All settings in linkables ↗
+        All settings in linkables â†—
       </a>
     </main>
   );
@@ -102,3 +103,4 @@ function Row({ label, children }: { label: ReactNode; children: ReactNode }) {
     </div>
   );
 }
+

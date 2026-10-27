@@ -1,4 +1,4 @@
-import type { Session } from "@supabase/supabase-js";
+import type { Session } from "./session";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { EXTENSION_CONNECT_PATH } from "@linkables/shared/extension-sessions";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -9,12 +9,11 @@ import { AuthGate } from "./AuthGate";
 
 const signedIn = vi.hoisted(() => ({ current: true }));
 
-vi.mock("./supabase", () => ({ returningFromSignIn: false }));
 vi.mock("../api/api", () => ({ api: { request: vi.fn() } }));
 vi.mock("./use-auth", () => ({
   useAuth: () =>
     signedIn.current
-      ? { status: "signed-in", session: { access_token: "token", user: { id: "user-1" } } as Session }
+      ? { status: "signed-in", session: { access_token: "token", user: { id: "user-1" } } as unknown as Session }
       : { status: "signed-out", linkProblem: null, afterSignOut: false },
 }));
 
@@ -62,3 +61,5 @@ it("brings a signed-out visit to the extension connect page back there after sig
   const router = renderAt("/sign-in");
   await waitFor(() => { expect(router.state.location.pathname).toBe(EXTENSION_CONNECT_PATH); });
 });
+
+

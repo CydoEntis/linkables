@@ -43,8 +43,8 @@ test("seeded links come back from GET /links for their owner", async ({ request,
 test.describe("signed out", () => {
   test.use({ signedIn: false });
 
-  test("a visitor without a session sees the landing page", async ({ page }) => {
+  test("a visitor without a session sees local sign-in", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Never lose a link again.", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to linkables", level: 1 })).toBeVisible();
   });
 });

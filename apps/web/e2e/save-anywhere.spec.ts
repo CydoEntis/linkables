@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { Page, TestInfo } from "@playwright/test";
 import { API_URL, IOS_SHORTCUT_URL } from "./env";
 import { expect, test } from "./fixtures";
@@ -144,7 +145,7 @@ test.describe("drag and drop at 1280 px", () => {
 
     await expect(page.getByText("Drop to save")).toBeHidden();
     await expect(page.getByRole("link", { name: /example\.test\/dropped/ })).toBeVisible();
-    const rows = await db.$client<{ original_url: string }[]>`select original_url from saved_link where user_id = ${user.id}`;
+    const rows = await db.all<{ original_url: string }>(sql`select original_url from saved_link where user_id = ${user.id}`);
     expect(rows.map((row) => row.original_url)).toEqual(["https://example.test/dropped"]);
   });
 

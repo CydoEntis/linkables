@@ -1,9 +1,9 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
-import { testJwks } from "../../api/test/auth/tokens";
-import { testDatabaseUrl } from "../../api/test/db-setup";
+
+import { testDatabaseUrl } from "../../web/e2e/database";
 import { EXTENSION_ID } from "../manifest";
-import { API_URL, SUPABASE_URL } from "./env";
+import { API_URL, APP_URL } from "./env";
 
 const databaseUrl = testDatabaseUrl();
 const ci = Boolean(process.env.CI);
@@ -18,7 +18,7 @@ export default defineConfig({
   reporter: ci ? [["list"], ["github"], ["html", { open: "never", outputFolder: "playwright-report" }]] : "list",
   use: { trace: "retain-on-failure" },
   webServer: {
-    command: "pnpm start",
+    command: "corepack pnpm start",
     cwd: fileURLToPath(new URL("../../api", import.meta.url)),
     url: `${API_URL}/health`,
     timeout: 120_000,
@@ -27,12 +27,14 @@ export default defineConfig({
       PORT: new URL(API_URL).port,
       DATABASE_URL: databaseUrl,
       MIGRATION_DATABASE_URL: databaseUrl,
-      SUPABASE_URL,
-      AUTH_TEST_JWKS: JSON.stringify(testJwks),
+      APP_ORIGIN: APP_URL,
+      AUTH_SECRET: "e2e-only-local-auth-secret-at-least-32-characters",
+
       // The same entry production adds for the extension (deploy/.env.production.example).
-      CORS_ORIGINS: `chrome-extension://${EXTENSION_ID}`,
+      CORS_ORIGINS: `chrome-extension://${EXTENSION_ID},${APP_URL}`,
       WORKER_ENABLED: "false",
       LOG_LEVEL: "warn",
     },
   },
 });
+

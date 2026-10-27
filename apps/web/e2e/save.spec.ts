@@ -1,8 +1,9 @@
+import { sql } from "drizzle-orm";
 import type { Page } from "@playwright/test";
-import { API_URL, WEB_URL } from "./env";
+import { API_URL } from "./env";
 import { expect, test } from "./fixtures";
 import type { Db } from "../../api/src/db/client";
-import { signedInState, type TestUser } from "./session";
+import { type TestUser } from "./session";
 
 function linksResponse(page: Page, method: string) {
   return page.waitForResponse(
@@ -11,7 +12,7 @@ function linksResponse(page: Page, method: string) {
 }
 
 async function savedUrls(db: Db, user: TestUser): Promise<string[]> {
-  const rows = await db.$client<{ original_url: string }[]>`select original_url from saved_link where user_id = ${user.id}`;
+  const rows = await db.all<{ original_url: string }>(sql`select original_url from saved_link where user_id = ${user.id}`);
   return rows.map((row) => row.original_url);
 }
 
@@ -35,7 +36,7 @@ test.describe("at 375 px", () => {
 
     await page.goto(shared);
     await expect(page.getByRole("heading", { name: "Already saved" })).toBeVisible();
-    await expect(page.getByText(/^You saved this on .+ · in New$/)).toBeVisible();
+    await expect(page.getByText(/^You saved this on .+ Â· in New$/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Undo" })).toHaveCount(0);
     await testInfo.attach("save-already-375", { body: await page.screenshot({ animations: "disabled" }), contentType: "image/png" });
     expect(await savedUrls(db, user)).toEqual(["https://example.test/b"]);
@@ -70,7 +71,7 @@ test.describe("at 375 px", () => {
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
     await page.goto(`/save?url=${encodeURIComponent(longUrl)}`);
-    await expect(page.getByRole("heading", { name: "Saving…" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Savingâ€¦" })).toBeVisible();
     expect(await overflow()).toBeLessThanOrEqual(0);
 
     releaseSave();
@@ -100,16 +101,16 @@ test.describe("at 375 px", () => {
       await expect(page.getByRole("heading", { name: "Sign in to save this link" })).toBeVisible();
       await testInfo.attach("save-signed-out-375", { body: await page.screenshot({ animations: "disabled" }), contentType: "image/png" });
 
-      // The test sign-in: store the session as supabase-js would, then reload the same tab.
-      const [origin] = signedInState(user, WEB_URL).origins;
-      await page.evaluate((entries) => { for (const { name, value } of entries) localStorage.setItem(name, value); }, origin?.localStorage ?? []);
       const saved = linksResponse(page, "POST");
-      await page.reload();
+      await page.getByLabel("Email", { exact: true }).fill(user.email);
+      await page.getByLabel("Password", { exact: true }).fill(user.password);
+      await page.getByRole("button", { name: "Sign in", exact: true }).click();
       expect((await saved).status()).toBe(201);
       await expect(page).toHaveURL(/\/save\?url=/);
       await expect(page.getByRole("heading", { name: "Saved to linkables" })).toBeVisible();
       expect(await savedUrls(db, user)).toEqual(["https://example.test/after-sign-in"]);
-      expect(posts, "no save is attempted while signed out").toEqual([201]);
+      expect(posts, "sign-in succeeds before saving").toEqual([200, 201]);
     });
   });
 });
+

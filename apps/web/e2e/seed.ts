@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { canonicalize } from "@linkables/shared/url";
 import type { Db } from "../../api/src/db/client";
 import { resource, savedLink } from "../../api/src/db/schema";
@@ -49,9 +50,9 @@ export async function seedLinks(db: Db, userId: string, links: SeedLink[]): Prom
 
 // Stands in for the metadata worker, which the e2e API runs without.
 export async function markFetched(db: Db, url: string, title: string): Promise<void> {
-  const rows = await db.$client`
+  const rows = await db.all(sql`
     update resource set title = ${title}, fetch_status = 'fetched'
     where canonical_url = ${canonicalUrlFor(url)}
-    returning id`;
+    returning id`);
   if (rows.length !== 1) throw new Error(`no resource to mark fetched for ${url}`);
 }

@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { api } from "../api/api";
-import { signOut, signOutEverywhere } from "../auth/supabase";
+import { forgetSession } from "../auth/session";
 import { markAccountDeleted } from "./account-deleted";
 import { ACCOUNT_DELETED_PATH } from "./path";
 
@@ -18,7 +18,7 @@ export type DeleteAccountForm = z.infer<typeof deleteAccountFormSchema>;
 // Every session, then this browser's alone if the revoke fails. supabase-js serialises
 // sign-outs, so a second call while one runs finds no session and does nothing.
 export function endSessions(): Promise<void> {
-  return signOutEverywhere().catch(signOut);
+  return forgetSession();
 }
 
 // The data is gone once the API answers, so the sessions end with it. Signing out
@@ -35,3 +35,4 @@ export function useDeleteAccount() {
     },
   });
 }
+

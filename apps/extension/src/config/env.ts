@@ -1,3 +1,3 @@
-import { parseExtensionEnv } from "./env-schema";
-
-export const env = parseExtensionEnv(import.meta.env);
+let serverOrigin = "";
+export function setServerOrigin(origin: string): void { serverOrigin = origin; }
+export const env = { get VITE_APP_URL() { return serverOrigin; } };

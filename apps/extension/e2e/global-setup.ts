@@ -1,13 +1,9 @@
 import { fileURLToPath } from "node:url";
 import { build, createServer } from "vite";
-import { migrateTestDb, testDatabaseUrl } from "../../api/test/db-setup";
-import { API_URL, APP_URL, EXTENSION_DIR, SUPABASE_URL } from "./env";
 
-// The extension and the web app share the fake Supabase origin.
-const SUPABASE_ENV = { VITE_SUPABASE_URL: SUPABASE_URL, VITE_SUPABASE_ANON_KEY: "e2e-anon-key" };
+import { migrateE2eDatabase } from "../../web/e2e/database";
+import { API_URL, APP_URL, EXTENSION_DIR } from "./env";
 
-// Builds the extension for the e2e app origin, so its host permissions, content
-// script and API origin are the test ones.
 async function buildExtension() {
   await build({
     root: fileURLToPath(new URL("..", import.meta.url)),
@@ -16,8 +12,6 @@ async function buildExtension() {
     build: { outDir: EXTENSION_DIR, emptyOutDir: true },
   });
 }
-
-// The web app's dev server on the app origin, passing /api to the e2e API.
 async function serveApp() {
   const web = fileURLToPath(new URL("../../web", import.meta.url));
   const server = await createServer({
@@ -29,14 +23,8 @@ async function serveApp() {
   await server.listen();
   return server;
 }
-
 export default async function globalSetup() {
-  // Process env wins over either app's .env, so a developer's real Supabase project is never used.
-  Object.assign(process.env, SUPABASE_ENV, {
-    VITE_APP_URL: APP_URL,
-    VITE_API_URL: APP_URL,
-    VITE_AUTH_REDIRECT_URL: `${APP_URL}/`,
-  });
-  const [, , app] = await Promise.all([migrateTestDb(testDatabaseUrl()), buildExtension(), serveApp()]);
+  Object.assign(process.env, { VITE_API_URL: APP_URL });
+  const [, , app] = await Promise.all([migrateE2eDatabase(), buildExtension(), serveApp()]);
   return () => app.close();
 }

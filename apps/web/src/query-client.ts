@@ -1,7 +1,7 @@
 import { ERROR_CODES } from "@linkables/shared/http";
 import { QueryClient } from "@tanstack/react-query";
 import { isApiError } from "@linkables/shared/api-client";
-import { supabase } from "./auth/supabase";
+import { subscribeSession } from "./auth/session";
 
 const MAX_RETRIES = 3;
 
@@ -16,6 +16,4 @@ export const queryClient = new QueryClient({
 });
 
 // One user's cached data must never be shown to the next person who signs in.
-supabase.auth.onAuthStateChange((event) => {
-  if (event === "SIGNED_OUT") queryClient.clear();
-});
+subscribeSession(() => { queryClient.clear(); });

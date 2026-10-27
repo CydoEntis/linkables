@@ -1,7 +1,7 @@
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthState } from "../auth/auth-state";
-import { signOut } from "../auth/supabase";
+import { signOut } from "../auth/session";
 import { SETTINGS_ACTION, SettingsRow, SettingsSection } from "./SettingsSection";
 import { signInMethod } from "./sign-in-method";
 
@@ -13,7 +13,7 @@ export function AccountSection() {
     <SettingsSection title="Account">
       <SettingsRow
         label={email}
-        detail={user ? signInMethod(user) : undefined}
+        detail={user ? signInMethod() : undefined}
         leading={
           <span aria-hidden className="flex size-[42px] shrink-0 items-center justify-center rounded-full bg-accent font-bold">
             {email.charAt(0).toUpperCase() || "?"}
@@ -28,3 +28,4 @@ export function AccountSection() {
     </SettingsSection>
   );
 }
+

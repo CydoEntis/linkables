@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { readAccessToken } from "../auth/access-token";
-import { signOut, supabase } from "../auth/supabase";
+import { signOut } from "../auth/session";
 import { storeSession, stubAuthServer } from "../test/session";
 import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { createApiClient } from "./client";
@@ -26,7 +26,7 @@ function setup(fetchImpl: typeof fetch, accessToken = "token-1") {
   const fetchSpy = vi.fn(fetchImpl);
   const api = createApiClient({
     baseUrl: API_URL,
-    getAccessToken: () => readAccessToken(supabase),
+    getAccessToken: () => readAccessToken(),
     onUnauthenticated,
     fetch: fetchSpy,
   });
@@ -140,3 +140,4 @@ describe("keepalive requests", () => {
     expect(new Headers(fetchSpy.mock.calls[0]?.[1]?.headers).get("Authorization")).toBe("Bearer fresh-token");
   });
 });
+

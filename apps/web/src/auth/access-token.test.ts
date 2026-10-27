@@ -1,29 +1,22 @@
-import type { Session } from "@supabase/supabase-js";
-import { afterEach, describe, expect, it } from "vitest";
-import { peekAccessToken, rememberSession } from "./access-token";
-
-const now = Date.parse("2026-10-23T10:00:00Z");
-
-function session(expiresInSeconds: number): Session {
-  return { access_token: "held", expires_at: now / 1000 + expiresInSeconds } as Session;
-}
+import { afterEach, expect, it } from "vitest";
+import { peekAccessToken } from "./access-token";
+import { rememberSession } from "./session";
+import { session } from "../test/session";
 
 afterEach(() => { rememberSession(null); });
 
-describe("peekAccessToken", () => {
-  it("returns the held token while it has more than a minute left", () => {
-    rememberSession(session(600));
-    expect(peekAccessToken(now)).toBe("held");
-  });
+it("holds a usable token in memory", () => {
+  rememberSession(session("held"));
+  expect(peekAccessToken()).toBe("held");
+});
 
-  it("returns nothing for a token about to expire, so the caller waits for a fresh one", () => {
-    rememberSession(session(30));
-    expect(peekAccessToken(now)).toBeNull();
-  });
+it("does not send a token about to expire", () => {
+  rememberSession({ ...session("held"), expiresAt: new Date(Date.now() + 30_000).toISOString() });
+  expect(peekAccessToken()).toBeNull();
+});
 
-  it("returns nothing after sign-out", () => {
-    rememberSession(session(600));
-    rememberSession(null);
-    expect(peekAccessToken(now)).toBeNull();
-  });
+it("forgets the token after sign-out", () => {
+  rememberSession(session("held"));
+  rememberSession(null);
+  expect(peekAccessToken()).toBeNull();
 });

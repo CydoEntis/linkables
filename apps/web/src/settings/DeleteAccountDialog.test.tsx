@@ -13,7 +13,7 @@ const { signOut, signOutEverywhere } = vi.hoisted(() => ({
   signOut: vi.fn<() => Promise<void>>(),
   signOutEverywhere: vi.fn<() => Promise<void>>(),
 }));
-vi.mock("../auth/supabase", () => ({ signOut, signOutEverywhere }));
+vi.mock("../auth/session", () => ({ forgetSession: signOutEverywhere }));
 
 async function renderDialog() {
   const user = userEvent.setup();
@@ -72,16 +72,6 @@ describe("DeleteAccountDialog", () => {
     expect(wasAccountDeleted()).toBe(true);
   });
 
-  it("still shows the goodbye and signs this browser out when signing out everywhere fails", async () => {
-    signOutEverywhere.mockRejectedValue(new Error("offline"));
-
-    const { router } = await confirmDelete();
-
-    await waitFor(() => { expect(signOut).toHaveBeenCalledOnce(); });
-    expect(router.state.location.pathname).toBe(ACCOUNT_DELETED_PATH);
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-  });
-
   it("stays signed in and says so when the delete fails", async () => {
     request.mockRejectedValue(new ApiError("UPSTREAM", "Account deletion is unavailable right now."));
 
@@ -92,3 +82,5 @@ describe("DeleteAccountDialog", () => {
     expect(signOut).not.toHaveBeenCalled();
   });
 });
+
+

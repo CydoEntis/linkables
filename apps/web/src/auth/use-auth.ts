@@ -1,40 +1,30 @@
-import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { readLinkProblem, type LinkProblem } from "./link-landing";
-import { removeRejectedTokensFromUrl } from "./sign-in-return";
-import { supabase } from "./supabase";
+import { currentSession, loadSession, subscribeSession, type Session } from "./session";
 
 export type AuthState =
   | { status: "loading" }
   | { status: "signed-in"; session: Session }
-  | { status: "signed-out"; linkProblem: LinkProblem | null; afterSignOut: boolean };
+  | { status: "signed-out"; linkProblem: null; afterSignOut: boolean }
+  | { status: "unavailable"; retry: () => void };
 
 export function useAuth(): AuthState {
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<AuthState>({ status: "loading" });
-
   useEffect(() => {
-    // Counts auth events so a slow landing check cannot overwrite a newer one.
-    let latestEvent = 0;
     let disposed = false;
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      const thisEvent = ++latestEvent;
-      if (session) {
-        removeRejectedTokensFromUrl();
-        setState({ status: "signed-in", session });
-      } else if (event === "INITIAL_SESSION") {
-        // Not awaited: supabase-js awaits listeners, and initialize() has already settled.
-        void readLinkProblem().then((linkProblem) => {
-          if (!disposed && thisEvent === latestEvent) setState({ status: "signed-out", linkProblem, afterSignOut: false });
-        });
-      } else {
-        setState({ status: "signed-out", linkProblem: null, afterSignOut: true });
-      }
+    let changed = false;
+    const unsubscribe = subscribeSession((session) => {
+      changed = true;
+      setState(session ? { status: "signed-in", session } : { status: "signed-out", linkProblem: null, afterSignOut: true });
     });
-    return () => {
-      disposed = true;
-      data.subscription.unsubscribe();
-    };
-  }, []);
-
+    const existing = currentSession();
+    if (existing) setState({ status: "signed-in", session: existing });
+    else void loadSession().then((session) => {
+      if (!disposed) setState(session ? { status: "signed-in", session } : { status: "signed-out", linkProblem: null, afterSignOut: false });
+    }).catch(() => {
+      if (!disposed && !changed) setState({ status: "unavailable", retry: () => { setState({ status: "loading" }); setAttempt((value) => value + 1); } });
+    });
+    return () => { disposed = true; unsubscribe(); };
+  }, [attempt]);
   return state;
 }
