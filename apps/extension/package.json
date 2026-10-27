@@ -8,6 +8,8 @@
     "watch": "vite build --watch --mode development",
     "release": "node scripts/release-zip.ts",
     "release:store": "vite build --mode store --outDir dist-store --emptyOutDir && node scripts/release-zip.ts store",
+    "release:firefox": "vite build --mode firefox --outDir dist-firefox --emptyOutDir && web-ext lint --source-dir dist-firefox",
+    "sign:firefox": "node scripts/sign-firefox.ts",
     "store:images": "node store/render.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p e2e/tsconfig.json",
     "test": "vitest run",
@@ -42,6 +44,7 @@
     "jsdom": "29.1.1",
     "tailwindcss": "4.3.3",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "web-ext": "10.8.0"
   }
 }

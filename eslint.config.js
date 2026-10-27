@@ -20,7 +20,7 @@ const restrictImports = (names, patterns = []) => [
 const API_OUTBOUND_MODULES = ["undici", "http", "https", "http2", "node:http", "node:https", "node:http2"];
 
 export default defineConfig(
-  { ignores: ["**/dist/", "**/dist-store/", "**/node_modules/", "**/playwright-report/", "**/test-results/", "docs/design/handoff/", "docs/design/landing-handoff/", "docs/design/round2/"] },
+  { ignores: ["**/dist/", "**/dist-store/", "**/dist-firefox/", "**/node_modules/", "**/playwright-report/", "**/test-results/", "docs/design/handoff/", "docs/design/landing-handoff/", "docs/design/round2/"] },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { build, defineConfig, loadEnv, type Plugin } from "vite";
-import { buildManifest } from "./manifest.ts";
+import { buildFirefoxManifest, buildManifest } from "./manifest.ts";
 import { parseExtensionEnv, type ExtensionEnv } from "./src/config/env-schema.ts";
 
 const root = import.meta.dirname;
@@ -12,12 +12,12 @@ function packageVersion(): string {
   return version;
 }
 
-// The Web Store build goes to friends as is, so it must talk to production.
+// The Web Store and Firefox builds go to friends as is, so they must talk to production.
 const STORE_APP_URL = "https://linkables.app";
 
-function checkStoreEnv(env: ExtensionEnv) {
-  if (env.VITE_APP_URL.replace(/\/+$/, "") !== STORE_APP_URL) throw new Error(`The store build needs VITE_APP_URL=${STORE_APP_URL}`);
-  if (!env.VITE_SUPABASE_URL.startsWith("https://")) throw new Error("The store build needs the production VITE_SUPABASE_URL");
+function checkProductionEnv(env: ExtensionEnv) {
+  if (env.VITE_APP_URL.replace(/\/+$/, "") !== STORE_APP_URL) throw new Error(`The store and Firefox builds need VITE_APP_URL=${STORE_APP_URL}`);
+  if (!env.VITE_SUPABASE_URL.startsWith("https://")) throw new Error("The store and Firefox builds need the production VITE_SUPABASE_URL");
 }
 
 // Writes manifest.json into the build, so its host permissions follow the env the bundle was built for.
@@ -28,8 +28,10 @@ function manifest(mode: string): Plugin {
     generateBundle() {
       const env = parseExtensionEnv(loadEnv(mode, root, "VITE_"));
       const store = mode === "store";
-      if (store) checkStoreEnv(env);
-      const built = buildManifest({ version: packageVersion(), appUrl: env.VITE_APP_URL, supabaseUrl: env.VITE_SUPABASE_URL, store });
+      const firefox = mode === "firefox";
+      if (store || firefox) checkProductionEnv(env);
+      const options = { version: packageVersion(), appUrl: env.VITE_APP_URL, supabaseUrl: env.VITE_SUPABASE_URL };
+      const built = firefox ? buildFirefoxManifest(options) : buildManifest({ ...options, store });
       this.emitFile({ type: "asset", fileName: "manifest.json", source: JSON.stringify(built, null, 2) });
     },
   };
