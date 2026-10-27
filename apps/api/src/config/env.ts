@@ -27,8 +27,14 @@ type Env = z.infer<typeof envSchema>;
 export type Config = ReturnType<typeof toConfig>;
 export type ParseEnvResult = { ok: true; config: Config } | { ok: false; message: string };
 
+// These are the fixed IDs of the shipped unpacked and Chrome Store builds.
+const shippedChromeOrigins = [
+  "chrome-extension://ekgbmopoceccloaibfknnbnohkpbkili",
+  "chrome-extension://dckjkoommfddaimpjbghbomojdkhaoai",
+];
+
 function toConfig(env: Env) {
-  const origins = [...new Set([env.APP_ORIGIN, ...env.CORS_ORIGINS])];
+  const origins = [...new Set([env.APP_ORIGIN, ...shippedChromeOrigins, ...env.CORS_ORIGINS])];
   return {
     nodeEnv: env.NODE_ENV,
     port: env.PORT,

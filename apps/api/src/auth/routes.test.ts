@@ -8,6 +8,7 @@ import { createLogger } from "../log/logger";
 import { requestId } from "../http/request-id";
 import { onError } from "../http/error-handler";
 import type { AppEnv } from "../http/env";
+import { parseEnv } from "../config/env";
 import { authRoutes } from "./routes";
 import { createLocalAuth } from "./local-auth";
 import { resetPassword } from "./provision";
@@ -30,6 +31,37 @@ function signIn(password = PASSWORD, origin = fixture.config.appOrigin, address 
 }
 
 describe("local sign-in", () => {
+  function useProductionConfig(extra: Record<string, string> = {}) {
+    const result = parseEnv({ APP_ORIGIN: fixture.config.appOrigin, AUTH_SECRET: fixture.config.secret, ...extra });
+    if (!result.ok) throw new Error(result.message);
+    expect(result.config.nodeEnv).toBe("production");
+    const config = result.config.auth;
+    const auth = createLocalAuth(fixture.client, config);
+    app = new Hono<AppEnv>().use(requestId).route("/api/v1", authRoutes(auth, config, Date.now));
+    app.onError(onError(createLogger("error", () => undefined)));
+  }
+
+  it.each([
+    "chrome-extension://ekgbmopoceccloaibfknnbnohkpbkili",
+    "chrome-extension://dckjkoommfddaimpjbghbomojdkhaoai",
+  ])("signs in the shipped extension with minimal production configuration: %s", async (origin) => {
+    useProductionConfig();
+    const response = await signIn(PASSWORD, origin);
+    expect(response.status).toBe(200);
+    expect(envelope.parse(await response.json()).data.user.email).toBe(email);
+  });
+
+  it("rejects an arbitrary Chrome extension with default production configuration", async () => {
+    useProductionConfig();
+    expect((await signIn(PASSWORD, "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")).status).toBe(403);
+  });
+
+  it("lets an operator explicitly trust a custom Chrome extension", async () => {
+    const origin = "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    useProductionConfig({ CORS_ORIGINS: origin });
+    expect((await signIn(PASSWORD, origin)).status).toBe(200);
+  });
+
   it("returns an authenticated session and HttpOnly cookie", async () => {
     const response = await signIn();
     expect(response.status).toBe(200);

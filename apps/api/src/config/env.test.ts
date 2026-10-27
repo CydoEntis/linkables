@@ -9,7 +9,11 @@ describe("self-hosted configuration", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.config.databaseUrl).toBe("file:./data/linkables.db");
-      expect(result.config.corsOrigins).toEqual([VALID.APP_ORIGIN]);
+      expect(result.config.corsOrigins).toEqual([
+        VALID.APP_ORIGIN,
+        "chrome-extension://ekgbmopoceccloaibfknnbnohkpbkili",
+        "chrome-extension://dckjkoommfddaimpjbghbomojdkhaoai",
+      ]);
       expect(result.config.resendApiKey).toBeUndefined();
     }
   });
@@ -24,7 +28,7 @@ describe("self-hosted configuration", () => {
   it("accepts Chrome and Firefox extension origins", () => {
     const origins = "chrome-extension://abcdefghijklmnopabcdefghijklmnop,moz-extension://b0dc8e29-ff31-4c46-8b68-d7378b2ae941";
     const result = parseEnv({ ...VALID, CORS_ORIGINS: origins });
-    expect(result.ok && result.config.corsOrigins).toEqual([VALID.APP_ORIGIN, ...origins.split(",")]);
+    expect(result.ok && result.config.corsOrigins).toEqual(expect.arrayContaining([VALID.APP_ORIGIN, ...origins.split(",")]));
   });
   it("does not echo secret values on invalid configuration", () => {
     const result = parseEnv({ ...VALID, AUTH_SECRET: "private" });
