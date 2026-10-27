@@ -8,10 +8,11 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "tsx src/db/migrate-cli.ts"
   },
   "dependencies": {
     "@hono/node-server": "2.1.5",
+    "@libsql/client": "0.18.0",
     "@linkables/shared": "workspace:*",
     "drizzle-orm": "0.45.4",
     "hono": "4.13.13",

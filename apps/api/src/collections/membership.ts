@@ -1,6 +1,6 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Db, Tx } from "../db/client";
-import { collection, collectionItem, savedLink } from "../db/schema";
+import { collection, collectionItem, databaseNow, savedLink } from "../db/schema";
 import { NotFoundError } from "../http/errors";
 import { requireCollection } from "./collections";
 
@@ -25,7 +25,7 @@ function requireBoth(tx: Tx, membership: Membership) {
 async function markUsed(tx: Tx, { userId, collectionId }: Membership): Promise<void> {
   await tx
     .update(collection)
-    .set({ lastUsedAt: sql`now()` })
+    .set({ lastUsedAt: databaseNow })
     .where(and(eq(collection.id, collectionId), eq(collection.userId, userId)));
 }
 
