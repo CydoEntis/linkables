@@ -8,8 +8,10 @@ const contains = vi.fn<(permissions: unknown) => Promise<boolean>>();
 const request = vi.fn<(permissions: unknown) => Promise<boolean>>(() => Promise.resolve(true));
 const listener = { addListener: vi.fn(), removeListener: vi.fn() };
 
+const permissions = { contains, request, onAdded: listener, onRemoved: listener };
+
 beforeEach(() => {
-  vi.stubGlobal("chrome", { permissions: { contains, request, onAdded: listener, onRemoved: listener } });
+  vi.stubGlobal("chrome", { permissions, sidebarAction: {} });
 });
 afterEach(() => {
   cleanup();
@@ -30,4 +32,37 @@ it("asks for access from a button when the browser has it switched off", async (
   await userEvent.click(await screen.findByRole("button", { name: "Allow access to linkables.app" }));
   expect(request).toHaveBeenCalledWith(HOST_ACCESS);
   expect(screen.queryByText("the pop-up")).not.toBeInTheDocument();
+});
+
+it("shows the pop-up in Chrome even when site access is withheld", async () => {
+  vi.stubGlobal("chrome", { permissions, sidePanel: {} });
+  contains.mockResolvedValue(false);
+  render(<HostAccessGate>the pop-up</HostAccessGate>);
+  expect(await screen.findByText("the pop-up")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Allow access to linkables.app" })).not.toBeInTheDocument();
+});
+
+it("shows the pop-up once access is granted", async () => {
+  contains.mockResolvedValueOnce(false).mockResolvedValue(true);
+  render(<HostAccessGate>the pop-up</HostAccessGate>);
+  await userEvent.click(await screen.findByRole("button", { name: "Allow access to linkables.app" }));
+  const [onAdded] = listener.addListener.mock.calls[0] as [() => void];
+  onAdded();
+  expect(await screen.findByText("the pop-up")).toBeInTheDocument();
+});
+
+it("says so when the browser refuses the request", async () => {
+  contains.mockResolvedValue(false);
+  request.mockRejectedValueOnce(new Error("denied"));
+  render(<HostAccessGate>the pop-up</HostAccessGate>);
+  await userEvent.click(await screen.findByRole("button", { name: "Allow access to linkables.app" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't ask");
+});
+
+it("says so when the user declines the request", async () => {
+  contains.mockResolvedValue(false);
+  request.mockResolvedValueOnce(false);
+  render(<HostAccessGate>the pop-up</HostAccessGate>);
+  await userEvent.click(await screen.findByRole("button", { name: "Allow access to linkables.app" }));
+  expect(await screen.findByRole("alert")).toBeInTheDocument();
 });

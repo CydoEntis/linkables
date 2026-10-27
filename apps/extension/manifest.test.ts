@@ -73,7 +73,7 @@ describe("side panel", () => {
 });
 
 describe("buildFirefoxManifest", () => {
-  const firefox = buildFirefoxManifest({ version: "0.3.0", appUrl: "https://linkables.app", supabaseUrl: "https://ref.supabase.co" });
+  const firefox = buildFirefoxManifest({ version: "0.3.1", appUrl: "https://linkables.app", supabaseUrl: "https://ref.supabase.co" });
 
   it("runs the worker as an event page, since Firefox has no service worker", () => {
     expect(firefox.background).toEqual({ scripts: ["worker.js"], type: "module" });
