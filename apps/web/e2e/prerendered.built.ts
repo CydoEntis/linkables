@@ -7,10 +7,10 @@ test("opens the app at the instance root without a local-storage session", async
   await expect(page.locator("#root > *").first()).toBeAttached();
 });
 
-test("the extension guide describes self-hosted connection and does not offer an obsolete signed add-on", async ({ page }) => {
+test("the extension guide offers the matching signed Firefox release and source package", async ({ page }) => {
   await page.goto("/extension");
   await expect(page.getByRole("heading", { name: "Linkables browser extensions" })).toBeVisible();
-  await expect(page.locator('a[href$=".xpi"]')).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
 });
 
 for (const [path, heading] of [["/privacy", "Privacy on this server"], ["/terms", "About this self-hosted instance"], ["/support", "Self-hosted help"]] as const) {

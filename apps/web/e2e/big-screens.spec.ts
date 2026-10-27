@@ -54,9 +54,9 @@ test.describe("at 1440 px", () => {
     test("the sidebar card and the settings tile offer Add to Firefox", async ({ page }) => {
       await page.goto("/");
       const card = page.getByRole("region", { name: "Firefox extension" });
-      await expect(card.getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/extension");
+      await expect(card.getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
       await page.goto("/settings");
-      await expect(page.getByRole("main").getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/extension");
+      await expect(page.getByRole("main").getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
       await expect(page.getByRole("link", { name: /Add to Chrome/ })).toHaveCount(0);
     });
   });

@@ -22,7 +22,7 @@ describe("ExtensionCard", () => {
     await renderWithRouter(<ExtensionCard firefox />);
     const card = screen.getByRole("region", { name: "Firefox extension" });
     expect(within(card).getByText("Save any tab in one click")).toBeInTheDocument();
-    expect(within(card).getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/extension");
+    expect(within(card).getByRole("link", { name: "Add to Firefox" })).toHaveAttribute("href", "/downloads/linkables-firefox.xpi");
   });
 
   it("stays dismissed on this device once dismissed", async () => {

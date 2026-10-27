@@ -1,5 +1,5 @@
 import { peekAccessToken, readAccessToken } from "../auth/access-token";
-import { forgetSession } from "../auth/session";
+import { currentSession, forgetSession } from "../auth/session";
 import { env } from "../config/env";
 import { createApiClient } from "./client";
 
@@ -8,4 +8,5 @@ export const api = createApiClient({
   getAccessToken: readAccessToken,
   peekAccessToken: () => peekAccessToken(),
   onUnauthenticated: forgetSession,
+  isCurrentSession: (token) => currentSession()?.token === token,
 });
