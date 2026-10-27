@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 import { BUILT_URL } from "./built-env";
@@ -59,16 +59,16 @@ test("the extension install guide is open to a visitor who is not signed in", as
 });
 
 test.describe("the extension download", () => {
-  // CI copies the real zip here after the web build; the test stands in a tiny one.
+  // The Firefox add-on comes from public/ with the build; the Chrome zip is added after it, so the test stands in a tiny one.
   const downloads = fileURLToPath(new URL("../dist/downloads/", import.meta.url));
+  const firefoxXpi = fileURLToPath(new URL("../public/downloads/linkables-firefox.xpi", import.meta.url));
   const emptyZip = Buffer.from([0x50, 0x4b, 0x05, 0x06, ...new Array<number>(18).fill(0)]);
 
   test.beforeAll(() => {
     mkdirSync(downloads, { recursive: true });
     writeFileSync(`${downloads}linkables-chrome.zip`, emptyZip);
-    writeFileSync(`${downloads}linkables-firefox.xpi`, emptyZip);
   });
-  test.afterAll(() => { rmSync(downloads, { recursive: true, force: true }); });
+  test.afterAll(() => { rmSync(`${downloads}linkables-chrome.zip`, { force: true }); });
 
   test("is served as the zip file, not the app shell", async ({ request }) => {
     const response = await request.get("/downloads/linkables-chrome.zip");
@@ -81,7 +81,7 @@ test.describe("the extension download", () => {
     const response = await request.get("/downloads/linkables-firefox.xpi");
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toBe("application/x-xpinstall");
-    expect(await response.body()).toEqual(emptyZip);
+    expect(await response.body()).toEqual(readFileSync(firefoxXpi));
   });
 });
 

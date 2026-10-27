@@ -154,5 +154,5 @@ item and submit again. Store installs update themselves.
 
 Firefox has no store listing: the add-on is signed as unlisted on
 addons.mozilla.org and served from linkables.app. Building, signing and where
-the file goes are in the README's Firefox section; the data it handles is the
+the file goes (`apps/web/public/downloads/linkables-firefox.xpi`) are in the README's Firefox section; the data it handles is the
 same as the Chrome listing declares in `store/privacy-practices.md`.
