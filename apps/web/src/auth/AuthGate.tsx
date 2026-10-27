@@ -1,4 +1,5 @@
 import { EXTENSION_CONNECT_PATH } from "@linkables/shared/extension-sessions";
+import { useRef } from "react";
 import { Navigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -14,9 +15,16 @@ import { ACCOUNT_DELETED_PATH } from "../settings/path";
 
 export function AuthGate() {
   const auth = useAuth();
+  const identity = useRef<string | null>(null);
+  const generation = useRef(0);
+  const userId = auth.status === "signed-in" ? auth.session.user.id : null;
+  // Remount after an established account changes, but keep public queries alive
+  // while the initial cookie check resolves.
+  if (identity.current !== null && identity.current !== userId) generation.current += 1;
+  identity.current = userId;
   return (
     <AuthStateContext value={auth}>
-      <GatedOutlet key={auth.status === "signed-in" ? auth.session.user.id : auth.status} />
+      <GatedOutlet key={generation.current} />
       <Toaster />
     </AuthStateContext>
   );
