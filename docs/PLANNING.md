@@ -71,7 +71,7 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
    `sub`. The request-access form is public because its users have no account
    yet; it only inserts, gives the same answer whatever is stored, and is
    rate-limited per IP. A shared collection is public because its owner turned
-   its view-only link on; it reads only that collection's display fields and is
+   its view-only link on; it reads only that collection's display fields (and its shown groups' names) and is
    rate-limited per IP.
    Check: `apps/api/test/authz.db.test.ts` (every route: no token → 401, another
    user's ids → 404, no leaks in any listing; each public API route is probed for
@@ -91,10 +91,10 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 
 ## Out of scope (now)
 
-- Sharing and collaboration (Phase 3)
+- Sharing with roles, invitations and collaboration (Phase 3); view-only share links are already in
 - AI features (Phase 4)
 - Billing and team plans (Phase 5)
-- Native mobile apps, nested collections, marketing site (Phase 6 or later)
+- Native mobile apps, recursive nested collections (one level of groups is in, ADR-0007), marketing site (Phase 6 or later)
 - Tags, archive, bulk actions (not asked for; add when wanted)
 - Automated sign-in removal: Settings deletes a user's data at once, and the server's optional Supabase secret key is used only for extension sign-in, so the owner removes the sign-in record by hand within 30 days (emailed on each deletion)
 
@@ -123,7 +123,15 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
   sign-in from linkables.app or Google (LNK-55, LNK-56) were pulled forward.
   A Firefox build (LNK-58), signed as an unlisted add-on and served at
   `/downloads/linkables-firefox.xpi`, was added on the same terms.
-- Deferred: the rest of the browser extension (Phase 2), any sharing.
+- Also in, 2026-10-26 and 27: **groups** inside a collection, one level deep
+  (ADR-0007): group headers, drag a link onto a header or reorder by the grip,
+  and sharing by group (`shared` per group, `collection.share_ungrouped`, group
+  headings on the public page). A collection's page has **Open all** and
+  **Select** to open many links, with a confirm and a per-device "Don't ask me
+  again"; clicking a link opens it, with Read on hover (not for videos and
+  files). Where the web UI went beyond the design, `docs/design/DEVIATIONS.md`
+  says so.
+- Deferred: the rest of the browser extension (Phase 2), sharing beyond view-only links.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
 - Tickets: Plane project `linkables` (LNK), workspace `ideayard`, project id
@@ -211,7 +219,7 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
 ### Phase 6 — Later
 
 - Objective: nothing committed. Each item is evaluated by user demand and cost.
-- Candidates: native apps, nested collections, import integrations, public
+- Candidates: native apps, recursive nested collections (groups, one level, shipped 2026-10-26), import integrations, public
   directories, marketing site, and notes and highlights on reader articles
   (owner-requested 2026-10-25, with the summaries in Phase 4).
 - Tickets: none.
