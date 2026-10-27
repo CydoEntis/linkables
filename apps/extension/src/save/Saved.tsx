@@ -2,6 +2,7 @@ import type { SaveLinkResponse } from "@linkables/shared/links";
 import { cn } from "cn";
 import { Check, LibraryBig, Link2, Pin } from "lucide-react";
 import { CollectionPicker } from "../collections/CollectionPicker";
+import { FiledGroups } from "../collections/FiledGroups";
 import { locationLabel } from "../collections/picker";
 import { useFiling } from "../collections/use-collections";
 import { useCopy, type CopyState } from "../copy/use-copy";
@@ -64,6 +65,7 @@ export function Saved({ link, pageTitle }: SavedProps) {
       <p role="status" className="sr-only">
         {share.state === "copied" ? "Link copied" : null}
       </p>
+      <FiledGroups linkId={link.id} filed={filing.filed} initial={link.collections} />
       <CollectionPicker filedIds={new Set(filing.filed.map((collection) => collection.id))} onFile={filing.setFiledIn} />
       {problem ? <div className="px-4 pb-3"><Alert>{problem}</Alert></div> : null}
     </>

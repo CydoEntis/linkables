@@ -28,7 +28,7 @@ async function openPanel(context: BrowserContext, email: string): Promise<Page> 
 }
 
 // Sets up the account the way the web app would, through the API.
-async function callApi<T>(request: APIRequestContext, user: TestUser, method: "GET" | "POST" | "PATCH", path: string, data?: unknown): Promise<T> {
+async function callApi<T>(request: APIRequestContext, user: TestUser, method: "GET" | "POST" | "PATCH" | "PUT", path: string, data?: unknown): Promise<T> {
   const response = await request.fetch(`${API_URL}/api/v1${path}`, {
     method,
     headers: { Authorization: `Bearer ${user.accessToken}` },
@@ -182,6 +182,57 @@ test("on a tab it may not read, the panel offers Follow the tab you're on and th
 
   await panel.getByRole("button", { name: "Extension settings" }).click();
   await expect(panel.getByRole("switch", { name: "Follow the tab you're on" })).toHaveAttribute("aria-checked", "false");
+});
+
+async function seedGroupedCollection(request: APIRequestContext, user: TestUser) {
+  const collection = await callApi<{ id: string }>(request, user, "POST", "/collections", { name: "Dinners" });
+  const mains = await callApi<{ id: string }>(request, user, "POST", `/collections/${collection.id}/groups`, { name: "Mains" });
+  await callApi(request, user, "POST", `/collections/${collection.id}/groups`, { name: "Desserts" });
+  const loose = await callApi<{ id: string }>(request, user, "POST", "/links", { url: "https://example.com/loose" });
+  const braise = await callApi<{ id: string }>(request, user, "POST", "/links", { url: "https://example.com/braise" });
+  await callApi(request, user, "PUT", `/collections/${collection.id}/links/${loose.id}`);
+  await callApi(request, user, "PUT", `/collections/${collection.id}/links/${braise.id}`);
+  await callApi(request, user, "PATCH", `/collections/${collection.id}/links/${braise.id}`, { groupId: mains.id });
+  return collection;
+}
+
+test("the Collections tab shows a collection's groups as headers over their links", async ({ context, request, user }, testInfo) => {
+  await seedGroupedCollection(request, user);
+  const panel = await openPanel(context, user.email);
+
+  await panel.getByRole("tab", { name: "Collections" }).click();
+  await panel.getByRole("button", { name: "Show links in Dinners" }).click();
+  const ungrouped = panel.getByRole("region", { name: "Ungrouped" });
+  await expect(ungrouped.getByRole("heading", { name: /Ungrouped/ })).toBeVisible();
+  await expect(ungrouped).toContainText("example.com/loose");
+  const mains = panel.getByRole("region", { name: "Mains" });
+  await expect(mains).toContainText("example.com/braise");
+  await expect(mains).not.toContainText("example.com/loose");
+  await expect(panel.getByRole("region", { name: "Desserts" })).toContainText("Nothing here yet.");
+  await snap(panel, testInfo, "panel-collection-groups");
+});
+
+test("the share sheet lists what's shared and saves each tick", async ({ context, request, user }, testInfo) => {
+  const collection = await seedGroupedCollection(request, user);
+  const panel = await openPanel(context, user.email);
+
+  await panel.getByRole("tab", { name: "Collections" }).click();
+  await panel.getByRole("button", { name: "Share Dinners" }).click();
+  const sheet = panel.getByRole("dialog", { name: "Share “Dinners”" });
+  await expect(sheet.getByText("2 of 2 groups shared")).toBeVisible();
+
+  await sheet.getByRole("checkbox", { name: "Desserts" }).click();
+  await expect(sheet.getByRole("checkbox", { name: "Desserts" })).toHaveAttribute("aria-checked", "false");
+  await expect(sheet.getByText("1 of 2 groups shared")).toBeVisible();
+  await sheet.getByRole("checkbox", { name: "Ungrouped links" }).click();
+  await snap(panel, testInfo, "panel-share-scope");
+
+  await expect
+    .poll(async () => {
+      const state = await callApi<{ ungrouped?: boolean; groups?: { name: string; shared: boolean }[] }>(request, user, "GET", `/collections/${collection.id}/share`);
+      return { ungrouped: state.ungrouped, groups: state.groups?.map((group) => [group.name, group.shared]) };
+    })
+    .toEqual({ ungrouped: false, groups: [["Mains", true], ["Desserts", false]] });
 });
 
 test("the gear opens extension settings with the shortcut and the account", async ({ context, user }) => {
