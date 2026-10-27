@@ -2,8 +2,9 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { importPostgres } from "./import-postgres";
 import { COLLECTION_ID, GROUP_ID, LINK_ID, OWNER_ID, postgresFixture } from "./fixtures";
@@ -12,6 +13,8 @@ let directory: string;
 beforeEach(() => { directory = mkdtempSync(join(tmpdir(), "linkables-import-test-")); });
 afterEach(() => { rmSync(directory, { recursive: true, force: true }); });
 const destination = () => join(directory, "library.db");
+const REOPEN_ATTEMPTS = 2;
+const STARTUP_TIMEOUT_MS = 15_000;
 
 test("preserves a complete library and its original microsecond timestamps", async () => {
   const input = postgresFixture();
@@ -64,14 +67,18 @@ test("rejects cross-user collection memberships before creating a database", asy
   expect(existsSync(destination())).toBe(false);
 });
 
+// Budget both bounded cold starts plus the import and integrity assertions.
 test("the runtime migrator reopens imported data repeatedly without reapplying DDL", async () => {
   await importPostgres(postgresFixture(), destination());
   const initial = new DatabaseSync(destination(), { readOnly: true });
   const migrationsBefore = initial.prepare("SELECT count(*) AS n FROM __drizzle_migrations").get()?.n;
   initial.close();
   const cli = fileURLToPath(new URL("../db/migrate-cli.ts", import.meta.url));
-  for (let attempt = 0; attempt < 2; attempt++) {
-    execFileSync(process.execPath, ["--import", "tsx", cli], { env: { ...process.env, DATABASE_URL: pathToFileURL(destination()).href } });
+  for (let attempt = 0; attempt < REOPEN_ATTEMPTS; attempt++) {
+    await promisify(execFile)(process.execPath, ["--import", "tsx", cli], {
+      env: { ...process.env, DATABASE_URL: pathToFileURL(destination()).href },
+      timeout: STARTUP_TIMEOUT_MS,
+    });
   }
   const db = new DatabaseSync(destination(), { readOnly: true });
   try {
@@ -79,7 +86,7 @@ test("the runtime migrator reopens imported data repeatedly without reapplying D
     expect(db.prepare("SELECT count(*) AS n FROM __drizzle_migrations").get()?.n).toBe(migrationsBefore);
     expect(db.prepare("SELECT link_id FROM saved_link_search WHERE saved_link_search MATCH ?").get('"research"')?.link_id).toBe(LINK_ID);
   } finally { db.close(); }
-});
+}, REOPEN_ATTEMPTS * STARTUP_TIMEOUT_MS + 5_000);
 
 test("rejects malformed input without creating a destination", async () => {
   await expect(importPostgres({ format: "other" }, destination())).rejects.toThrow("Invalid PostgreSQL snapshot");
