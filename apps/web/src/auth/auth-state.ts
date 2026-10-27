@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { AuthState } from "./use-auth";
 
-// One useAuth subscription for the whole app: readLinkProblem consumes the URL, so it must run once.
+// One session subscription drives the gate and account controls.
 export const AuthStateContext = createContext<AuthState | null>(null);
 
 export function useAuthState(): AuthState {

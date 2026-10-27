@@ -1,4 +1,4 @@
-﻿import { sessionSchema, signInRequestSchema } from "@linkables/shared/auth";
+import { sessionSchema, signInRequestSchema } from "@linkables/shared/auth";
 import { ApiError, NETWORK_ERROR, parseData, readEnvelope } from "@linkables/shared/api-client";
 import { ERROR_CODES } from "@linkables/shared/http";
 import type { z } from "zod";
@@ -7,11 +7,13 @@ import { env } from "../config/env";
 export type Session = z.infer<typeof sessionSchema>;
 type Listener = (session: Session | null) => void;
 let current: Session | null = null;
+let revision = 0;
 const listeners = new Set<Listener>();
 
 export function currentSession(): Session | null { return current; }
 
 export function rememberSession(session: Session | null): void {
+  revision += 1;
   current = session;
   for (const listener of listeners) listener(session);
 }
@@ -40,12 +42,15 @@ async function request(path: string, body?: unknown) {
 }
 
 export async function loadSession(): Promise<Session | null> {
+  const started = revision;
   try {
     const session = parseData(sessionSchema, await request("session"));
+    if (revision !== started) return current;
     rememberSession(session);
     return session;
   } catch (error) {
     if (error instanceof ApiError && error.code === ERROR_CODES.UNAUTHENTICATED) {
+      if (revision !== started) return current;
       rememberSession(null);
       return null;
     }

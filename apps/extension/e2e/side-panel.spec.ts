@@ -19,10 +19,12 @@ async function openArticle(context: BrowserContext): Promise<Page> {
 async function openPanel(context: BrowserContext, email: string): Promise<Page> {
   const panel = await context.newPage();
   await panel.goto(PANEL_URL);
-  await panel.getByRole("button", { name: "Use an email code instead" }).click();
+  await panel.evaluate(async (origin) => { await chrome.storage.local.set({ "linkables.connection": { origin, session: null } }); }, APP_URL);
+  await panel.reload();
   await panel.getByLabel("Email").fill(email);
-  await panel.getByRole("button", { name: "Email me a code" }).click();
-  await panel.getByLabel("6-digit code").fill("123456");
+  await panel.getByLabel("Password", { exact: true }).fill("local-e2e-password-1234");
+  await panel.getByRole("button", { name: "Sign in", exact: true }).click();
+
   await expect(panel.getByRole("heading", { name: "This page can't be saved" })).toBeVisible();
   return panel;
 }

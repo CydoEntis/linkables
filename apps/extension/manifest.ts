@@ -14,14 +14,13 @@ export async function extensionIdFor(key: string): Promise<string> {
   return Array.from(hex, (digit) => String.fromCharCode(97 + parseInt(digit, 16))).join("");
 }
 
-// The Firefox add-on id; Firefox derives the Google sign-in redirect URL from it
-// (https://<sha1 of the id>.extensions.allizom.org/, see README.md).
+// Stable identifier for Mozilla signing.
 export const GECKO_ID = "linkables@linkables.app";
 
 // store: the Chrome Web Store build. The store refuses an uploaded `key` and assigns its own id.
-type ManifestOptions = { version: string; appUrl: string; supabaseUrl: string; store?: boolean };
+type ManifestOptions = { version: string; store?: boolean };
 
-const hostPattern = (origin: string) => `${origin.replace(/\/+$/, "")}/*`;
+
 
 // Both browsers hand this command to the worker. It must stay a different key from
 // the side panel's Alt+Shift+L.
@@ -30,17 +29,17 @@ const QUIET_SAVE_COMMANDS = {
 };
 
 // What both browsers' manifests share.
-function sharedFields({ version, appUrl, supabaseUrl }: Omit<ManifestOptions, "store">) {
+function sharedFields({ version }: Omit<ManifestOptions, "store">) {
   return {
     manifest_version: 3,
     name: "linkables",
     // Also the Web Store listing's summary, which allows 132 characters.
-    description: "Save the page you're on to linkables in one click, then pin it or file it in a collection. Private beta, sign-in required.",
+    description: "Save pages to your own Linkables server, then search, organize, and share your collections.",
     version,
-    host_permissions: [hostPattern(appUrl), hostPattern(supabaseUrl)],
+    optional_host_permissions: ["https://*/*", "http://localhost/*", "http://127.0.0.1/*", "http://[::1]/*"],
     // Signs the extension in from the app (src/connect). A content script rather than
     // externally_connectable, which Firefox lacks.
-    content_scripts: [{ matches: [hostPattern(appUrl)], js: ["content-script.js"], run_at: "document_start" }],
+
     action: {
       default_title: "Save to linkables",
       default_popup: "popup.html",
@@ -57,10 +56,8 @@ export function buildManifest({ store = false, ...options }: ManifestOptions) {
   return {
     ...sharedFields(options),
     ...(store ? {} : { key: MANIFEST_KEY }),
-    // activeTab reads the current tab's address only when the toolbar button, the side
-    // panel shortcut or the right-click menu is used on it; identity opens the Google
-    // sign-in window.
-    permissions: ["activeTab", "storage", "identity", "sidePanel", "contextMenus"],
+    // Tab access follows explicit browser actions; server access is requested separately.
+    permissions: ["activeTab", "storage", "sidePanel", "contextMenus"],
     background: { service_worker: "worker.js", type: "module" },
     // A plain extension page, so Firefox's sidebar_action can load the same file.
     side_panel: { default_path: "sidepanel.html" },
@@ -79,7 +76,7 @@ export function buildManifest({ store = false, ...options }: ManifestOptions) {
 export function buildFirefoxManifest(options: Omit<ManifestOptions, "store">) {
   return {
     ...sharedFields(options),
-    permissions: ["activeTab", "storage", "identity", "contextMenus"],
+    permissions: ["activeTab", "storage", "contextMenus"],
     background: { scripts: ["worker.js"], type: "module" },
     sidebar_action: {
       default_panel: "sidepanel.html",
@@ -101,3 +98,4 @@ export function buildFirefoxManifest(options: Omit<ManifestOptions, "store">) {
     },
   };
 }
+

@@ -2,10 +2,7 @@ import { ApiError, NETWORK_ERROR, parseData, readEnvelope } from "@linkables/sha
 import { API_V1_PREFIX, ERROR_CODES } from "@linkables/shared/http";
 import type { z } from "zod";
 
-// No token to send. On the pop-up and panel that means supabase-js could not
-// refresh the session (Supabase unreachable or failing); in the worker, which never
-// refreshes, that the stored token has run out. Either way the stored session may
-// still be good, so this is never treated as signed out.
+// No usable session is available for the selected server.
 export const NO_SESSION = "NO_SESSION";
 
 type ApiClientOptions = {

@@ -9,3 +9,4 @@ export const SUPABASE_URL = "http://dummy.test";
 
 // Never opened by the suite; only checked as the "Add the shortcut" link.
 export const IOS_SHORTCUT_URL = "https://www.icloud.com/shortcuts/e2e-shortcut";
+export const AUTH_SECRET = "e2e-only-local-auth-secret-at-least-32-characters";

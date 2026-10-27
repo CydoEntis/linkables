@@ -1,6 +1,7 @@
-﻿import { currentSession, loadSession } from "./session";
+import { currentSession, loadSession } from "./session";
 
 export async function readAccessToken(): Promise<string | null> {
+  if (currentSession() === null) return null;
   return peekAccessToken() ?? (await loadSession())?.token ?? null;
 }
 

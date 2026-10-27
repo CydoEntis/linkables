@@ -1,7 +1,7 @@
 import { AlertCircle, Ban, LoaderCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { SignedInAs } from "../auth/SignedInAs";
-import { signOutByHand } from "../auth/supabase";
+import { signOutByHand } from "../auth/session";
 import { GHOST_BUTTON, PRIMARY_BUTTON, QUIET_LINK } from "../ui";
 import { SAVE_MESSAGES } from "./save-flow";
 import { Saved } from "./Saved";
@@ -44,7 +44,7 @@ function Status({ icon, title, children }: { icon: ReactNode; title: string; chi
 }
 
 function Saving() {
-  return <Status icon={<LoaderCircle aria-hidden className="size-[18px] animate-spin" />} title="Saving…" />;
+  return <Status icon={<LoaderCircle aria-hidden className="size-[18px] animate-spin" />} title="Savingâ€¦" />;
 }
 
 function CantSave({ reason }: { reason: string }) {
@@ -88,3 +88,4 @@ function Footer() {
     </footer>
   );
 }
+

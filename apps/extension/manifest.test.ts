@@ -5,29 +5,27 @@ import { buildFirefoxManifest, buildManifest, EXTENSION_ID, GECKO_ID, extensionI
 
 const manifest = buildManifest({
   version: "0.1.0",
-  appUrl: "https://linkables.app",
-  supabaseUrl: "https://ref.supabase.co",
 });
 
 describe("buildManifest", () => {
-  it("asks only for the active tab, storage, the Google sign-in window, the side panel and the right-click menu", () => {
-    expect(manifest.permissions).toEqual(["activeTab", "storage", "identity", "sidePanel", "contextMenus"]);
+  it("asks only for the active tab, storage, the side panel and the right-click menu", () => {
+    expect(manifest.permissions).toEqual(["activeTab", "storage", "sidePanel", "contextMenus"]);
   });
 
   it("runs its worker as a module", () => {
     expect(manifest.background).toEqual({ service_worker: "worker.js", type: "module" });
   });
 
-  it("injects its content script on the app's pages only, before they run", () => {
-    expect(manifest.content_scripts).toEqual([{ matches: ["https://linkables.app/*"], js: ["content-script.js"], run_at: "document_start" }]);
+  it("does not inject code into unrelated web pages", () => {
+    expect(manifest).not.toHaveProperty("content_scripts");
   });
 
   it("does not let web pages message the extension directly, which Firefox cannot do", () => {
     expect(manifest).not.toHaveProperty("externally_connectable");
   });
 
-  it("reaches only the app and the Supabase project", () => {
-    expect(manifest.host_permissions).toEqual(["https://linkables.app/*", "https://ref.supabase.co/*"]);
+  it("asks for optional server access instead of fixed hosted-service access", () => {
+    expect(manifest.optional_host_permissions).toContain("https://*/*");
   });
 
   it("carries the public key that fixes the extension id", () => {
@@ -35,7 +33,7 @@ describe("buildManifest", () => {
   });
 
   it("leaves the key out of the Web Store build, which gets its id from the store", () => {
-    const built = buildManifest({ version: "0.2.0", appUrl: "https://linkables.app", supabaseUrl: "https://ref.supabase.co", store: true });
+    const built = buildManifest({ version: "0.2.0", store: true });
     expect(built).not.toHaveProperty("key");
     expect(built.permissions).toEqual(manifest.permissions);
   });
@@ -52,9 +50,9 @@ describe("buildManifest", () => {
     expect(Object.keys(manifest.icons)).toEqual(["16", "32", "48", "128"]);
   });
 
-  it("drops a trailing slash from the configured origins", () => {
-    const built = buildManifest({ version: "0.1.0", appUrl: "http://127.0.0.1:3261/", supabaseUrl: "http://dummy.test/" });
-    expect(built.host_permissions).toEqual(["http://127.0.0.1:3261/*", "http://dummy.test/*"]);
+  it("has no required host permission at installation", () => {
+    const built = buildManifest({ version: "0.1.0" });
+    expect(built).not.toHaveProperty("host_permissions");
   });
 });
 
@@ -73,7 +71,7 @@ describe("side panel", () => {
 });
 
 describe("quiet save shortcut", () => {
-  const firefox = buildFirefoxManifest({ version: "0.3.1", appUrl: "https://linkables.app", supabaseUrl: "https://ref.supabase.co" });
+  const firefox = buildFirefoxManifest({ version: "0.3.1" });
 
   it("suggests Alt+Shift+S to save the tab in Chrome", () => {
     expect(manifest.commands["save-quietly"].suggested_key).toEqual({ default: "Alt+Shift+S" });
@@ -92,7 +90,7 @@ describe("quiet save shortcut", () => {
 });
 
 describe("buildFirefoxManifest", () => {
-  const firefox = buildFirefoxManifest({ version: "0.3.1", appUrl: "https://linkables.app", supabaseUrl: "https://ref.supabase.co" });
+  const firefox = buildFirefoxManifest({ version: "0.3.1" });
 
   it("runs the worker as an event page, since Firefox has no service worker", () => {
     expect(firefox.background).toEqual({ scripts: ["worker.js"], type: "module" });
@@ -111,12 +109,12 @@ describe("buildFirefoxManifest", () => {
   });
 
   it("drops the Chrome-only sidePanel permission and keeps the rest", () => {
-    expect(firefox.permissions).toEqual(["activeTab", "storage", "identity", "contextMenus"]);
+    expect(firefox.permissions).toEqual(["activeTab", "storage", "contextMenus"]);
   });
 
-  it("reaches the same hosts and runs the same content script as Chrome", () => {
-    expect(firefox.host_permissions).toEqual(manifest.host_permissions);
-    expect(firefox.content_scripts).toEqual(manifest.content_scripts);
+  it("uses the same optional hosts as Chrome", () => {
+    expect(firefox.optional_host_permissions).toEqual(manifest.optional_host_permissions);
+    expect(firefox).not.toHaveProperty("content_scripts");
     expect(firefox.optional_permissions).toEqual(["tabs"]);
   });
 });
@@ -126,3 +124,4 @@ describe("extensionIdFor", () => {
     await expect(extensionIdFor(MANIFEST_KEY)).resolves.toBe(EXTENSION_ID);
   });
 });
+

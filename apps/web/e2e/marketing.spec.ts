@@ -1,55 +1,18 @@
 import { expect, test } from "./fixtures";
 
-const PUBLIC_PAGES = [
-  { path: "/privacy", heading: "Privacy policy" },
-  { path: "/terms", heading: "Terms of use" },
-  { path: "/support", heading: "Support" },
-];
-
 test.describe("signed out", () => {
   test.use({ signedIn: false });
 
-  test("every Request access link on the landing page leads to the form during the private beta", async ({ page }) => {
+  test("opens local sign-in at the instance root", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Private beta").first()).toBeVisible();
-    const links = page.getByRole("link", { name: "Request access", includeHidden: true });
-    await expect(links).toHaveCount(4);
-    for (const link of await links.all()) await expect(link).toHaveAttribute("href", "/request-access");
-    await expect(page.getByRole("link", { name: /Get started/ })).toHaveCount(0);
-  });
-
-  test("Sign in on the landing page leads invited users to sign-in", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("link", { name: "Sign in", exact: true }).first().click();
     await expect(page.getByRole("heading", { name: "Sign in to linkables" })).toBeVisible();
-    await expect(page.getByText("linkables is invite-only for now")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
   });
 
-  test("the landing page's Chrome extension card links to the Chrome Web Store listing", async ({ page }) => {
-    await page.goto("/");
-    const chrome = page.locator("article", { has: page.getByRole("heading", { name: "Chrome extension" }) });
-    await expect(chrome.getByText("Available now")).toBeVisible();
-    await expect(chrome.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", "https://chromewebstore.google.com/detail/linkables/dckjkoommfddaimpjbghbomojdkhaoai");
-  });
-
-  test("the landing page has no horizontal scroll on a 360 px phone", async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 780 });
-    await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-    expect(overflow).toBe(0);
-  });
-
-  for (const { path, heading } of PUBLIC_PAGES) {
+  for (const [path, heading] of [["/privacy", "Privacy on this server"], ["/terms", "About this self-hosted instance"], ["/support", "Self-hosted help"]]) {
     test(`${path} is readable without signing in`, async ({ page }) => {
-      await page.goto(path);
+      await page.goto(path ?? "/");
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
-      await expect(page.getByText("The short version")).toBeVisible();
     });
   }
-});
-
-test("a signed-in user can still read the privacy policy", async ({ page }) => {
-  await page.goto("/privacy");
-  await expect(page.getByRole("heading", { name: "Privacy policy", level: 1 })).toBeVisible();
 });
