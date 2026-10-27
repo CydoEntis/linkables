@@ -135,3 +135,10 @@ The handoff draws the search/paste bar, the phone search field and lime matches;
 - **The goodbye has its own address**, `/account-deleted`, so it stays on screen after the sign-out lands. It opens only after a delete in this tab. Back to linkables.app appears once no session is left, and reloads the landing page.
 - **Read is hidden for videos and files.** A link whose kind is video or other shows no Read action (hover, swipe tile, extension panel); its link page still opens by address. A page, or a link still fetching, keeps Read. A page can still turn out not to be an article, which only the reader fetch shows.
 - **A stronger drop state in the sidebar.** While a row is dragged, every collection gets a dashed lime outline and tint, and the one held over gets a solid ring, glow and an "Add" (or "Already in") cue in place of its count. The outline never changes the row's size. With no collections, dragging shows a dashed "Drop here to start a collection" box where the first one would go; dropping on it opens the name field with that link, and Enter files it into the new collection.
+
+## Opening several links from your own collection (no spec in the handoff)
+
+- **Open all, Select and a confirm on a collection's page.** The round 2 design has Open all only on the public shared page. The owner's page gets Open all and Select beside Share. Several links open only after "Open N links?" (Open, Cancel, "Don't ask me again"), a dialog on a big screen and a bottom sheet on a phone.
+- **A switch in Settings, "Ask before opening several links"** (new section Opening links, on by default), remembered per device in `localStorage` like the Grid/List choice. "Don't ask me again" turns it off; the switch turns it back on.
+- **More than 25 links always asks**, even with the switch off, and the dialog says why and that the browser may block some tabs. The setting is otherwise authoritative.
+- **The blocked pop-ups banner is the big-screen one on phones too**, with its Open the other N button (one tab per tap there); owner rows are not ticked as they open.
