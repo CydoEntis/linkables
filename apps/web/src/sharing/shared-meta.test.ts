@@ -30,4 +30,11 @@ describe("sharedMeta", () => {
   it("says when only the newest links are shown", () => {
     expect(sharedMeta(collection({ linkCount: 600, links: [LINK] }), NOW)).toBe("600 links · showing the newest 1");
   });
+
+  it("counts the links in groups as shown", () => {
+    const groups = [{ name: "Food", linkCount: 3, links: [LINK, LINK, LINK] }];
+
+    expect(sharedMeta(collection({ linkCount: 5, links: [LINK, LINK], groups }), NOW)).toBe("5 links");
+    expect(sharedMeta(collection({ linkCount: 9, links: [LINK, LINK], groups }), NOW)).toBe("9 links · showing the newest 5");
+  });
 });

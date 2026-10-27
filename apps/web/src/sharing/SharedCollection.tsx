@@ -1,12 +1,12 @@
-import type { SharedCollection as SharedCollectionData, SharedLink } from "@linkables/shared/sharing";
+import type { SharedCollection as SharedCollectionData, SharedGroup, SharedLink } from "@linkables/shared/sharing";
 import { cn } from "cn";
 import { ExternalLink, Globe, LayoutGrid, List } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { displayName } from "../collections/display-name";
 import { BlockedBanner } from "./BlockedBanner";
 import { openAll, type OpenAllResult } from "./open-all";
-import { sharedMeta } from "./shared-meta";
+import { sharedMeta, shownLinks } from "./shared-meta";
 import { SharedLinkCard, SharedLinkRow } from "./SharedLinkCard";
 
 type View = "grid" | "list";
@@ -38,7 +38,7 @@ export function SharedCollection({ collection, wide }: { collection: SharedColle
   useDocumentTitle(collection.name);
   const [view, setView] = useState<View>("grid");
   const opening = useOpening();
-  const { links } = collection;
+  const links = shownLinks(collection);
   const showList = wide && view === "list";
   const blocked = opening.stillBlocked.length > 0;
 
@@ -77,14 +77,38 @@ export function SharedCollection({ collection, wide }: { collection: SharedColle
         />
       ) : null}
       {links.length === 0 ? <p className="py-10 text-[15px] text-muted-foreground">Nothing in this collection yet.</p> : null}
-      <ul className={cn(showList ? "flex flex-col gap-1.5" : "grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3")}>
-        {links.map((link, index) => (
-          <li key={`${String(index)}-${link.url}`}>
-            <LinkItem link={link} list={showList} opened={opening.opened.has(link.url)} onOpen={() => { opening.markOpened([link.url]); }} />
-          </li>
-        ))}
-      </ul>
+      {collection.links.length > 0 ? <LinkList links={collection.links} list={showList} opening={opening} /> : null}
+      {(collection.groups ?? []).map((group) => (
+        <GroupSection key={group.name} group={group} list={showList} opening={opening} />
+      ))}
     </>
+  );
+}
+
+type Opening = ReturnType<typeof useOpening>;
+
+function LinkList({ links, list, opening }: { links: readonly SharedLink[]; list: boolean; opening: Opening }) {
+  return (
+    <ul className={cn(list ? "flex flex-col gap-1.5" : "grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3")}>
+      {links.map((link, index) => (
+        <li key={`${String(index)}-${link.url}`}>
+          <LinkItem link={link} list={list} opened={opening.opened.has(link.url)} onOpen={() => { opening.markOpened([link.url]); }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function GroupSection({ group, list, opening }: { group: SharedGroup; list: boolean; opening: Opening }) {
+  const headingId = useId();
+  return (
+    <section aria-labelledby={headingId} className="mt-10 first:mt-0">
+      <h2 id={headingId} className="mb-4 flex items-baseline gap-2.5 text-[22px] leading-tight font-bold tracking-[-0.02em]">
+        <span className="min-w-0 wrap-anywhere">{group.name}</span>
+        <span className="text-[14px] font-semibold tracking-normal text-muted-foreground">{group.linkCount}</span>
+      </h2>
+      <LinkList links={group.links} list={list} opening={opening} />
+    </section>
   );
 }
 
