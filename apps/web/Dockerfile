@@ -9,8 +9,15 @@ RUN pnpm install --frozen-lockfile --filter web... --filter extension...
 COPY packages/shared packages/shared
 COPY apps/web apps/web
 COPY apps/extension apps/extension
-RUN pnpm --filter web build && pnpm --filter extension build && pnpm --filter extension release \
-    && pnpm --filter extension release:firefox && pnpm --filter extension release:firefox:source \
+COPY deploy/copy-notices.js deploy/copy-notices.js
+COPY LICENSE ./
+RUN pnpm --filter web build && pnpm --filter extension build \
+    && pnpm --filter extension release:firefox \
+    && pnpm --dir apps/web licenses list --prod --json > /tmp/linkables-licenses.json \
+    && node deploy/copy-notices.js /tmp/linkables-licenses.json apps/web/dist \
+    && node deploy/copy-notices.js /tmp/linkables-licenses.json apps/extension/dist \
+    && node deploy/copy-notices.js /tmp/linkables-licenses.json apps/extension/dist-firefox \
+    && pnpm --filter extension release && pnpm --filter extension release:firefox:source \
     && mkdir -p apps/web/dist/downloads \
     && cp apps/extension/release/linkables-chrome-[0-9]*.zip apps/web/dist/downloads/linkables-chrome.zip \
     && cp apps/extension/release/linkables-firefox-source-*.zip apps/web/dist/downloads/linkables-firefox-source.zip
