@@ -75,6 +75,16 @@ function CollectionHeader({ collection, filters }: { collection: ListedCollectio
           <ShareControls collection={collection} wide={wide} />
           <button
             type="button"
+            aria-label="New group"
+            title="New group"
+            onClick={() => { setCreatingGroupIn(collection.id); }}
+            className="flex size-11 items-center justify-center gap-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground md:h-10 md:w-auto md:px-3 md:text-[13.5px] md:font-semibold"
+          >
+            <FolderPlus aria-hidden strokeWidth={2} className="size-[15px]" />
+            <span className="hidden md:inline">New group</span>
+          </button>
+          <button
+            type="button"
             aria-label="Delete collection"
             title="Delete collection"
             onClick={() => { deleteCollection(collection); }}
