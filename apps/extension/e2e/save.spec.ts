@@ -99,9 +99,10 @@ test("a page saved before shows as Already saved, and can be pinned and filed", 
   await popup.getByRole("button", { name: "Pin", exact: true }).click();
   await expect(popup.getByRole("button", { name: "Pinned" })).toHaveAttribute("aria-pressed", "true");
   const copies = await recordCopies(popup);
-  await popup.getByRole("button", { name: "Share" }).click();
+  await popup.getByRole("button", { name: "Share link" }).click();
   await expect(popup.getByRole("button", { name: "Copied ✓" })).toBeVisible();
   expect(await copies()).toEqual([ARTICLE_URL]);
+  await expect(popup.getByText("Alt+Shift+S saves quietly")).toBeVisible();
   await snap(popup, testInfo, "popup-already-saved-filed");
 
   await expect

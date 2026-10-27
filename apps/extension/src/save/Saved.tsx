@@ -13,7 +13,7 @@ import { usePin } from "./use-pin";
 
 type SavedProps = { link: SaveLinkResponse; pageTitle: string | null };
 
-const SHARE_LABELS: Record<CopyState, string> = { idle: "Share", copied: "Copied ✓", failed: "Couldn't copy" };
+const SHARE_LABELS: Record<CopyState, string> = { idle: "Share link", copied: "Copied ✓", failed: "Couldn't copy" };
 
 export function Saved({ link, pageTitle }: SavedProps) {
   const filing = useFiling(link.id, link.collections);
