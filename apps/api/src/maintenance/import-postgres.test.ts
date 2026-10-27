@@ -2,6 +2,8 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { importPostgres } from "./import-postgres";
 import { COLLECTION_ID, GROUP_ID, LINK_ID, OWNER_ID, postgresFixture } from "./fixtures";
@@ -43,7 +45,9 @@ test("refuses an existing destination without changing it", async () => {
 
 test("publishes no database when a reference fails during import", async () => {
   const input = postgresFixture();
-  input.tables.collection_item[0]!.group_id = "66666666-6666-4666-8666-666666666666";
+  const [membership] = input.tables.collection_item;
+  if (!membership) throw new Error("Fixture has no membership");
+  membership.group_id = "66666666-6666-4666-8666-666666666666";
   await expect(importPostgres(input, destination())).rejects.toThrow();
   expect(existsSync(destination())).toBe(false);
   expect(readdirSync(directory)).toEqual([]);
@@ -53,9 +57,25 @@ test("rejects cross-user collection memberships before creating a database", asy
   const input = postgresFixture();
   const other = "77777777-7777-4777-8777-777777777777";
   input.users.push({ id: other, email: "other@example.test", name: "Other", created_at: input.exportedAt });
-  input.tables.collection[0]!.user_id = other;
+  const [collection] = input.tables.collection;
+  if (!collection) throw new Error("Fixture has no collection");
+  collection.user_id = other;
   await expect(importPostgres(input, destination())).rejects.toThrow("cross-user");
   expect(existsSync(destination())).toBe(false);
+});
+
+test("the runtime migrator reopens imported data repeatedly without reapplying DDL", async () => {
+  await importPostgres(postgresFixture(), destination());
+  const cli = fileURLToPath(new URL("../db/migrate-cli.ts", import.meta.url));
+  for (let attempt = 0; attempt < 2; attempt++) {
+    execFileSync(process.execPath, ["--import", "tsx", cli], { env: { ...process.env, DATABASE_URL: pathToFileURL(destination()).href } });
+  }
+  const db = new DatabaseSync(destination(), { readOnly: true });
+  try {
+    expect(db.prepare("SELECT id FROM saved_link").get()?.id).toBe(LINK_ID);
+    expect(db.prepare("SELECT count(*) AS n FROM __drizzle_migrations").get()?.n).toBe(3);
+    expect(db.prepare("SELECT link_id FROM saved_link_search WHERE saved_link_search MATCH ?").get('"research"')?.link_id).toBe(LINK_ID);
+  } finally { db.close(); }
 });
 
 test("rejects malformed input without creating a destination", async () => {

@@ -1,23 +1,19 @@
-import { closeSync, existsSync, linkSync, mkdirSync, openSync, readFileSync, unlinkSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import type { InValue, Transaction } from "@libsql/client";
-import { createDb } from "../db/client";
-import { migrateDb } from "../db/migrate";
+import { fileURLToPath } from "node:url";
+import { DatabaseSync, type SQLInputValue } from "node:sqlite";
+import { readMigrationFiles } from "drizzle-orm/migrator";
 import { snapshotSchema, type Snapshot } from "./snapshot";
-import { validateDatabase } from "./backup";
+import { backupDatabase } from "./backup";
 import { MaintenanceError } from "./errors";
 
-type Row = Record<string, InValue>;
+type Row = Record<string, SQLInputValue>;
 
-async function insertRows(tx: Transaction, table: string, rows: Row[]): Promise<void> {
+function insertRows(db: DatabaseSync, table: string, rows: Row[]): void {
   for (const row of rows) {
     const columns = Object.keys(row);
-    await tx.execute({
-      sql: `INSERT INTO "${table}" (${columns.map((column) => `"${column}"`).join(",")}) VALUES (${columns.map(() => "?").join(",")})`,
-      args: Object.values(row),
-    });
+    db.prepare(`INSERT INTO "${table}" (${columns.map((column) => `"${column}"`).join(",")}) VALUES (${columns.map(() => "?").join(",")})`).run(...Object.values(row));
   }
 }
 
@@ -40,21 +36,30 @@ function checkOwnership(snapshot: Snapshot): void {
   }
 }
 
-async function writeSnapshot(tx: Transaction, snapshot: Snapshot): Promise<void> {
-  await insertRows(tx, "user", snapshot.users.map((row) => ({
+function writeSnapshot(tx: DatabaseSync, snapshot: Snapshot): void {
+  insertRows(tx, "user", snapshot.users.map((row) => ({
     id: row.id, email: row.email, name: row.name, email_verified: 0,
     created_at: Date.parse(row.created_at), updated_at: Date.parse(row.created_at), image: null,
   })));
-  await insertRows(tx, "resource", snapshot.tables.resource);
-  await insertRows(tx, "saved_link", rowsWithBooleans(snapshot.tables.saved_link));
-  await insertRows(tx, "collection", rowsWithBooleans(snapshot.tables.collection));
-  await insertRows(tx, "collection_group", rowsWithBooleans(snapshot.tables.collection_group));
-  await insertRows(tx, "collection_item", snapshot.tables.collection_item);
-  await insertRows(tx, "resource_reader", snapshot.tables.resource_reader.map((row) => ({ ...row, article: row.article === null ? null : JSON.stringify(row.article) })));
+  insertRows(tx, "resource", snapshot.tables.resource);
+  insertRows(tx, "saved_link", rowsWithBooleans(snapshot.tables.saved_link));
+  insertRows(tx, "collection", rowsWithBooleans(snapshot.tables.collection));
+  insertRows(tx, "collection_group", rowsWithBooleans(snapshot.tables.collection_group));
+  insertRows(tx, "collection_item", snapshot.tables.collection_item);
+  insertRows(tx, "resource_reader", snapshot.tables.resource_reader.map((row) => ({ ...row, article: row.article === null ? null : JSON.stringify(row.article) })));
   // A lease belongs to the old process. Its job becomes eligible again here.
-  await insertRows(tx, "job", snapshot.tables.job.map((row) => ({ ...row, locked_until: null, lease_token: null })));
-  await insertRows(tx, "access_request", snapshot.tables.access_request);
-  await insertRows(tx, "share_allowed_email", snapshot.tables.share_allowed_email);
+  insertRows(tx, "job", snapshot.tables.job.map((row) => ({ ...row, locked_until: null, lease_token: null })));
+  insertRows(tx, "access_request", snapshot.tables.access_request);
+  insertRows(tx, "share_allowed_email", snapshot.tables.share_allowed_email);
+}
+
+function initializeSchema(db: DatabaseSync): void {
+  const migrationsFolder = fileURLToPath(new URL("../../sqlite", import.meta.url));
+  db.exec('CREATE TABLE "__drizzle_migrations" (id SERIAL PRIMARY KEY, hash TEXT NOT NULL, created_at NUMERIC)');
+  for (const migration of readMigrationFiles({ migrationsFolder })) {
+    for (const statement of migration.sql) db.exec(statement);
+    db.prepare('INSERT INTO "__drizzle_migrations" (hash,created_at) VALUES (?,?)').run(migration.hash, migration.folderMillis);
+  }
 }
 
 export async function importPostgres(raw: unknown, destination: string) {
@@ -67,31 +72,25 @@ export async function importPostgres(raw: unknown, destination: string) {
   mkdirSync(dirname(path), { recursive: true });
   const temporary = path + ".partial-" + randomUUID();
   closeSync(openSync(temporary, "wx", 0o600));
-  const { db, ready, close } = createDb(pathToFileURL(temporary).href);
+  const db = new DatabaseSync(temporary);
   let closed = false;
   try {
-    await ready;
-    await migrateDb(db);
-    const tx = await db.$client.transaction("write");
+    db.exec("PRAGMA foreign_keys=ON; BEGIN IMMEDIATE");
     try {
-      await writeSnapshot(tx, snapshot);
-      const check = await tx.execute("PRAGMA foreign_key_check");
-      if (check.rows.length > 0) throw new MaintenanceError("Imported database has invalid references");
-      await tx.commit();
+      initializeSchema(db);
+      writeSnapshot(db, snapshot);
+      if (db.prepare("PRAGMA foreign_key_check").all().length > 0) throw new MaintenanceError("Imported database has invalid references");
+      db.exec("COMMIT");
     } catch (error) {
-      await tx.rollback();
+      db.exec("ROLLBACK");
       throw error;
     }
-    const integrity = await db.$client.execute("PRAGMA integrity_check");
-    if (integrity.rows.length !== 1 || integrity.rows[0]?.[0] !== "ok") throw new MaintenanceError("Imported database failed integrity validation");
-    await db.$client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
-    await close();
+    db.close();
     closed = true;
-    validateDatabase(temporary);
-    linkSync(temporary, path);
+    await backupDatabase(temporary, path);
     return { users: snapshot.users.length, links: snapshot.tables.saved_link.length, collections: snapshot.tables.collection.length, groups: snapshot.tables.collection_group.length, readers: snapshot.tables.resource_reader.length };
   } finally {
-    if (!closed) await close();
+    if (!closed) db.close();
     for (const file of [temporary + "-wal", temporary + "-shm", temporary]) if (existsSync(file)) unlinkSync(file);
   }
 }

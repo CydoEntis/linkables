@@ -53,7 +53,7 @@ test("refuses a corrupt input without publishing a restore", async () => {
 
 test("refuses a snapshot with broken foreign keys", async () => {
   const { path, db } = liveDatabase();
-  db.exec("CREATE TABLE broken(resource_id TEXT REFERENCES resource(id)); INSERT INTO broken VALUES('missing')");
+  db.exec("PRAGMA foreign_keys=OFF; CREATE TABLE broken(resource_id TEXT REFERENCES resource(id)); INSERT INTO broken VALUES('missing')");
   db.close();
   const output = join(directory, "backup.db");
   await expect(backupDatabase(path, output)).rejects.toThrow("invalid references");
