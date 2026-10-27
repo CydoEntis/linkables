@@ -15,6 +15,11 @@ export const api = {
       getAccessToken: () => Promise.resolve(connection.session?.token ?? null),
       onUnauthenticated: () => forgetSession(connection.origin, connection.session?.token),
     });
-    return client.request(path, schema, options);
+    const data = await client.request(path, schema, options);
+    const current = await readConnection();
+    if (current?.origin !== connection.origin || current.session?.token !== connection.session.token) {
+      throw new ApiError(NO_SESSION, "The account or server changed. Try again.");
+    }
+    return data;
   },
 };
