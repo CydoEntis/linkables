@@ -10,3 +10,12 @@ dist/
 .plan/
 playwright-report/
 test-results/
+backups/
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.partial-*

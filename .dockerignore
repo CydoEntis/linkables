@@ -7,6 +7,15 @@
 .claude
 .plan
 docs
+backups
+**/data
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/release
 playwright-report
 test-results
 apps/web/e2e

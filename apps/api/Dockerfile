@@ -13,8 +13,11 @@ RUN pnpm install --frozen-lockfile --filter api...
 
 COPY packages/shared packages/shared
 COPY apps/api apps/api
+COPY LICENSE /app/LICENSE
+RUN mkdir -p /data && chown node:node /data
 
 ENV NODE_ENV=production
+ENV DATABASE_URL=file:/data/linkables.db
 USER node
 WORKDIR /app/apps/api
 EXPOSE 3000
