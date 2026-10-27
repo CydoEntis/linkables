@@ -12,9 +12,10 @@ import {
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, max, notInArray, or, sql } from "drizzle-orm";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import type { Db, Tx } from "../db/client";
-import { collection, collectionGroup, collectionItem, resource, savedLink } from "../db/schema";
+import { collection, collectionGroup, collectionItem, resource, savedLink, shareCode, shareViewerSession } from "../db/schema";
 import { lockCollection } from "../groups/groups";
-import { NotFoundError } from "../http/errors";
+import { ForbiddenError, NotFoundError } from "../http/errors";
+import { hasViewerSession } from "./private-share";
 
 type Owned = { userId: string; id: string };
 
@@ -62,8 +63,14 @@ export function enableShare(db: Db, owned: Owned): Promise<ShareState> {
   );
 }
 
+// A viewer's session and any code waiting for one end with the link, so a link turned on again starts clean.
 export function disableShare(db: Db, owned: Owned): Promise<ShareState> {
-  return tokenState(db.update(collection).set({ shareToken: null }).where(ownedCollection(owned)).returning({ token: collection.shareToken }));
+  return db.transaction(async (tx) => {
+    const state = await tokenState(tx.update(collection).set({ shareToken: null }).where(ownedCollection(owned)).returning({ token: collection.shareToken }));
+    await tx.delete(shareViewerSession).where(eq(shareViewerSession.collectionId, owned.id));
+    await tx.delete(shareCode).where(eq(shareCode.collectionId, owned.id));
+    return state;
+  });
 }
 
 // Works with the link off too, so the owner can choose before sharing. The listed
@@ -197,12 +204,26 @@ async function withoutParams<T>(query: Promise<T>): Promise<T> {
   }
 }
 
-// An unknown token and a turned-off one are the same NOT_FOUND.
-export async function sharedCollection(db: Db, token: string): Promise<SharedCollection> {
+const PRIVATE_SHARE_MESSAGE = "This collection is private";
+
+async function holdsSession(db: Db, collectionId: string, { session, now }: ViewerAccess): Promise<boolean> {
+  return session !== undefined && (await hasViewerSession(db, collectionId, session, now));
+}
+
+// What a viewer holds to open a private share: the session its sign-in earned, and the time to judge it by.
+export type ViewerAccess = { session: string | undefined; now: number };
+
+// An unknown token and a turned-off one are the same NOT_FOUND. A private share without a valid
+// session answers FORBIDDEN (never UNAUTHENTICATED, which signs an owner out of the web app) before it reads anything of the collection, its name included.
+export async function sharedCollection(db: Db, token: string, viewer: ViewerAccess): Promise<SharedCollection> {
   const [found] = await withoutParams(
-    db.select({ id: collection.id, name: collection.name }).from(collection).where(eq(collection.shareToken, token)),
+    db
+      .select({ id: collection.id, name: collection.name, sharePrivate: collection.sharePrivate })
+      .from(collection)
+      .where(eq(collection.shareToken, token)),
   );
   if (found === undefined) throw new NotFoundError("Shared collection not found");
+  if (found.sharePrivate && !(await holdsSession(db, found.id, viewer))) throw new ForbiddenError(PRIVATE_SHARE_MESSAGE);
   const [rows, counts] = await Promise.all([visibleLinks(db, found.id), visibleCounts(db, found.id)]);
   const groups = groupsOf(rows, counts);
   return {

@@ -60,19 +60,25 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
    Check: `pnpm --filter api test fetcher`.
 2. No code outside `apps/api/src/metadata/fetcher.ts` makes outbound HTTP, except
    the Supabase JWKS fetch inside the auth middleware (ADR-0002) and the owner's
-   access-request email to Resend's fixed API host (`apps/api/src/access/notify-owner.ts`;
-   it never fetches a user-supplied URL, so it needs no SSRF guard).
+   access-request email to Resend's fixed API host (`apps/api/src/access/notify-owner.ts`)
+   and the one-time code of a private share to the same host
+   (`apps/api/src/sharing/send-viewer-code.ts`); neither fetches a user-supplied URL,
+   so they need no SSRF guard.
    Check: ESLint in `apps/api` excluding those files bans `fetch` and
    `globalThis.fetch`, and static or dynamic imports of `undici` (and subpaths),
    `http`, `https` and `http2` (test files may import `http` for local test
    servers); `pnpm lint`.
-3. Every route except `/health`, `POST /access-requests` and
-   `GET /shared/:token` needs a valid Supabase JWT, and every query is scoped to
+3. Every route except `/health`, `POST /access-requests`,
+   `GET /shared/:token`, `POST /shared/:token/code` and
+   `POST /shared/:token/verify` needs a valid Supabase JWT, and every query is scoped to
    `sub`. The request-access form is public because its users have no account
    yet; it only inserts, gives the same answer whatever is stored, and is
    rate-limited per IP. A shared collection is public because its owner turned
    its view-only link on; it reads only that collection's display fields (and its shown groups' names) and is
-   rate-limited per IP.
+   rate-limited per IP. When the owner limits a share to listed emails, the read also
+   needs a short-lived viewer session for that one collection, earned through the two
+   code routes, which answer the same for every address (full reasoning in AGENTS.md
+   and ADR-0008).
    Check: `apps/api/test/authz.db.test.ts` (every route: no token → 401, another
    user's ids → 404, no leaks in any listing; each public API route is probed for
    what it gives back; fails if a route is missing from it).
@@ -131,7 +137,11 @@ Each rule names a check. A `not yet:` marker names the ticket that makes it true
   again"; clicking a link opens it, with Read on hover (not for videos and
   files). Where the web UI went beyond the design, `docs/design/DEVIATIONS.md`
   says so.
-- Deferred: the rest of the browser extension (Phase 2), sharing beyond view-only links.
+- Also in, 2026-10-27: **private shares** (ADR-0008). A share can be limited to
+  listed emails; a viewer with no account enters their email, gets a one-time
+  code, and opens only that collection for 12 hours.
+- Deferred: the rest of the browser extension (Phase 2), sharing with editors and
+  invited members.
 - Exit: the success condition above is met, and the owner uses it for two weeks
   without falling back to Discord.
 - Tickets: Plane project `linkables` (LNK), workspace `ideayard`, project id

@@ -64,6 +64,13 @@
       "when": 1793064720677,
       "tag": "0008_collection_share_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793094063804,
+      "tag": "0009_private_shares",
+      "breakpoints": true
     }
   ]
 }

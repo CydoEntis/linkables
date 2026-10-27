@@ -1,10 +1,19 @@
 import { randomUUID } from "node:crypto";
 import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
-import { sharedCollectionSchema, shareStateSchema } from "@linkables/shared/sharing";
+import { sharedCollectionSchema, shareStateSchema, VIEWER_SESSION_HEADER, viewerSessionSchema } from "@linkables/shared/sharing";
 import { asc, eq, or } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { collection, collectionGroup, collectionItem, resource, savedLink } from "../src/db/schema";
+import {
+  collection,
+  collectionGroup,
+  collectionItem,
+  resource,
+  savedLink,
+  shareAllowedEmail,
+  shareCode,
+  shareViewerSession,
+} from "../src/db/schema";
 import { encodeCursor } from "../src/links/cursor";
 import { cursorAt } from "../src/links/sort";
 import { createTestApp, testUsers, type TestUser } from "./app";
@@ -39,6 +48,8 @@ const A_INBOX_URL = "https://inbox-a.example/page";
 const A_TITLE = `${A_MARKER} title`;
 const A_PINNED = true;
 const A_SHARE_TOKEN = "User-A-Share-Token-0123456789abc";
+// A's collection is private and lists this address, which carries the marker so any leak of it shows.
+const A_FRIEND = `${A_MARKER}-friend@example.com`;
 
 // Every route except the public ones below. A new route adds a case here and a
 // two-user test beside its source.
@@ -154,19 +165,40 @@ const cases: Record<string, Case> = {
     }),
     idFields: ["collectionId", "groupId"],
   },
+  "GET /api/v1/collections/:id/share/access": {
+    request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/share/access` }),
+    idFields: ["collectionId"],
+  },
+  "PUT /api/v1/collections/:id/share/access": {
+    request: ({ collectionId }) => ({
+      path: `/api/v1/collections/${collectionId}/share/access`,
+      body: { mode: "emails", emails: ["b-friend@example.com"] },
+    }),
+    idFields: ["collectionId"],
+  },
 };
 
 // Public on purpose (Rule 3): the health check, the request-access form, which
-// only inserts, and a shared collection, which reads only the one collection its
-// owner turned a link on for, and only the groups the owner chose to show in it.
+// only inserts, a shared collection, which reads only the one collection its
+// owner turned a link on for, and only the groups the owner chose to show in it,
+// and the two routes a viewer of an emails-only share signs in with, which answer
+// the same for every address and hand out a session for that one collection.
 // Each public API route is probed below for what it gives back.
-const PUBLIC_ROUTES = new Set(["GET /health", "POST /api/v1/access-requests", "GET /api/v1/shared/:token"]);
+const PUBLIC_ROUTES = new Set([
+  "GET /health",
+  "POST /api/v1/access-requests",
+  "GET /api/v1/shared/:token",
+  "POST /api/v1/shared/:token/code",
+  "POST /api/v1/shared/:token/verify",
+]);
 
 const INSERT_ONLY_ROUTES: Record<string, Probe> = {
   "POST /api/v1/access-requests": { path: "/api/v1/access-requests", body: { email: "b@example.com", name: "B" } },
 };
 
 const SHARED_READ_ROUTES = ["GET /api/v1/shared/:token"];
+
+const VIEWER_SIGN_IN_ROUTES = ["POST /api/v1/shared/:token/code", "POST /api/v1/shared/:token/verify"];
 
 // app.routes, not hono/dev's inspectRoutes: inspectRoutes treats any handler
 // declared as (c, next) as middleware, so a route whose last handler takes next
@@ -210,7 +242,7 @@ async function seed(): Promise<Seed> {
     await db
       .insert(collection)
       .values([
-        { userId: a.id, name: `${A_MARKER} collection`, shareToken: A_SHARE_TOKEN },
+        { userId: a.id, name: `${A_MARKER} collection`, shareToken: A_SHARE_TOKEN, sharePrivate: true },
         { userId: a.id, name: SHARED_NAME },
         { userId: b.id, name: "user-b collection" },
       ])
@@ -256,6 +288,9 @@ async function seed(): Promise<Seed> {
     { collectionId: aCollection.id, savedLinkId: aShared.id },
     { collectionId: bCollection.id, savedLinkId: bLink.id, groupId: bGroup.id },
   ]);
+  await db.insert(shareAllowedEmail).values({ collectionId: aCollection.id, email: A_FRIEND });
+  await db.insert(shareCode).values({ collectionId: aCollection.id, email: A_FRIEND, salt: "s", codeHash: "h", expiresAt: new Date(Date.now() + 60_000) });
+  await db.insert(shareViewerSession).values({ tokenHash: "t", collectionId: aCollection.id, email: A_FRIEND, expiresAt: new Date(Date.now() + 60_000) });
   return {
     a: { linkId: aLink.id, collectionId: aCollection.id, groupId: aGroup.id },
     b: { linkId: bLink.id, collectionId: bCollection.id, groupId: bGroup.id },
@@ -269,6 +304,21 @@ async function rowsOfA() {
   return {
     links: await db.select().from(savedLink).where(eq(savedLink.userId, a.id)).orderBy(asc(savedLink.id)),
     collections: await db.select().from(collection).where(eq(collection.userId, a.id)).orderBy(asc(collection.id)),
+    allowedEmails: await db
+      .select({ row: shareAllowedEmail })
+      .from(shareAllowedEmail)
+      .innerJoin(collection, eq(collection.id, shareAllowedEmail.collectionId))
+      .where(eq(collection.userId, a.id)),
+    codes: await db
+      .select({ row: shareCode })
+      .from(shareCode)
+      .innerJoin(collection, eq(collection.id, shareCode.collectionId))
+      .where(eq(collection.userId, a.id)),
+    sessions: await db
+      .select({ row: shareViewerSession })
+      .from(shareViewerSession)
+      .innerJoin(collection, eq(collection.id, shareViewerSession.collectionId))
+      .where(eq(collection.userId, a.id)),
     groups: await db
       .select({ group: collectionGroup })
       .from(collectionGroup)
@@ -504,10 +554,105 @@ describe("authz", () => {
     });
   });
 
+  describe("emails-only shares", () => {
+    const B_VIEWER = "viewer@example.com";
+    const OUTSIDER = "outsider@example.com";
+
+    function mailCapture() {
+      const sent: { to: string; code: string }[] = [];
+      const sendViewerCode = (message: { to: string; code: string }) => {
+        sent.push(message);
+        return Promise.resolve();
+      };
+      return { sent, app: createTestApp({ db, sendViewerCode }) };
+    }
+
+    // B limits a collection to one address; A's is limited to A_FRIEND in the seed.
+    async function privateB(app: App, ids: Seed) {
+      const turnedOn = await send(app, "POST", { path: `/api/v1/collections/${ids.b.collectionId}/share` }, b);
+      const token = String(successEnvelopeSchema(shareStateSchema).parse(await turnedOn.json()).data.token);
+      const put = await send(app, "PUT", { path: `/api/v1/collections/${ids.b.collectionId}/share/access`, body: { mode: "emails", emails: [B_VIEWER] } }, b);
+      expect(put.status).toBe(200);
+      return token;
+    }
+
+    const asViewer = (path: string, body: unknown) => send(createTestApp({ db }), "POST", { path, body });
+
+    it("shows nothing of A's private collection, not even its name, to anyone without a session", async () => {
+      const { app } = mailCapture();
+      const ids = await seed();
+
+      const res = await send(app, "GET", { path: `/api/v1/shared/${A_SHARE_TOKEN}` });
+      const text = await res.text();
+
+      expect(res.status).toBe(403);
+      for (const secret of ids.secrets.filter((s) => s !== A_SHARE_TOKEN)) expect(text).not.toContain(secret);
+    });
+
+    it("answers the same, and sends nothing, for an address that is not listed", async () => {
+      const { app, sent } = mailCapture();
+      const ids = await seed();
+
+      const ask = async (email: string) => (await send(app, "POST", { path: `/api/v1/shared/${A_SHARE_TOKEN}/code`, body: { email } })).text();
+      const texts = [await ask(A_FRIEND), await ask(OUTSIDER)];
+
+      expect(sent.map((m) => m.to)).toEqual([A_FRIEND]);
+      for (const text of texts) {
+        expect(successEnvelopeSchema(z.null()).parse(JSON.parse(text)).data).toBeNull();
+        for (const secret of ids.secrets) expect(text).not.toContain(secret);
+      }
+    });
+
+    it("never shows content to an address that is not listed, whatever code it tries", async () => {
+      const { app, sent } = mailCapture();
+      const ids = await seed();
+      const token = await privateB(app, ids);
+      await send(app, "POST", { path: `/api/v1/shared/${token}/code`, body: { email: B_VIEWER } });
+      const real = sent[0]?.code ?? "";
+
+      const res = await send(app, "POST", { path: `/api/v1/shared/${token}/verify`, body: { email: OUTSIDER, code: real } });
+      const text = await res.text();
+
+      expect(res.status).toBe(403);
+      expect(text).not.toContain("user-b collection");
+      expect(text).not.toContain("session");
+    });
+
+    it("gives a session for one collection only: B's viewer cannot open A's", async () => {
+      const { app, sent } = mailCapture();
+      const ids = await seed();
+      const token = await privateB(app, ids);
+      await send(app, "POST", { path: `/api/v1/shared/${token}/code`, body: { email: B_VIEWER } });
+      const verified = await send(app, "POST", { path: `/api/v1/shared/${token}/verify`, body: { email: B_VIEWER, code: sent[0]?.code ?? "" } });
+      const { session } = successEnvelopeSchema(viewerSessionSchema).parse(await verified.json()).data;
+
+      const own = await app.request(`/api/v1/shared/${token}`, { headers: { [VIEWER_SESSION_HEADER]: session } });
+      const theirs = await app.request(`/api/v1/shared/${A_SHARE_TOKEN}`, { headers: { [VIEWER_SESSION_HEADER]: session } });
+      const text = await theirs.text();
+
+      expect(own.status).toBe(200);
+      expect(theirs.status).toBe(403);
+      for (const secret of ids.secrets.filter((s) => s !== A_SHARE_TOKEN)) expect(text).not.toContain(secret);
+    });
+
+    it("leaves A's list, codes and sessions alone whatever B does with B's own share", async () => {
+      const { app, sent } = mailCapture();
+      const ids = await seed();
+      const before = await rowsOfA();
+      const token = await privateB(app, ids);
+      await send(app, "POST", { path: `/api/v1/shared/${token}/code`, body: { email: B_VIEWER } });
+      await send(app, "POST", { path: `/api/v1/shared/${token}/verify`, body: { email: B_VIEWER, code: sent[0]?.code ?? "" } });
+      await send(app, "DELETE", { path: `/api/v1/collections/${ids.b.collectionId}/share` }, b);
+
+      expect(await rowsOfA()).toEqual(before);
+      expect((await asViewer(`/api/v1/shared/${A_SHARE_TOKEN}/verify`, { email: OUTSIDER, code: "000000" })).status).toBe(403);
+    });
+  });
+
   it("knows what every public API route gives back", () => {
     const publicApiRoutes = [...PUBLIC_ROUTES].filter((route) => route.includes("/api/"));
 
-    expect(publicApiRoutes).toEqual([...Object.keys(INSERT_ONLY_ROUTES), ...SHARED_READ_ROUTES]);
+    expect(publicApiRoutes).toEqual([...Object.keys(INSERT_ONLY_ROUTES), ...SHARED_READ_ROUTES, ...VIEWER_SIGN_IN_ROUTES]);
   });
 
   it("has a case for every registered route", () => {

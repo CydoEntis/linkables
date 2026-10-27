@@ -74,8 +74,57 @@ export const collection = pgTable(
     shareToken: text("share_token").unique(),
     // Whether the shared page shows links that sit in no group; a group's own flag is collection_group.shared.
     shareUngrouped: boolean("share_ungrouped").notNull().default(true),
+    // When true, the link opens only for the addresses in share_allowed_email. Kept while the link is off.
+    sharePrivate: boolean("share_private").notNull().default(false),
   },
   (table) => [uniqueIndex("collection_user_id_lower_name_unique").on(table.userId, sql`lower(${table.name})`)],
+).enableRLS();
+
+// Lower-cased addresses the owner lets open a private share.
+export const shareAllowedEmail = pgTable(
+  "share_allowed_email",
+  {
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collection.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.collectionId, table.email] })],
+).enableRLS();
+
+// The one-time code mailed to a listed address: salted and scrypt-hashed, never the code itself.
+// A new request replaces the old row; a right answer, too many wrong ones, or expiry ends it.
+export const shareCode = pgTable(
+  "share_code",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collection.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    salt: text("salt").notNull(),
+    codeHash: text("code_hash").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [unique("share_code_collection_id_email_unique").on(table.collectionId, table.email)],
+).enableRLS();
+
+// What a verified viewer holds: only the SHA-256 of a 192-bit random token is stored, and the row is good for one collection.
+export const shareViewerSession = pgTable(
+  "share_viewer_session",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collection.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index("share_viewer_session_collection_id_idx").on(table.collectionId)],
 ).enableRLS();
 
 // One level of named headings inside a collection. position is a dense 0-based

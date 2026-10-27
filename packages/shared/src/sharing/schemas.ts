@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { COLLECTION_GROUPS_MAX } from "../groups/constants";
 import { RESOURCE_KINDS } from "../links/constants";
-import { SHARE_TOKEN_LENGTH, SHARED_LINKS_MAX } from "./constants";
+import {
+  SHARE_ACCESS_MODES,
+  SHARE_CODE_LENGTH,
+  SHARE_EMAIL_MAX_LENGTH,
+  SHARE_EMAILS_MAX,
+  SHARE_TOKEN_LENGTH,
+  SHARED_LINKS_MAX,
+  VIEWER_SESSION_LENGTH,
+} from "./constants";
 
 export const shareTokenSchema = z
   .string()
@@ -63,3 +71,39 @@ export const sharedCollectionSchema = z.strictObject({
 export const ownSharedCollectionSchema = z.strictObject({ id: z.uuid(), name: z.string(), token: shareTokenSchema });
 
 export const ownSharedCollectionsResponseSchema = z.strictObject({ items: z.array(ownSharedCollectionSchema) });
+
+// Addresses are compared ignoring case, so one person listed twice is one person.
+export const shareEmailSchema = z
+  .string()
+  .trim()
+  .max(SHARE_EMAIL_MAX_LENGTH, { error: "Enter a shorter email address" })
+  .pipe(z.email({ error: "Enter a valid email address" }))
+  .transform((email) => email.toLowerCase());
+
+// Who may open the link: anyone holding it, or only the listed people. The list is kept while the mode is "link".
+export const shareAccessSchema = z
+  .strictObject({
+    mode: z.enum(SHARE_ACCESS_MODES),
+    emails: z
+      .array(shareEmailSchema)
+      .max(SHARE_EMAILS_MAX, { error: `List at most ${String(SHARE_EMAILS_MAX)} emails` })
+      .transform((emails) => [...new Set(emails)]),
+  })
+  .refine((access) => access.mode === "link" || access.emails.length > 0, {
+    path: ["emails"],
+    error: "Add at least one email, or let anyone with the link in",
+  });
+
+export const viewerCodeRequestSchema = z.strictObject({ email: shareEmailSchema });
+
+export const viewerCodeSchema = z.string().regex(new RegExp(`^\\d{${String(SHARE_CODE_LENGTH)}}$`));
+
+export const viewerVerifyRequestSchema = z.strictObject({ email: shareEmailSchema, code: viewerCodeSchema });
+
+export const viewerSessionSchema = z.strictObject({
+  session: z
+    .string()
+    .length(VIEWER_SESSION_LENGTH)
+    .regex(/^[A-Za-z0-9_-]+$/),
+  expiresAt: z.iso.datetime(),
+});

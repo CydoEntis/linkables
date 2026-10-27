@@ -1,12 +1,16 @@
+import { isApiError } from "@linkables/shared/api-client";
+import { ERROR_CODES } from "@linkables/shared/http";
 import {
   ownSharedCollectionsResponseSchema,
   sharedCollectionSchema,
   shareStateSchema,
+  VIEWER_SESSION_HEADER,
   type OwnSharedCollectionsResponse,
 } from "@linkables/shared/sharing";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/api";
 import { SHARED_PATH_PREFIX } from "./path";
+import { forgetViewerSession, viewerSessionFor } from "./viewer-session";
 
 const shareKeys = {
   own: ["share", "own"] as const,
@@ -70,10 +74,24 @@ export function useSetSharing(collectionId: string) {
   });
 }
 
+export const sharedKey = shareKeys.shared;
+
+// A private share needs the session a viewer earns with an emailed code; one the API no longer accepts is dropped.
+async function fetchShared(token: string, signal: AbortSignal) {
+  const session = viewerSessionFor(token);
+  const headers: Record<string, string> = session === undefined ? {} : { [VIEWER_SESSION_HEADER]: session };
+  try {
+    return await api.request(`/shared/${encodeURIComponent(token)}`, sharedCollectionSchema, { signal, headers });
+  } catch (error) {
+    if (session !== undefined && isApiError(error, ERROR_CODES.FORBIDDEN)) forgetViewerSession(token);
+    throw error;
+  }
+}
+
 export function useSharedCollection(token: string) {
   return useQuery({
     queryKey: shareKeys.shared(token),
-    queryFn: ({ signal }) => api.request(`/shared/${encodeURIComponent(token)}`, sharedCollectionSchema, { signal }),
+    queryFn: ({ signal }) => fetchShared(token, signal),
     retry: false,
     refetchOnWindowFocus: false,
   });
