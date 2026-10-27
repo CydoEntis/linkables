@@ -169,11 +169,13 @@ jobs:
           VITE_APP_URL: ${{ vars.APP_ORIGIN }}
       # After the web build, which empties apps/web/dist. The web image then serves
       # the zip at a stable address for the install guide (/extension).
-      - name: Add the extension zip to the web build
+      - name: Add the extension zip and Firefox add-on to the web build
         run: |
           pnpm --filter extension release
           mkdir -p apps/web/dist/downloads
           cp apps/extension/release/linkables-chrome-[0-9]*.zip apps/web/dist/downloads/linkables-chrome.zip
+          # Signed by hand with the owner's AMO keys (apps/extension/README.md), so it is committed, not built here.
+          cp apps/extension/firefox/linkables-firefox.xpi apps/web/dist/downloads/linkables-firefox.xpi
       # The Web Store upload (apps/extension/STORE.md): kept as a run artifact, not served.
       - run: pnpm --filter extension release:store
         env:
