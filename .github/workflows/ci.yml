@@ -3,6 +3,7 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,25 +11,6 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        # Same major as the Supabase project.
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: linkables_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/linkables_test
-      MIGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/linkables_test
-      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/linkables_test
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -36,36 +18,19 @@ jobs:
           node-version: 24
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - run: pnpm db:migrate
       - run: pnpm verify
-      # Placeholder values: this only checks the extension builds; publish builds the real one.
-      - run: pnpm --filter extension build
-        env:
-          VITE_APP_URL: https://linkables.app
-          VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
-          VITE_SUPABASE_ANON_KEY: ci-placeholder
+      - run: pnpm --filter web build
+      - run: pnpm --filter extension build && pnpm --filter extension release
+      - run: pnpm --filter extension release:firefox && pnpm --filter extension release:firefox:source
+      - uses: actions/upload-artifact@v7
+        with:
+          name: browser-extension-packages
+          path: apps/extension/release/*.zip
+          if-no-files-found: error
 
   e2e:
     runs-on: ubuntu-latest
-    # A cold `playwright install --with-deps` alone has taken about 10 minutes.
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: linkables_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      # The suite's global setup migrates this database before the tests run.
-      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/linkables_test
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -73,18 +38,13 @@ jobs:
           node-version: 24
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      # Runs even on a cache hit: the system libraries Chromium needs are not cached.
       - run: pnpm --filter web exec playwright install --with-deps chromium
       - run: pnpm e2e
-      # The production build behind the real Caddyfile: prerendered pages and the landing page's app boot.
       - run: pnpm --filter web e2e:built
-      # Loads the unpacked extension in Chromium against its own e2e API; runs even
-      # when the web suite failed, so one failure doesn't hide the other.
       - run: pnpm --filter extension e2e
         if: success() || failure()
       - uses: actions/upload-artifact@v7
@@ -100,104 +60,21 @@ jobs:
 
   image:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: linkables_smoke
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - run: docker build -f apps/api/Dockerfile -t linkables-api:ci .
-      - run: deploy/smoke-test.sh linkables-api:ci
-        env:
-          SMOKE_DATABASE_URL: postgres://postgres:postgres@localhost:5432/linkables_smoke
+      - run: bash deploy/smoke-test.sh linkables-api:ci
+      - run: docker build -f apps/web/Dockerfile -t linkables-web:ci .
 
-  # The server pulls :main itself (deploy/README.md), so moving :main is the
-  # deploy. Order: push SHA-tagged images, migrate, then move :main, so a failed
-  # build never leaves the schema ahead of what can be deployed. Migrations must
-  # still work with the previous image until the server's next pull (AGENTS.md).
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [verify, e2e, image]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    # One at a time; with the head check below, an older run can never move
-    # :main back after a newer one.
-    concurrency:
-      group: publish
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
-      - name: Check deploy settings
-        env:
-          APP_ORIGIN: ${{ vars.APP_ORIGIN }}
-          HAS_MIGRATION_URL: ${{ secrets.MIGRATION_DATABASE_URL != '' }}
-          HAS_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL != '' }}
-          HAS_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY != '' }}
-        run: |
-          [ -n "$APP_ORIGIN" ] || { echo "Set the APP_ORIGIN repository variable"; exit 1; }
-          [ "$HAS_MIGRATION_URL" = "true" ] || { echo "Set the MIGRATION_DATABASE_URL secret"; exit 1; }
-          [ "$HAS_SUPABASE_URL" = "true" ] || { echo "Set the VITE_SUPABASE_URL secret"; exit 1; }
-          [ "$HAS_ANON_KEY" = "true" ] || { echo "Set the VITE_SUPABASE_ANON_KEY secret"; exit 1; }
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-      - run: corepack enable
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter web build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_API_URL: ${{ vars.APP_ORIGIN }}
-          VITE_AUTH_REDIRECT_URL: ${{ vars.APP_ORIGIN }}/
-          VITE_IOS_SHORTCUT_URL: ${{ vars.IOS_SHORTCUT_URL }}
-      - run: pnpm --filter extension build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_APP_URL: ${{ vars.APP_ORIGIN }}
-      # After the web build, which empties apps/web/dist. The web image then serves
-      # the zip at a stable address for the install guide (/extension).
-      - name: Add the extension zip to the web build
-        run: |
-          pnpm --filter extension release
-          mkdir -p apps/web/dist/downloads
-          cp apps/extension/release/linkables-chrome-[0-9]*.zip apps/web/dist/downloads/linkables-chrome.zip
-      # The signed xpi is committed under apps/web/public/downloads, so the web build already carries it.
-      # It must hold what this source builds (apps/extension/README.md, Firefox).
-      # shortcut: advisory, not a gate. It has only been run on Windows, and the Supabase key
-      # secret may differ from the one the xpi was built with, so a false alarm must not block a deploy.
-      - name: Check the signed Firefox add-on is current
-        continue-on-error: true
-        run: pnpm --filter extension release:firefox && pnpm --filter extension check:firefox
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_APP_URL: ${{ vars.APP_ORIGIN }}
-      # The Web Store upload (apps/extension/STORE.md): kept as a run artifact, not served.
-      - run: pnpm --filter extension release:store
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_APP_URL: ${{ vars.APP_ORIGIN }}
-      - uses: actions/upload-artifact@v7
-        with:
-          name: linkables-chrome-store
-          path: apps/extension/release/linkables-chrome-store-*.zip
-          if-no-files-found: error
-      # The server is x86_64; arm64 is built too (under QEMU) so the images
-      # still run on an arm64 host. Each SHA tag is one multi-arch manifest.
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -211,34 +88,11 @@ jobs:
           file: apps/api/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/cydoentis/linkables-api:${{ github.sha }}
-          cache-from: type=gha,scope=api
-          cache-to: type=gha,scope=api,mode=max
+          tags: ghcr.io/cydoentis/linkables-api:${{ github.ref_name }}
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/web/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/cydoentis/linkables-web:${{ github.sha }}
-      - name: Skip if a newer commit is on main
-        id: head
-        run: |
-          git fetch --depth=1 origin main
-          if [ "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA" ]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "main has moved on; leaving :main to the newer run"
-          fi
-      - if: steps.head.outputs.current == 'true'
-        run: pnpm db:migrate
-        env:
-          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
-      - name: Point :main at this commit
-        if: steps.head.outputs.current == 'true'
-        run: |
-          for app in api web; do
-            docker buildx imagetools create \
-              -t "ghcr.io/cydoentis/linkables-$app:main" \
-              "ghcr.io/cydoentis/linkables-$app:$GITHUB_SHA"
-          done
+          tags: ghcr.io/cydoentis/linkables-web:${{ github.ref_name }}
