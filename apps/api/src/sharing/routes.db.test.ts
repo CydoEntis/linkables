@@ -8,6 +8,7 @@ import {
 } from "@linkables/shared/sharing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
 import { collection, collectionGroup, collectionItem, resource, savedLink } from "../db/schema";
@@ -330,14 +331,29 @@ describe("sharing by group", () => {
       });
     });
 
-    it("comes back with the scope when the link is turned on", async () => {
+    it("answers turning the link on and off with only the token, which older clients parse strictly", async () => {
       const app = createTestApp({ db });
-      const { col, food } = await seedTrip();
+      const { col } = await seedTrip();
+      const oldShape = z.strictObject({ token: shareTokenSchema.nullable() });
 
-      const state = await stateOf(await share(app, a, "POST", col.id));
+      const on = successEnvelopeSchema(oldShape).parse(await (await share(app, a, "POST", col.id)).json()).data;
+      const off = successEnvelopeSchema(oldShape).parse(await (await share(app, a, "DELETE", col.id)).json()).data;
 
-      expect(state.groups?.[0]).toEqual({ id: food.id, name: "Food", shared: true });
-      expect(state.token).not.toBeNull();
+      expect(on.token).not.toBeNull();
+      expect(off.token).toBeNull();
+    });
+
+    it("puts the ungrouped links back in the share when the last group is deleted", async () => {
+      const app = createTestApp({ db });
+      const { col, food, hotels } = await seedTrip();
+      await putScope(app, a, col.id, { ungrouped: false, groupIds: [food.id, hotels.id] });
+      const remove = (id: string) => app.request(`/api/v1/collections/${col.id}/groups/${id}`, { method: "DELETE", headers: a.headers });
+      const flag = async () => (await db.select({ on: collection.shareUngrouped }).from(collection).where(eq(collection.id, col.id)))[0]?.on;
+
+      expect((await remove(food.id)).status).toBe(200);
+      expect(await flag()).toBe(false);
+      expect((await remove(hotels.id)).status).toBe(200);
+      expect(await flag()).toBe(true);
     });
   });
 
@@ -377,7 +393,8 @@ describe("sharing by group", () => {
       await putScope(app, a, col.id, { ungrouped: false, groupIds: [food.id] });
 
       await share(app, a, "DELETE", col.id);
-      const again = await stateOf(await share(app, a, "POST", col.id));
+      await share(app, a, "POST", col.id);
+      const again = await stateOf(await share(app, a, "GET", col.id));
 
       expect(again.ungrouped).toBe(false);
       expect(again.groups?.map((group) => group.shared)).toEqual([true, false]);
@@ -473,6 +490,19 @@ describe("sharing by group", () => {
 
       expect(Object.keys(data)).toEqual(["name", "linkCount", "updatedAt", "links"]);
       expect(data.links.map((link) => link.title)).toEqual(["Map"]);
+    });
+
+    it("shows the ungrouped links of a collection with no groups whatever the stored switch says", async () => {
+      const app = createTestApp({ db });
+      const col = await insertCollection(a.id, "Trip");
+      await insertLink(a.id, col.id, { url: "https://example.com/one", title: "One" });
+      await db.update(collection).set({ shareUngrouped: false }).where(eq(collection.id, col.id));
+      const token = await turnOn(app, a, col.id);
+
+      const data = await viewed(await view(app, token));
+
+      expect(data.links.map((link) => link.title)).toEqual(["One"]);
+      expect(data.linkCount).toBe(1);
     });
 
     it("hides a shared group that has no links", async () => {

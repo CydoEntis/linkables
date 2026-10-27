@@ -117,6 +117,8 @@ export function deleteGroup(db: Db, ref: GroupRef): Promise<void> {
     if (deleted.length === 0) throw new NotFoundError("Group not found");
     const remaining = await groupsOf(tx, ref.collectionId);
     await writePositions(tx, remaining.map((group) => group.id));
+    // With no group left the owner has no switch for the ungrouped links, so they go back to shared.
+    if (remaining.length === 0) await tx.update(collection).set({ shareUngrouped: true }).where(eq(collection.id, ref.collectionId));
   });
 }
 

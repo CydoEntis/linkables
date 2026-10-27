@@ -43,18 +43,27 @@ export async function getShareState(db: Db | Tx, owned: Owned): Promise<ShareSta
   return groups.length === 0 ? { token: row.token } : { token: row.token, ungrouped: row.ungrouped, groups };
 }
 
-// Keeps a link that is already on, so a repeated turn-on never kills one already sent.
-export async function enableShare(db: Db, owned: Owned): Promise<ShareState> {
-  await db
-    .update(collection)
-    .set({ shareToken: sql`coalesce(${collection.shareToken}, ${newToken()})` })
-    .where(ownedCollection(owned));
-  return getShareState(db, owned);
+// Turning the link on or off answers with the token alone: the extension and cached web
+// bundles parse that response strictly, so the scope is read through GET and PUT only.
+async function tokenState(update: Promise<{ token: string | null }[]>): Promise<ShareState> {
+  const [row] = await update;
+  if (row === undefined) throw new NotFoundError("Collection not found");
+  return { token: row.token };
 }
 
-export async function disableShare(db: Db, owned: Owned): Promise<ShareState> {
-  await db.update(collection).set({ shareToken: null }).where(ownedCollection(owned));
-  return getShareState(db, owned);
+// Keeps a link that is already on, so a repeated turn-on never kills one already sent.
+export function enableShare(db: Db, owned: Owned): Promise<ShareState> {
+  return tokenState(
+    db
+      .update(collection)
+      .set({ shareToken: sql`coalesce(${collection.shareToken}, ${newToken()})` })
+      .where(ownedCollection(owned))
+      .returning({ token: collection.shareToken }),
+  );
+}
+
+export function disableShare(db: Db, owned: Owned): Promise<ShareState> {
+  return tokenState(db.update(collection).set({ shareToken: null }).where(ownedCollection(owned)).returning({ token: collection.shareToken }));
 }
 
 // Works with the link off too, so the owner can choose before sharing. The listed
@@ -94,7 +103,12 @@ const ownersFiling = and(eq(savedLink.id, collectionItem.savedLinkId), eq(savedL
 const filingGroup = and(eq(collectionGroup.collectionId, collectionItem.collectionId), eq(collectionGroup.id, collectionItem.groupId));
 
 // What a viewer may see: ungrouped links when the owner shows them, and links in a group the owner shows.
-const visibleToViewers = or(and(isNull(collectionItem.groupId), eq(collection.shareUngrouped, true)), eq(collectionGroup.shared, true));
+// A collection with no groups has no switch to show: its ungrouped links are shared whatever the stored flag says.
+const hasNoGroups = sql`not exists (select 1 from ${collectionGroup} g where g.collection_id = ${collection.id})`;
+const visibleToViewers = or(
+  and(isNull(collectionItem.groupId), or(eq(collection.shareUngrouped, true), hasNoGroups)),
+  eq(collectionGroup.shared, true),
+);
 
 async function visibleLinks(db: Db, collectionId: string) {
   return db

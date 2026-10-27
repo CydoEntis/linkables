@@ -466,7 +466,7 @@ describe("authz", () => {
       expect(text).not.toContain("ungrouped.example");
     });
 
-    it("keeps a link visible in a shared group when it is also in an unshared group of another collection", async () => {
+    it("judges one link by each collection's own group: shown in the one that shares it, hidden in the one that does not", async () => {
       const app = createTestApp({ db });
       const ids = await seed();
       const token = await shareB(app, ids);
@@ -476,9 +476,16 @@ describe("authz", () => {
       if (secret === undefined) throw new Error("no group");
       await db.insert(collectionItem).values({ collectionId: other.id, savedLinkId: ids.b.linkId, groupId: secret.id });
 
-      const { data } = await publicView(app, token);
+      const turnedOn = await send(app, "POST", { path: `/api/v1/collections/${other.id}/share` }, b);
+      const elsewhereToken = String(successEnvelopeSchema(shareStateSchema).parse(await turnedOn.json()).data.token);
 
-      expect(data.groups?.[0]?.links).toHaveLength(1);
+      const main = await publicView(app, token);
+      const elsewhere = await publicView(app, elsewhereToken);
+
+      expect(main.data.groups?.find((group) => group.name === "user-b group")?.links).toHaveLength(1);
+      expect(elsewhere.data.groups).toBeUndefined();
+      expect(elsewhere.data.linkCount).toBe(0);
+      expect(elsewhere.text).not.toContain("Secret");
     });
 
     it("hides a shared group with no links, and answers an unknown token as before", async () => {
