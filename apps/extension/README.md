@@ -6,8 +6,13 @@ linkables.app, the extension signs itself in (`src/connect`); otherwise the
 pop-up offers Sign in with linkables.app, Continue with Google, or the 6-digit
 email code. The side panel (`sidepanel.html`, opened from the pop-up's All
 links tile or Alt+Shift+L) shows the current page with Save, your recent and
-pinned links, and your collections with sharing. This is the Phase 1 beta,
-installed by hand with **Load unpacked**; Alt+Shift+S and multi-tab saves are
+pinned links, and your collections: a collection opens under its groups as
+headings, and its Share sheet has the web app's "What's shared" ticks. The
+pop-up and panel can also move a saved page into a group of a collection it is
+filed in. **Alt+Shift+S** (the `save-quietly` command, in the Chrome and Firefox
+manifests) saves the current tab with no pop-up and answers with the toolbar
+badge, like the right-click menu (`src/background/quiet-save.ts`). This is the
+Phase 1 beta, installed by hand with **Load unpacked**; multi-tab saves are
 Phase 2 (`docs/PLANNING.md`).
 
 Without the optional `tabs` permission the panel sees a tab's address only where
@@ -55,7 +60,8 @@ release.
 
 `manifest.ts` also builds a Firefox MV3 manifest (`buildFirefoxManifest`): the
 worker is an event page (`background.scripts`), the panel is `sidebar_action`
-(Alt+Shift+L is Firefox's own `_execute_sidebar_action` command), there is no
+(Alt+Shift+L is Firefox's own `_execute_sidebar_action` command; Alt+Shift+S is
+the same `save-quietly` command as in Chrome), there is no
 `key` or `sidePanel`, and the add-on id is `linkables@linkables.app` (Firefox 140
 or later, for AMO's required `data_collection_permissions`). The code is shared:
 `src/side-panel/open-side-panel.ts` picks `sidebarAction` where `sidePanel` is
@@ -67,7 +73,7 @@ button (`src/permissions`) until it says yes.
 
 ```sh
 pnpm --filter extension release:firefox   # builds dist-firefox/ (production env, like release:store) and runs web-ext lint
-pnpm --filter extension sign:firefox      # web-ext sign --channel=unlisted; writes release/linkables-firefox.xpi
+pnpm --filter extension sign:firefox      # web-ext sign --channel=unlisted; writes release/linkables-firefox.xpi and copies it over apps/web/public/downloads/linkables-firefox.xpi
 ```
 
 Lint must show no errors. Its five warnings come from bundled libraries (zod and
@@ -76,8 +82,9 @@ supabase-js use `Function`, a dependency sets `innerHTML`) and the guarded
 `WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET` (addons.mozilla.org, Tools, Manage
 API Keys); never write them to a file in the repo. AMO accepts each version once,
 so bump `version` in `package.json` (the Chrome build moves with it) before every
-new signing. Then copy the signed file over `apps/web/public/downloads/linkables-firefox.xpi`
-and commit it. It lives in the web app's `public/` because the production server
+new signing. `sign:firefox` leaves the signed file at `apps/web/public/downloads/linkables-firefox.xpi`;
+commit it. Until it is re-signed the committed file is the previous version and
+`check:firefox` reports it stale (advisory; the add-on still installs and works). It lives in the web app's `public/` because the production server
 builds `main` with its own script, which only copies the Chrome zip into the web
 build; anything under `public/` reaches the image by itself. Nobody can sign in a
 build (no keys), so the app serves that committed file at
