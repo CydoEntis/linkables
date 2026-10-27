@@ -19,6 +19,8 @@ import { canSend, sendLink } from "../sharing/send-link";
 import { TURN_OFF_HINT, useTwoTap } from "../sharing/use-two-tap";
 import { sharedPrefix, sharedUrl, useSetSharing, useShareToken } from "../sharing/use-share";
 import { displayName } from "./display-name";
+import { ShareScope } from "./ShareScope";
+import { useShareScope } from "./use-share-scope";
 
 type ShareControlsProps = { collection: ListedCollection; wide: boolean };
 
@@ -124,6 +126,8 @@ type ShareMenuProps = { collectionId: string; token: string; title: string; wide
 function ShareMenu({ collectionId, token, title, wide, onTurnedOff }: ShareMenuProps) {
   const [open, setOpen] = useState(false);
   const setSharing = useSetSharing(collectionId);
+  // Loaded before the menu opens, so its checklist is there on the first frame.
+  useShareScope(collectionId);
   const url = sharedUrl(token);
 
   // A promise, not mutate's callbacks: the menu unmounts as soon as the link is gone.
@@ -173,6 +177,7 @@ function ShareMenu({ collectionId, token, title, wide, onTurnedOff }: ShareMenuP
             Send…
           </DropdownMenuItem>
         ) : null}
+        <ShareScope collectionId={collectionId} />
         <DropdownMenuSeparator />
         <TurnOffItem armed={turnOffTap.armed} pending={setSharing.isPending} onPress={turnOffTap.press} />
       </DropdownMenuContent>

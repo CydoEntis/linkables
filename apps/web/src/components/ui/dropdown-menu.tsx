@@ -74,7 +74,35 @@ function DropdownMenuRadioItem({ className, children, ...props }: MenuPrimitive.
   )
 }
 
+function DropdownMenuGroup({ ...props }: MenuPrimitive.Group.Props) {
+  return <MenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />
+}
+
+function DropdownMenuGroupLabel({ className, ...props }: MenuPrimitive.GroupLabel.Props) {
+  return <MenuPrimitive.GroupLabel data-slot="dropdown-menu-group-label" className={cn("px-2.5 pt-1.5 text-[12.5px] font-semibold text-muted-foreground", className)} {...props} />
+}
+
+// A tick box, not a menu action: choosing it leaves the menu open so several can be changed in a row.
+function DropdownMenuCheckboxItem({ className, children, ...props }: MenuPrimitive.CheckboxItem.Props) {
+  return (
+    <MenuPrimitive.CheckboxItem data-slot="dropdown-menu-checkbox-item" className={cn(ITEM, className)} {...props}>
+      <span
+        aria-hidden
+        className="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border border-line-strong in-data-checked:border-primary in-data-checked:bg-primary"
+      >
+        <MenuPrimitive.CheckboxItemIndicator keepMounted={false}>
+          <Check strokeWidth={3} className="size-3 text-primary-foreground" />
+        </MenuPrimitive.CheckboxItemIndicator>
+      </span>
+      {children}
+    </MenuPrimitive.CheckboxItem>
+  )
+}
+
 export {
+  DropdownMenuCheckboxItem,
+  DropdownMenuGroup,
+  DropdownMenuGroupLabel,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
