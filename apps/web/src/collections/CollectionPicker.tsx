@@ -5,7 +5,9 @@ import { useState, type KeyboardEvent, type Ref } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { useCollectionsUi } from "./collections-ui-store";
 import { displayName } from "./display-name";
+import { GroupPicker } from "./GroupPicker";
 import { MiniCover } from "./MiniCover";
 import { nameProblem } from "./collection-name-form";
 import { NewCollectionForm } from "./NewCollectionForm";
@@ -30,6 +32,7 @@ export function CollectionPicker({ link, variant, inputRef }: CollectionPickerPr
   const [query, setQuery] = useState("");
   const [filedIds, setFiledIds] = useState<ReadonlySet<string>>(() => new Set(link.collections.map((item) => item.id)));
   const [creating, setCreating] = useState(false);
+  const groupedId = useCollectionsUi((state) => state.groupedCollectionId);
   const sheet = variant === "sheet";
 
   const matches = matchingCollections(ordered, query);
@@ -96,6 +99,9 @@ export function CollectionPicker({ link, variant, inputRef }: CollectionPickerPr
           </li>
         ))}
       </ul>
+      {groupedId !== null && filedIds.has(groupedId) ? (
+        <GroupPicker link={link} collectionId={groupedId} size={variant} />
+      ) : null}
       {sheet && query.trim() !== "" && matches.length === 0 ? (
         <p className="px-2.5 py-3.5 text-sm text-subtle-foreground">No collection called that.</p>
       ) : null}
