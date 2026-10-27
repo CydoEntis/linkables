@@ -144,7 +144,6 @@ const cases: Record<string, Case> = {
   },
   "GET /api/v1/export": { request: () => ({ path: "/api/v1/export" }) },
   // Mints a sign-in token for the caller only; B must get none of A's.
-  "POST /api/v1/extension-sessions": { request: () => ({ path: "/api/v1/extension-sessions" }) },
   "GET /api/v1/collections/shared": { request: () => ({ path: "/api/v1/collections/shared" }) },
   "GET /api/v1/collections/:id/share": {
     request: ({ collectionId }) => ({ path: `/api/v1/collections/${collectionId}/share` }),
@@ -184,7 +183,11 @@ const cases: Record<string, Case> = {
 // and the two routes a viewer of an emails-only share signs in with, which answer
 // the same for every address and hand out a session for that one collection.
 // Each public API route is probed below for what it gives back.
+// Authentication wrappers enforce their own session/origin checks, independently
+// exercised with two users in auth/routes.test.ts.
+const AUTH_ROUTES = ["POST /api/v1/auth/sign-in", "GET /api/v1/auth/session", "POST /api/v1/auth/sign-out"];
 const PUBLIC_ROUTES = new Set([
+  ...AUTH_ROUTES,
   "GET /health",
   "POST /api/v1/access-requests",
   "GET /api/v1/shared/:token",
@@ -652,7 +655,7 @@ describe("authz", () => {
   it("knows what every public API route gives back", () => {
     const publicApiRoutes = [...PUBLIC_ROUTES].filter((route) => route.includes("/api/"));
 
-    expect(publicApiRoutes).toEqual([...Object.keys(INSERT_ONLY_ROUTES), ...SHARED_READ_ROUTES, ...VIEWER_SIGN_IN_ROUTES]);
+    expect(publicApiRoutes).toEqual([...AUTH_ROUTES, ...Object.keys(INSERT_ONLY_ROUTES), ...SHARED_READ_ROUTES, ...VIEWER_SIGN_IN_ROUTES]);
   });
 
   it("has a case for every registered route", () => {

@@ -23,7 +23,7 @@ export function createLocalAuth(client: Client, config: AuthConfig, provisioning
     basePath: "/api/v1/auth",
     secret: config.secret,
     database: drizzleAdapter(drizzle(client, { schema }), { provider: "sqlite", schema }),
-    trustedOrigins: [config.appOrigin, ...config.trustedOrigins],
+    trustedOrigins: [config.appOrigin, ...config.trustedOrigins, "moz-extension://*"],
     emailAndPassword: {
       enabled: true,
       disableSignUp: provisioning?.allowSignUp !== true,
@@ -39,6 +39,7 @@ export function createLocalAuth(client: Client, config: AuthConfig, provisioning
     },
     plugins: [bearer()],
     telemetry: { enabled: false },
+    logger: { disabled: true },
   });
 }
 

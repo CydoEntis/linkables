@@ -8,7 +8,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate-cli.ts"
+    "db:migrate": "tsx src/db/migrate-cli.ts",
+    "user:create": "tsx src/auth/user-cli.ts",
+    "user:reset": "tsx src/auth/user-cli.ts --reset"
   },
   "dependencies": {
     "@hono/node-server": "2.1.5",

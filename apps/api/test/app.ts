@@ -1,23 +1,13 @@
 import { skipNotifyAccountDeleted } from "../src/access/notify-owner";
 import { createApp, type AppDeps } from "../src/app";
-import { testSupabaseAdmin } from "../src/extension-sessions/supabase-admin";
 import { createDb } from "../src/db/client";
 import { createLogger, type LogLevel } from "../src/log/logger";
 import { FetchError } from "../src/metadata/fetcher";
 import { skipSendViewerCode } from "../src/sharing/send-viewer-code";
-import { mintToken, testJwks } from "./auth/tokens";
+import { authFixture, createFixtureUser, TEST_AUTH } from "./auth/local";
+export { TEST_AUTH } from "./auth/local";
 
-export const TEST_SUPABASE_URL = "https://test-ref.supabase.co";
-
-export const TEST_AUTH: AppDeps["auth"] = {
-  nodeEnv: "test",
-  issuer: `${TEST_SUPABASE_URL}/auth/v1`,
-  jwksUrl: `${TEST_SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
-  testJwks: JSON.stringify(testJwks),
-};
-
-// postgres-js connects on first query, so unit tests that never reach the
-// database get a client that never opens a socket. DB tests pass their own.
+const defaultFixture = await authFixture();
 const unreachableDb = createDb("file::memory:").db;
 
 // Tests never reach the network; a test that reads a page passes its own fetchPage.
@@ -35,7 +25,7 @@ export function createTestApp(deps: Partial<AppDeps> = {}) {
     auth: TEST_AUTH,
     db: unreachableDb,
     notifyAccountDeleted: skipNotifyAccountDeleted,
-    supabaseAdmin: testSupabaseAdmin,
+    localAuth: defaultFixture.auth,
     sendViewerCode: skipSendViewerCode,
     fetchPage: offlineFetchPage,
     ...deps,
@@ -44,15 +34,12 @@ export function createTestApp(deps: Partial<AppDeps> = {}) {
 
 export type TestUser = { id: string; token: string; headers: { Authorization: string } };
 
-async function signIn(id: string): Promise<TestUser> {
-  const token = await mintToken({ sub: id, supabaseUrl: TEST_SUPABASE_URL });
-  return { id, token, headers: { Authorization: `Bearer ${token}` } };
-}
+let users: Promise<{ a: TestUser; b: TestUser }> | undefined;
 
-export async function testUsers(): Promise<{ a: TestUser; b: TestUser }> {
-  const [a, b] = await Promise.all([
-    signIn("0b6e2f3a-5c1d-4e8f-9a2b-3c4d5e6f7a81"),
-    signIn("7d9c1b2a-3e4f-4a5b-8c6d-7e8f9a0b1c22"),
-  ]);
-  return { a, b };
+export function testUsers(): Promise<{ a: TestUser; b: TestUser }> {
+  users ??= (async () => ({
+    a: await createFixtureUser(defaultFixture, "0b6e2f3a-5c1d-4e8f-9a2b-3c4d5e6f7a81", "a@example.com"),
+    b: await createFixtureUser(defaultFixture, "7d9c1b2a-3e4f-4a5b-8c6d-7e8f9a0b1c22", "b@example.com"),
+  }))();
+  return users;
 }
