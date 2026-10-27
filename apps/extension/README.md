@@ -86,8 +86,8 @@ build (no keys), so the app serves that committed file at
 install it on click. `/extension` shows "Add to Firefox" to Firefox visitors.
 
 Re-sign and recommit the xpi whenever anything under `apps/extension/src` (or the
-manifest) changes, bumping `version` first. The build is reproducible, so CI runs
-`release:firefox` with the production env and `pnpm --filter extension check:firefox`,
+manifest) changes, bumping `version` first. The build is reproducible, so the CI job
+(`.github/workflows/ci.yml`, currently disabled) runs `release:firefox` with the production env and `pnpm --filter extension check:firefox`,
 which fails when any file in `dist-firefox/` differs from the xpi (ignoring its
 `META-INF` signature). Run the same two commands locally after signing.
 
@@ -127,14 +127,12 @@ a new key pair, a new id and a new `CORS_ORIGINS` entry.
 
 ## Distribution
 
-On every push to `main`, CI builds the extension against production, zips it,
-and the web image serves the zip at
+The production server builds `main` with its own scripts (`deploy/README.md`)
+and adds the Chrome zip to the web build, so it is served at
 `https://linkables.app/downloads/linkables-chrome.zip` for anyone who installed
 it by hand. Everyone else installs it from the Chrome Web Store, which
 `https://linkables.app/extension` links to; Firefox visitors get the signed
-add-on described above. The same run builds the
-Web Store zip and keeps it as the `linkables-chrome-store` run artifact, which
-is not served publicly.
+add-on described above. `release:store` builds the Web Store zip by hand.
 
 ## Tests
 
