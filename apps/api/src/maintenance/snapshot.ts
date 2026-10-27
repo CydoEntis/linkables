@@ -4,6 +4,7 @@ import { z } from "zod";
 
 const id = z.uuid();
 const nullableText = z.string().nullable();
+const httpUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL(value).protocol), "Expected an HTTP(S) URL");
 
 // Date alone rounds away PostgreSQL microseconds, which are pagination keys.
 export function normalizedTimestamp(value: string): string {
@@ -16,13 +17,13 @@ const timestamp = z.string().refine((value) => Number.isFinite(Date.parse(value)
 const email = z.email().transform((value) => value.toLowerCase());
 
 const resource = z.strictObject({
-  id, canonical_url: z.url(), final_url: nullableText, rel_canonical_url: nullableText,
+  id, canonical_url: httpUrl, final_url: nullableText, rel_canonical_url: nullableText,
   title: nullableText, description: nullableText, author: nullableText, favicon_url: nullableText,
   thumbnail_url: nullableText, content_type: nullableText, kind: z.enum(RESOURCE_KINDS).nullable(),
   fetch_status: z.enum(FETCH_STATUSES), fetch_error: nullableText, fetched_at: timestamp.nullable(), created_at: timestamp,
 });
 const savedLink = z.strictObject({
-  id, user_id: id, resource_id: id, original_url: z.url(), title_override: nullableText, note: nullableText,
+  id, user_id: id, resource_id: id, original_url: httpUrl, title_override: nullableText, note: nullableText,
   pinned: z.boolean(), saved_at: timestamp, saved_from: nullableText,
 });
 const collection = z.strictObject({
