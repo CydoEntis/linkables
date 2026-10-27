@@ -13,7 +13,7 @@ export const api = {
     const client = createApiClient({
       baseUrl: connection.origin,
       getAccessToken: () => Promise.resolve(connection.session?.token ?? null),
-      onUnauthenticated: () => forgetSession(connection.origin),
+      onUnauthenticated: () => forgetSession(connection.origin, connection.session?.token),
     });
     return client.request(path, schema, options);
   },

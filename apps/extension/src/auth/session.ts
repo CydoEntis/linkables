@@ -30,6 +30,7 @@ async function authRequest(connection: Connection, path: string, body?: unknown)
     response = await fetch(connection.origin + "/api/v1/auth/" + path, {
       method: body === undefined ? "GET" : "POST",
       credentials: "omit",
+      redirect: "error",
       headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }), ...(connection.session ? { Authorization: `Bearer ${connection.session.token}` } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
@@ -51,9 +52,9 @@ export async function signIn(values: z.infer<typeof signInRequestSchema>): Promi
   await chrome.storage.local.set({ [CONNECTION_KEY]: { origin: connection.origin, session } });
 }
 
-export async function forgetSession(expectedOrigin?: string): Promise<void> {
+export async function forgetSession(expectedOrigin?: string, expectedToken?: string): Promise<void> {
   const connection = await readConnection();
-  if (connection && (expectedOrigin === undefined || connection.origin === expectedOrigin)) {
+  if (connection && (expectedOrigin === undefined || connection.origin === expectedOrigin) && (expectedToken === undefined || connection.session?.token === expectedToken)) {
     await chrome.storage.local.set({ [CONNECTION_KEY]: { origin: connection.origin, session: null } });
   }
 }
@@ -66,7 +67,7 @@ export async function disconnectServer(): Promise<void> {
 export async function signOut(): Promise<void> {
   const connection = await readConnection();
   if (connection?.session) await authRequest(connection, "sign-out", {});
-  await forgetSession(connection?.origin);
+  await forgetSession(connection?.origin, connection?.session?.token);
 }
 
 export const signOutByHand = signOut;

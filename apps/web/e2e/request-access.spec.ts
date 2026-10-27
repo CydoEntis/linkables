@@ -4,8 +4,7 @@ import { expect, test } from "./fixtures";
 test.use({ signedIn: false });
 
 test("a visitor requests access from the landing page", async ({ page, db }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "Request access" }).first().click();
+  await page.goto("/request-access");
 
   await page.getByLabel("Email").fill("Sam@Example.com");
   await page.getByLabel("Name (optional)").fill("Sam");

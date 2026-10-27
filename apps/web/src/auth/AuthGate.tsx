@@ -30,7 +30,7 @@ function GatedOutlet() {
 
   if (isPublicPage(pathname)) return <Outlet />;
   if (auth.status === "loading") {
-    return <AuthPage title="Opening your libraryâ€¦" />;
+    return <AuthPage title="Opening your library…" />;
   }
   if (auth.status === "unavailable") return <AuthPage title="Could not reach your server"><button type="button" onClick={auth.retry}>Try again</button></AuthPage>;
 

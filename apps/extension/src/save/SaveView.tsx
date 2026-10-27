@@ -44,7 +44,7 @@ function Status({ icon, title, children }: { icon: ReactNode; title: string; chi
 }
 
 function Saving() {
-  return <Status icon={<LoaderCircle aria-hidden className="size-[18px] animate-spin" />} title="Savingâ€¦" />;
+  return <Status icon={<LoaderCircle aria-hidden className="size-[18px] animate-spin" />} title="Saving…" />;
 }
 
 function CantSave({ reason }: { reason: string }) {

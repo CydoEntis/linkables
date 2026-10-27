@@ -33,6 +33,12 @@ it("ignores an old server's unauthorized response after switching", async () => 
   expect((await readConnection())?.session?.token).toBe("server-a-token");
 });
 
+it("keeps a newer sign-in when an older token is rejected on the same server", async () => {
+  await area.set({ [CONNECTION_KEY]: { origin: "https://a.example.com", session: { ...session, token: "new-token" } } });
+  await forgetSession("https://a.example.com", "old-token");
+  expect((await readConnection())?.session?.token).toBe("new-token");
+});
+
 it("does not replace a new server connection with an old sign-in response", async () => {
   await area.set({ [CONNECTION_KEY]: { origin: "https://a.example.com", session: null } });
   let finish: (response: Response) => void = () => undefined;
