@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 
-import { testDatabaseUrl } from "../../api/test/db-setup";
+import { testDatabaseUrl } from "./database";
 import { API_URL, IOS_SHORTCUT_URL, WEB_URL, AUTH_SECRET } from "./env";
 
 const databaseUrl = testDatabaseUrl();

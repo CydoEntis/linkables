@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { currentSession, loadSession, subscribeSession, type Session } from "./session";
 
 export type AuthState =

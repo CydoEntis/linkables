@@ -31,7 +31,7 @@ async function plantCode(db: Db, collectionId: string, email: string) {
 }
 
 async function isPrivate(db: Db, collectionId: string) {
-  const [row] = await db.all(sql`select share_private from collection where id = ${collectionId}`);
+  const [row] = await db.all<{ share_private: number }>(sql`select share_private from collection where id = ${collectionId}`);
   return row?.share_private === 1;
 }
 

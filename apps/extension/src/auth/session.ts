@@ -1,4 +1,4 @@
-﻿import { sessionSchema, signInRequestSchema } from "@linkables/shared/auth";
+import { sessionSchema, signInRequestSchema } from "@linkables/shared/auth";
 import { ApiError, NETWORK_ERROR, parseData, readEnvelope } from "@linkables/shared/api-client";
 import { z } from "zod";
 import { setServerOrigin } from "../config/env";

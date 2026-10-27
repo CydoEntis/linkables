@@ -9,7 +9,6 @@ import { AuthGate } from "./AuthGate";
 
 const signedIn = vi.hoisted(() => ({ current: true }));
 
-vi.mock("./supabase", () => ({ returningFromSignIn: false }));
 vi.mock("../api/api", () => ({ api: { request: vi.fn() } }));
 vi.mock("./use-auth", () => ({
   useAuth: () =>

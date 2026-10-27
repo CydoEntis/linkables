@@ -13,9 +13,9 @@ test("the extension guide describes self-hosted connection and does not offer an
   await expect(page.locator('a[href$=".xpi"]')).toHaveCount(0);
 });
 
-for (const [path, heading] of [["/privacy", "Privacy on this server"], ["/terms", "About this self-hosted instance"], ["/support", "Self-hosted help"]]) {
+for (const [path, heading] of [["/privacy", "Privacy on this server"], ["/terms", "About this self-hosted instance"], ["/support", "Self-hosted help"]] as const) {
   test(`${path} is readable as static HTML`, async ({ request }) => {
-    const response = await request.get(path ?? "/");
+    const response = await request.get(path);
     expect(response.ok()).toBe(true);
     expect(await response.text()).toContain(heading);
   });

@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 
 export const serverOriginSchema = z.string().trim().transform((value) => value.replace(/\/+$/, "")).pipe(
   z.url().refine((value) => {

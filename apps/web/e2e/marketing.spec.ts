@@ -9,9 +9,9 @@ test.describe("signed out", () => {
     await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
   });
 
-  for (const [path, heading] of [["/privacy", "Privacy on this server"], ["/terms", "About this self-hosted instance"], ["/support", "Self-hosted help"]]) {
+  for (const [path, heading] of [["/privacy", "Privacy on this server"], ["/terms", "About this self-hosted instance"], ["/support", "Self-hosted help"]] as const) {
     test(`${path} is readable without signing in`, async ({ page }) => {
-      await page.goto(path ?? "/");
+      await page.goto(path);
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
     });
   }

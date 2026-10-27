@@ -2,7 +2,7 @@ import { request, type Cookie } from "@playwright/test";
 import { sessionSchema } from "@linkables/shared/auth";
 import { createDb } from "../../api/src/db/client";
 import { provisionUser } from "../../api/src/auth/provision";
-import { testDatabaseUrl } from "../../api/test/db-setup";
+import { testDatabaseUrl } from "./database";
 import { WELCOME_SEEN_KEY } from "../src/save-anywhere/welcome";
 import { API_URL, WEB_URL, AUTH_SECRET } from "./env";
 
@@ -22,7 +22,7 @@ export async function createTestUser({ apiUrl = API_URL, appOrigin = WEB_URL } =
   const client = await request.newContext();
   try {
     const response = await client.post(apiUrl + "/api/v1/auth/sign-in", { data: { email, password: TEST_PASSWORD }, headers: { Origin: appOrigin } });
-    if (!response.ok()) throw new Error(`E2E sign-in failed: ${response.status()} ${await response.text()}`);
+    if (!response.ok()) throw new Error(`E2E sign-in failed: ${String(response.status())} ${await response.text()}`);
     const body = await response.json() as { data: unknown };
     const session = sessionSchema.parse(body.data);
     return { id, email, password: TEST_PASSWORD, accessToken: session.token, cookies: (await client.storageState()).cookies };

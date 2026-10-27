@@ -1,4 +1,4 @@
-﻿import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { rememberSession } from "./session";
 import { useAuth } from "./use-auth";

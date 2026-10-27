@@ -1,4 +1,4 @@
-﻿import { expect, it } from "vitest";
+import { expect, it } from "vitest";
 import { hostPermission, serverOriginSchema } from "./server-origin";
 
 it("accepts a private HTTPS Tailscale server and strips a trailing slash", () => {

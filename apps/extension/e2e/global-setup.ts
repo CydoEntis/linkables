@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { build, createServer } from "vite";
-import { migrateTestDb, testDatabaseUrl } from "../../api/test/db-setup";
+
+import { migrateE2eDatabase } from "../../web/e2e/database";
 import { API_URL, APP_URL, EXTENSION_DIR } from "./env";
 
 async function buildExtension() {
@@ -24,6 +25,6 @@ async function serveApp() {
 }
 export default async function globalSetup() {
   Object.assign(process.env, { VITE_API_URL: APP_URL });
-  const [, , app] = await Promise.all([migrateTestDb(testDatabaseUrl()), buildExtension(), serveApp()]);
+  const [, , app] = await Promise.all([migrateE2eDatabase(), buildExtension(), serveApp()]);
   return () => app.close();
 }

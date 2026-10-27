@@ -1,6 +1,6 @@
 import { chromium, test as base, expect, type Page } from "@playwright/test";
 import { createDb, type Db } from "../../api/src/db/client";
-import { testDatabaseUrl } from "../../api/test/db-setup";
+import { testDatabaseUrl } from "../../web/e2e/database";
 import { truncateAll } from "../../api/test/truncate";
 import { createTestUser, type TestUser } from "../../web/e2e/session";
 import { EXTENSION_ID } from "../manifest";
@@ -52,12 +52,12 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
     }, { scope: "worker" },
   ],
   cleanDb: [async ({ db }, use) => { await truncateAll(db); await use(undefined); }, { auto: true }],
-  user: async ({ cleanDb }, use) => {
-    void cleanDb;
+  // eslint-disable-next-line no-empty-pattern -- Playwright parses fixture dependencies.
+  user: async ({}, use) => {
     await use(await createTestUser({ apiUrl: API_URL, appOrigin: APP_URL }));
   },
   context: async ({ user }, use) => {
-    void user;
+    expect(user.email).toContain("@e2e.test");
     const context = await chromium.launchPersistentContext("", {
       channel: "chromium",
       args: [`--disable-extensions-except=${EXTENSION_DIR}`, `--load-extension=${EXTENSION_DIR}`],

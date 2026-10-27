@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { memoryStorageArea } from "../test/memory-storage-area";
 import { CONNECTION_KEY, configureServer, forgetSession, readConnection, signIn } from "./session";
 

@@ -1,9 +1,9 @@
 import { sql } from "drizzle-orm";
-﻿import type { Page } from "@playwright/test";
-import { API_URL, WEB_URL } from "./env";
+import type { Page } from "@playwright/test";
+import { API_URL } from "./env";
 import { expect, test } from "./fixtures";
 import type { Db } from "../../api/src/db/client";
-import { signedInState, type TestUser } from "./session";
+import { type TestUser } from "./session";
 
 function linksResponse(page: Page, method: string) {
   return page.waitForResponse(

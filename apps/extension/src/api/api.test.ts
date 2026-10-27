@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { CONNECTION_KEY } from "../auth/session";
 import { memoryStorageArea } from "../test/memory-storage-area";

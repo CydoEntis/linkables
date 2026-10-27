@@ -1,6 +1,6 @@
 import { test as base, expect } from "@playwright/test";
 import { createDb, type Db } from "../../api/src/db/client";
-import { testDatabaseUrl } from "../../api/test/db-setup";
+import { testDatabaseUrl } from "./database";
 import { truncateAll } from "../../api/test/truncate";
 import { WEB_URL } from "./env";
 import { seedLinks, type SeedLink, type SeededLink } from "./seed";
@@ -41,8 +41,7 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
   welcomed: [true, { option: true }],
 
   // eslint-disable-next-line no-empty-pattern -- Playwright reads fixture dependencies from this pattern.
-  user: async ({ cleanDb }, use) => {
-    void cleanDb;
+  user: async ({}, use) => {
     await use(await createTestUser());
   },
 

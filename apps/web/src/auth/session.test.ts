@@ -1,4 +1,4 @@
-﻿import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { currentSession, loadSession, rememberSession, signIn, signOut } from "./session";
 import { session } from "../test/session";
 

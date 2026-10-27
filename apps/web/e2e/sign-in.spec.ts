@@ -32,6 +32,7 @@ test("requires a valid email before sending credentials", async ({ page }) => {
 
 test("disables sign-in while offline", async ({ page, context }) => {
   await page.goto("/sign-in");
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
   await context.setOffline(true);
   await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeDisabled();
   await context.setOffline(false);

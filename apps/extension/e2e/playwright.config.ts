@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
 
-import { testDatabaseUrl } from "../../api/test/db-setup";
+import { testDatabaseUrl } from "../../web/e2e/database";
 import { EXTENSION_ID } from "../manifest";
 import { API_URL, APP_URL } from "./env";
 
