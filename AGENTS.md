@@ -27,7 +27,7 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
 ## Layout
 
 - `apps/api`: Hono API and worker. One folder per feature under `src/`
-  (`links/`, `collections/`, `metadata/`, `auth/`, ...) holding its routes,
+  (`links/`, `collections/`, `groups/`, `sharing/`, `metadata/`, `auth/`, ...) holding its routes,
   logic and tests. Cross-cutting HTTP code (envelope, errors, request id) in
   `src/http/`; DB schema and client in `src/db/`; integration tests and
   fixtures in `apps/api/test/`.
@@ -67,8 +67,8 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
   same way, and is rate-limited per IP. A shared collection is public because
   its owner chose to show it to people without an account: the token is 192
   random bits that the owner turns on and off, it reads only that one
-  collection's name and its links' display fields (no ids, notes, pins, dates or
-  owner), and, when the collection has groups (one level, per collection), the
+  collection's name, the names and link counts of the groups the owner shows,
+  and its links' display fields (no ids, notes, pins, dates or owner), and, when the collection has groups (one level, per collection), the
   names of the groups the owner chose to share, each with only its links; a group
   the owner left out, or the ungrouped links when switched off, is absent from the
   response entirely, names included. The owner sets this per group; everything

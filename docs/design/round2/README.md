@@ -8,6 +8,8 @@ The round 1 tokens, type, radii and rules are kept as they were. There are two a
 
 ---
 
+> Built after this round, and not designed here: collection groups (with sharing by group), Open all and Select on the owner's collection page, and click-to-open with Read on hover. The decisions are in `docs/design/DEVIATIONS.md`.
+
 ## 1. Sharing a collection (priority 1)
 
 ### Share dialog
