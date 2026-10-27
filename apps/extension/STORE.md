@@ -149,3 +149,10 @@ Step 7 is done: the listing id is in `CORS_ORIGINS` and `CHROME_WEB_STORE_URL` i
 Bump `version` in `apps/extension/package.json` (the store refuses a version it
 has seen), let CI build the new zip, then **Package › Upload new package** on the
 item and submit again. Store installs update themselves.
+
+## Firefox
+
+Firefox has no store listing: the add-on is signed as unlisted on
+addons.mozilla.org and served from linkables.app. Building, signing and where
+the file goes are in the README's Firefox section; the data it handles is the
+same as the Chrome listing declares in `store/privacy-practices.md`.
