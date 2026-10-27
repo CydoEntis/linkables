@@ -8,7 +8,6 @@ import { showsLanding } from "../marketing/show-landing";
 import { keepPendingConnect, keepPendingSave, pendingReturnHref, SAVE_PATH } from "../save/pending-save";
 import { AuthPage } from "./AuthPage";
 import { AuthStateContext, useAuthState } from "./auth-state";
-import { returningFromSignIn } from "./supabase";
 import { useAuth } from "./use-auth";
 
 export function AuthGate() {
@@ -31,8 +30,9 @@ function GatedOutlet() {
 
   if (isPublicPage(pathname)) return <Outlet />;
   if (auth.status === "loading") {
-    return returningFromSignIn ? <AuthPage title="Signing you in…" /> : null;
+    return <AuthPage title="Opening your library…" />;
   }
+  if (auth.status === "unavailable") return <AuthPage title="Could not reach your server"><button type="button" onClick={auth.retry}>Try again</button></AuthPage>;
   if (showsLanding(auth, pathname)) return <LandingPage />;
   if (auth.status === "signed-out" && !onSignIn) {
     // Written during render so it lands before Navigate's effect leaves /save; the write is idempotent.

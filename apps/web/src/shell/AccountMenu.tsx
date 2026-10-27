@@ -1,9 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
+﻿import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Settings } from "lucide-react";
 import { cn } from "cn";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useSignedInEmail } from "../auth/auth-state";
-import { signOut } from "../auth/supabase";
+import { signOut } from "../auth/session";
 import { SETTINGS_PATH } from "../settings/path";
 
 type AccountMenuProps = { showEmail?: boolean; className?: string };
@@ -44,3 +44,4 @@ export function AccountMenu({ showEmail = false, className }: AccountMenuProps) 
     </DropdownMenu>
   );
 }
+
