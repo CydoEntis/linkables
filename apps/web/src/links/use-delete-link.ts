@@ -83,6 +83,10 @@ function focusRestoredRow(linkId: string, framesLeft = 60) {
       if (framesLeft > 0) focusRestoredRow(linkId, framesLeft - 1);
       return;
     }
-    if (active === null || active === document.body || active.matches("main h1")) row.focus({ preventScroll: true });
+    if (active === null || active === document.body || active.matches("main h1")) {
+      row.focus({ preventScroll: true });
+      // Sonner's blur handler can restore the heading during this focus call.
+      if (document.activeElement !== row && framesLeft > 0) focusRestoredRow(linkId, framesLeft - 1);
+    }
   });
 }
