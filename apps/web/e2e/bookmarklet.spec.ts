@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { BrowserContext, Page, TestInfo } from "@playwright/test";
 import type { Db } from "../../api/src/db/client";
 import { WEB_URL } from "./env";
@@ -14,7 +15,7 @@ const ARTICLE = "https://news.example.test/story one?a=1&b=2#part";
 const POPUP = { width: 420, height: 640 };
 
 async function savedUrls(db: Db, user: TestUser): Promise<string[]> {
-  const rows = await db.$client<{ original_url: string }[]>`select original_url from saved_link where user_id = ${user.id}`;
+  const rows = await db.all<{ original_url: string }>(sql`select original_url from saved_link where user_id = ${user.id}`);
   return rows.map((row) => row.original_url);
 }
 

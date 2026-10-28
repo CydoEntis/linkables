@@ -46,22 +46,27 @@ describe("SaveAnywhereSteps", () => {
     expect(within(android).queryByRole("button", { name: "Install linkables" })).toBeNull();
   });
 
-  it("leads iPhone with the shortcut link, the three-step guide and the browser sign-in note", () => {
+  it("offers manual setup first and keeps an optional iCloud shortcut behind a disclosure", async () => {
     render(<SaveAnywhereSteps device="iphone" shortcutUrl={SHORTCUT} />);
     expect(leadCard()).toHaveAccessibleName("On iPhone or iPad");
+    expect(screen.getByText("Create a shortcut for this server")).toBeVisible();
+    expect(screen.getByRole("list", { name: "Create the iPhone shortcut" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Add the shortcut" })).not.toBeVisible();
+    await userEvent.click(screen.getByText("Use an existing iCloud shortcut"));
     expect(screen.getByRole("link", { name: "Add the shortcut" })).toHaveAttribute("href", SHORTCUT);
-    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      expect.stringContaining("1. Get the shortcut"),
-      expect.stringContaining("2. Add shortcut"),
-      expect.stringContaining("3. Use it from Share"),
-    ]);
     expect(screen.getByText(/default browser \(usually Safari\), so sign in to linkables there once/)).toBeVisible();
   });
 
-  it("says the iPhone shortcut is coming soon, with no button, when it has no link yet", () => {
+  it("provides complete current-origin iPhone setup without a configured iCloud link", () => {
     render(<SaveAnywhereSteps device="iphone" shortcutUrl={undefined} />);
-    expect(screen.getByText("The iPhone shortcut is coming soon.")).toBeVisible();
+    const guide = screen.getByRole("list", { name: "Create the iPhone shortcut" });
+    expect(guide).toHaveTextContent("Show in Share Sheet");
+    expect(guide).toHaveTextContent("URL Encode");
+    expect(guide).toHaveTextContent("Open URLs");
+    expect(within(guide).getByText(`${window.location.origin}/save?url=`)).toBeVisible();
+    expect(screen.queryByText(/coming soon/i)).toBeNull();
     expect(screen.queryByRole("link", { name: "Add the shortcut" })).toBeNull();
+    expect(screen.getByText(/Add to Home Screen/)).toBeVisible();
   });
 
   it("leads a computer with the bookmark button and dragging a link onto the window", () => {

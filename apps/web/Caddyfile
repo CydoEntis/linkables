@@ -1,12 +1,5 @@
 {
 	admin off
-	# Only the host's Caddy reaches this one, over Docker's private network, and
-	# it sets X-Forwarded-For from the real peer. Trusting private ranges makes
-	# {client_ip} the visitor's address, which the API rate-limits on.
-	servers {
-		trusted_proxies static private_ranges
-		trusted_proxies_strict
-	}
 }
 
 :8080 {
@@ -15,7 +8,7 @@
 	handle /api/* {
 		# Overwrites any X-Real-IP the client sent.
 		reverse_proxy api:3000 {
-			header_up X-Real-IP {client_ip}
+			header_up X-Real-IP {remote_host}
 		}
 	}
 	handle /health {
@@ -66,7 +59,6 @@
 	handle {
 		root * /srv
 		header Cache-Control "no-cache"
-		rewrite / /landing.html
 		try_files {path} {path}.html /index.html
 		file_server
 	}

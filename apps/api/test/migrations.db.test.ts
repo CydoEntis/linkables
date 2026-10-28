@@ -1,162 +1,71 @@
-import { readFileSync } from "node:fs";
-import postgres from "postgres";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, it } from "vitest";
+import { randomUUID } from "node:crypto";
+import { eq, sql } from "drizzle-orm";
+import { expect, it } from "vitest";
+import { createDb } from "../src/db/client";
+import { readMigrationFiles } from "drizzle-orm/migrator";
+import { migrationsFolder } from "../src/db/migrate";
+import { migrateDb } from "../src/db/migrate";
+import { collection, collectionGroup, collectionItem, resource, savedLink } from "../src/db/schema";
 
-// Each test replays migrations from empty, so it runs in a scratch database
-// next to the shared test one. The database is kept between runs and reset by
-// schema: DROP DATABASE waits for a checkpoint, which can outlast a hook timeout.
-const testUrl = new URL(inject("testDatabaseUrl"));
-const scratchName = `${testUrl.pathname.slice(1).replace(/_test$/, "")}_migrations_test`;
-if (scratchName === testUrl.pathname.slice(1)) {
-  throw new Error("The migration scratch database would be the test database itself; rename TEST_DATABASE_URL.");
-}
-const scratchUrl = new URL(testUrl);
-scratchUrl.pathname = `/${scratchName}`;
-
-const admin = postgres(testUrl.href, { onnotice: () => undefined });
-let scratch: postgres.Sql;
-
-function statements(file: string): string[] {
-  const text = readFileSync(new URL(`../drizzle/${file}`, import.meta.url), "utf8");
-  return text.split("--> statement-breakpoint");
-}
-
-async function apply(file: string) {
-  await scratch.begin(async (tx) => {
-    for (const statement of statements(file)) await tx.unsafe(statement);
-  });
-}
-
-async function ensureScratchDatabase() {
-  const [existing] = await admin`select 1 from pg_database where datname = ${scratchName}`;
-  if (existing === undefined) await admin.unsafe(`create database "${scratchName}"`);
-}
-
-async function insertCollection(userId: string, name: string) {
-  await scratch`insert into collection (user_id, name) values (${userId}, ${name})`;
-}
-
-const userA = "00000000-0000-4000-8000-00000000000a";
-const userB = "00000000-0000-4000-8000-00000000000b";
-
-beforeAll(ensureScratchDatabase);
-beforeEach(async () => {
-  scratch = postgres(scratchUrl.href, { onnotice: () => undefined });
-  await scratch.unsafe("drop schema public cascade; create schema public");
-});
-afterEach(() => scratch.end());
-afterAll(() => admin.end());
-
-describe("collection name migration", () => {
-  it("applies on a database that has the old constraint and keeps its rows", async () => {
-    await apply("0000_init.sql");
-    await insertCollection(userA, "Rust");
-    await insertCollection(userB, "rust");
-
-    await apply("0001_collection_name_ignores_case.sql");
-
-    const rows = await scratch<{ name: string }[]>`select name from collection order by user_id`;
-    expect(rows.map((row) => row.name)).toEqual(["Rust", "rust"]);
-    await expect(insertCollection(userA, "RUST")).rejects.toMatchObject({
-      code: "23505",
-      constraint_name: "collection_user_id_lower_name_unique",
-    });
-  });
-
-  it("fails without changes when a user already has names that differ only in case", async () => {
-    await apply("0000_init.sql");
-    await insertCollection(userA, "Rust");
-    await insertCollection(userA, "rust");
-
-    await expect(apply("0001_collection_name_ignores_case.sql")).rejects.toMatchObject({ code: "23505" });
-
-    const [constraint] = await scratch`
-      select 1 from pg_constraint where conname = 'collection_user_id_name_unique'`;
-    expect(constraint).toBeDefined();
-  });
-});
-
-describe("collection pin and last use migration", () => {
-  it("backfills last use from creation and filing time from save time", async () => {
-    await apply("0000_init.sql");
-    await apply("0001_collection_name_ignores_case.sql");
-    await scratch`
-      with r as (insert into resource (canonical_url) values ('https://example.com/') returning id),
-        l as (insert into saved_link (user_id, resource_id, original_url, saved_at)
-          select ${userA}, id, 'https://example.com/', '2026-01-02T00:00:00Z' from r returning id),
-        c as (insert into collection (user_id, name, created_at)
-          values (${userA}, 'Rust', '2026-01-01T00:00:00Z') returning id)
-      insert into collection_item (collection_id, saved_link_id) select c.id, l.id from c, l`;
-
-    await apply("0002_collection_pin_and_last_use.sql");
-
-    const [col] = await scratch<{ pinned: boolean; last_used_at: Date }[]>`
-      select pinned, last_used_at from collection`;
-    expect(col).toEqual({ pinned: false, last_used_at: new Date("2026-01-01T00:00:00Z") });
-    const [item] = await scratch<{ created_at: Date }[]>`select created_at from collection_item`;
-    expect(item?.created_at).toEqual(new Date("2026-01-02T00:00:00Z"));
-  });
-});
-
-describe("saved from migration", () => {
-  it("applies on a database at 0002 and leaves existing links without a source", async () => {
-    await apply("0000_init.sql");
-    await apply("0001_collection_name_ignores_case.sql");
-    await apply("0002_collection_pin_and_last_use.sql");
-    await scratch`
-      with r as (insert into resource (canonical_url) values ('https://example.com/') returning id)
-      insert into saved_link (user_id, resource_id, original_url) select ${userA}, id, 'https://example.com/' from r`;
-
-    await apply("0003_saved_link_saved_from.sql");
-
-    const rows = await scratch<{ original_url: string; saved_from: string | null }[]>`
-      select original_url, saved_from from saved_link`;
-    expect(rows).toEqual([{ original_url: "https://example.com/", saved_from: null }]);
-  });
-});
-
-describe("collection share token migration", () => {
-  it("leaves existing collections unshared and still accepts the previous image's inserts", async () => {
-    for (const file of [
-      "0000_init.sql",
-      "0001_collection_name_ignores_case.sql",
-      "0002_collection_pin_and_last_use.sql",
-      "0003_saved_link_saved_from.sql",
-      "0004_access_request.sql",
-    ]) {
-      await apply(file);
+it("backfills existing title order and keeps it current after metadata changes", async () => {
+  const connection = createDb("file::memory:");
+  const client = connection.db.$client;
+  const resourceId = randomUUID();
+  const linkId = randomUUID();
+  try {
+    await connection.ready;
+    await client.execute('create table __drizzle_migrations (id integer primary key, hash text not null, created_at numeric)');
+    const migrations = readMigrationFiles({ migrationsFolder });
+    const keyMigration = migrations.findIndex((entry) => entry.sql.some((statement) => statement.includes("ADD `title_sort_key`")));
+    if (keyMigration < 0) throw new Error("Missing title key migration");
+    for (const migration of migrations.slice(0, keyMigration)) {
+      for (const statement of migration.sql) await client.executeMultiple(statement);
+      await client.execute({ sql: 'insert into __drizzle_migrations (hash, created_at) values (?, ?)', args: [migration.hash, migration.folderMillis] });
     }
-    await insertCollection(userA, "Rust");
+    await client.execute({ sql: 'insert into resource (id, canonical_url, title) values (?, ?, ?)', args: [resourceId, "https://example.com/source", "Original title"] });
+    await client.execute({ sql: 'insert into saved_link (id, user_id, resource_id, original_url) values (?, ?, ?, ?)', args: [linkId, randomUUID(), resourceId, "https://example.com/source"] });
 
-    await apply("0005_collection_share_token.sql");
-    await insertCollection(userB, "Books");
+    await migrateDb(connection.db);
+    const before = await connection.db.select({ key: savedLink.titleSortKey }).from(savedLink);
+    await connection.db.update(resource).set({ title: "Updated title" }).where(eq(resource.id, resourceId));
+    const after = await connection.db.select({ key: savedLink.titleSortKey }).from(savedLink);
 
-    const rows = await scratch<{ share_token: string | null }[]>`select share_token from collection`;
-    expect(rows).toEqual([{ share_token: null }, { share_token: null }]);
-  });
+    expect(before[0]?.key).toContain("original title");
+    expect(after[0]?.key).toContain("updated title");
+    expect(after[0]?.key).not.toEqual(before[0]?.key);
+  } finally { await connection.close(); }
 });
 
-describe("resource reader migration", () => {
-  it("adds an empty reader cache and still accepts the previous image's writes", async () => {
-    for (const file of [
-      "0000_init.sql",
-      "0001_collection_name_ignores_case.sql",
-      "0002_collection_pin_and_last_use.sql",
-      "0003_saved_link_saved_from.sql",
-      "0004_access_request.sql",
-      "0005_collection_share_token.sql",
-    ]) {
-      await apply(file);
-    }
-    await scratch`insert into resource (canonical_url) values ('https://example.com/old')`;
+it("reapplying SQLite migrations preserves existing library rows", async () => {
+  const connection = createDb("file::memory:");
+  try {
+    await connection.ready;
+    await migrateDb(connection.db);
+    const [page] = await connection.db.insert(resource).values({ canonicalUrl: "https://example.com/page" }).returning();
+    if (!page) throw new Error("Missing resource");
+    await connection.db.insert(savedLink).values({ userId: randomUUID(), resourceId: page.id, originalUrl: page.canonicalUrl });
+    await migrateDb(connection.db);
+    expect(await connection.db.$count(savedLink)).toBe(1);
+    expect(await connection.db.all(sql`pragma integrity_check`)).toEqual([{ integrity_check: "ok" }]);
+  } finally { await connection.close(); }
+});
 
-    await apply("0006_resource_reader.sql");
-    const [created] = await scratch<{ id: string }[]>`
-      insert into resource (canonical_url) values ('https://example.com/new') returning id`;
-    await scratch`insert into resource_reader (resource_id, status, reason) values (${created?.id ?? ""}, 'unavailable', 'no_article')`;
-    await scratch`delete from resource where canonical_url = 'https://example.com/new'`;
-
-    expect(await scratch`select 1 from resource_reader`).toHaveLength(0);
-    expect(await scratch`select 1 from resource`).toHaveLength(1);
-  });
+it("deleting a group leaves its links ungrouped in the same collection", async () => {
+  const connection = createDb("file::memory:");
+  const db = connection.db;
+  try {
+    await connection.ready;
+    await migrateDb(db);
+    const userId = randomUUID();
+    const [page] = await db.insert(resource).values({ canonicalUrl: "https://example.com/grouped" }).returning();
+    const [col] = await db.insert(collection).values({ userId, name: "Research" }).returning();
+    if (!page || !col) throw new Error("Missing fixture");
+    const [link] = await db.insert(savedLink).values({ userId, resourceId: page.id, originalUrl: page.canonicalUrl }).returning();
+    const [group] = await db.insert(collectionGroup).values({ collectionId: col.id, name: "Docs", position: 0 }).returning();
+    if (!link || !group) throw new Error("Missing fixture");
+    await db.insert(collectionItem).values({ collectionId: col.id, savedLinkId: link.id, groupId: group.id });
+    await db.delete(collectionGroup).where(eq(collectionGroup.id, group.id));
+    expect(await db.select({ collectionId: collectionItem.collectionId, groupId: collectionItem.groupId }).from(collectionItem)).toEqual([{ collectionId: col.id, groupId: null }]);
+    expect(await db.all(sql`pragma foreign_key_check`)).toEqual([]);
+  } finally { await connection.close(); }
 });

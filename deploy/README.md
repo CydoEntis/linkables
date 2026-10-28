@@ -1,118 +1,149 @@
-# Deploy
+# Operate a self-hosted instance
 
-Production runs on an OVHcloud VPS (x86_64, Ubuntu 26.04, `40.160.103.45` and
-`2604:2dc0:101:200::3b68`) at `https://linkables.app` (ADR-0005). The owner's
-Raspberry Pi, over Tailscale, was the earlier private host. Turn its copy off so
-it is not a second production writer:
-`sudo systemctl disable --now linkables-update.timer && cd /srv/linkables && sudo docker compose down`,
-then `sudo tailscale serve reset`.
+Start with the installation steps in the [README](../README.md). Commands below
+run from your source checkout. One API process serves requests and runs the
+metadata worker. Caddy serves the web app and proxies the API on the same origin.
 
+## Set the external address
+
+Set `APP_ORIGIN` in `.env` to the exact origin people open. The web build discovers
+its API from the current origin; it contains no instance credentials or hostname.
+The shipped Chrome builds and Firefox extension origins work without extra CORS
+configuration. Add a custom Chrome build's origin to `CORS_ORIGINS` if its ID
+differs from the shipped packages. Unlisted Chrome origins are rejected.
+
+### Use Tailscale HTTPS
+
+Install Tailscale on the host and client devices. Join them to your own tailnet.
+Find the host's `*.ts.net` name in `tailscale status` and set, for example:
+
+```dotenv
+APP_ORIGIN=https://your-host.your-tailnet.ts.net
 ```
-push to main → the server pulls main (about every 5 minutes)
-             → the server's own build scripts: verify, migrate Supabase,
-               build the web and API images, add the Chrome zip, restart
-host Caddy (HTTPS :443) → web container 127.0.0.1:8080 (Caddy)
-                            ├─ /api/*, /health → api container :3000
-                            └─ everything else → the built SPA
+
+Recreate the API after changing `.env`, then enable private HTTPS:
+
+```sh
+docker compose up -d
+sudo tailscale serve --bg http://127.0.0.1:8080
 ```
 
-Production builds on the VPS. The build scripts live on the server at
-`/srv/build`, outside this repo, and are not documented here. GitHub Actions
-are disabled, so `.github/workflows/ci.yml`, its GHCR publish job, and the
-GHCR-based `docker-compose.yml`, `linkables-update.service` and
-`linkables-update.timer` in this folder describe the earlier flow and do not
-run production. What the repo does fix:
+Serve uses your tailnet's HTTPS setup and may ask you to enable it. This does not
+make the service public. Do not enable Tailscale Funnel for a private instance.
+Users still need Linkables accounts for personal libraries. An owner can share a
+read-only collection by URL with another device that can reach the instance.
 
-- The server's web build adds `linkables-chrome.zip` to the web `dist/`
-  (`apps/extension/README.md`).
-- Anything under `apps/web/public/` reaches the image by itself. That is why
-  the signed Firefox add-on, `apps/web/public/downloads/linkables-firefox.xpi`,
-  is committed there; the build has no signing keys.
-- `apps/web/Caddyfile` serves `/downloads/*.xpi` as `application/x-xpinstall`.
+### Use a public reverse proxy
 
-The server also hosts other static sites, each one more site block in the host's
-Caddyfile.
+Keep the Docker port bound to loopback. Point your domain at the host and proxy
+HTTPS to `127.0.0.1:8080`. A host Caddy configuration can use:
 
-## One-time server setup
+```caddyfile
+links.example.com {
+    reverse_proxy 127.0.0.1:8080
+}
+```
 
-Run on the server as a user with sudo.
+Never expose the API container or SQLite volume directly. `TRUST_PROXY=false` is
+the default. Change it only when your trusted proxy overwrites `X-Real-IP`, the
+API cannot be reached through another path, and you have verified the proxy chain.
+The default Caddy container does not trust incoming forwarded-IP headers.
 
-1. **SSH.** Key-only login. `/etc/ssh/sshd_config.d/00-hardening.conf`:
-   ```
-   PasswordAuthentication no
-   KbdInteractiveAuthentication no
-   PermitRootLogin no
-   ```
-2. **Firewall.** ufw allows only OpenSSH, `80/tcp`, `443/tcp` and `443/udp`
-   (HTTP/3).
-3. **Updates.** `unattended-upgrades` is on.
-4. **Docker.** Docker and compose v2 from Ubuntu's own packages.
-5. **Caddy.** Installed on the host from Caddy's official apt repository. It
-   owns ports 80 and 443 and gets certificates automatically. One site block
-   per domain in `/etc/caddy/Caddyfile`:
-   ```
-   linkables.app {
-   	encode zstd gzip
-   	reverse_proxy 127.0.0.1:8080
-   }
+## Manage accounts
 
-   www.linkables.app {
-   	redir https://linkables.app{uri} permanent
-   }
-   ```
-   Then `sudo systemctl reload caddy`.
-6. **Stack folder (earlier GHCR flow).** Copy `deploy/docker-compose.yml` to `/srv/linkables/`, and
-   write `/srv/linkables/.env` from `deploy/.env.production.example`
-   (`chmod 600`).
-7. **Registry login (earlier GHCR flow).** The images are private. Create a GitHub classic token
-   with only `read:packages`, then:
-   ```sh
-   sudo docker login ghcr.io -u <github-user> --password-stdin
-   ```
-   (`sudo`, because the update timer runs as root.)
-8. **Update timer (earlier GHCR flow).**
-   ```sh
-   sudo cp deploy/linkables-update.service deploy/linkables-update.timer /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now linkables-update.timer
-   ```
+Account creation and password resets run on the server. Neither needs SMTP.
+Pass the password through stdin, as in the README. To reset a password, use:
 
-## DNS
+```sh
+read -rsp 'New password (12+ characters): ' LINKABLES_PASSWORD; printf '\n'
+printf '%s' "$LINKABLES_PASSWORD" | docker compose exec -T api node_modules/.bin/tsx src/auth/user-cli.ts --reset --email you@example.com
+unset LINKABLES_PASSWORD
+```
 
-At Porkbun, for both `linkables.app` and `www.linkables.app` (the `www` block
-needs its own records to get a certificate):
+A reset revokes all sessions for that account. It also establishes the first local
+password for a migrated Google or email-code account while preserving its user ID.
+Do not pass passwords as command arguments or commit them to configuration files.
 
-- `A` → `40.160.103.45`
-- `AAAA` → `2604:2dc0:101:200::3b68`
+## Back up and restore
 
-Keep Resend's records (`resend._domainkey`, `send`, `rsend`); sign-in email
-depends on them.
+Backups contain personal libraries and local password hashes. Keep them private
+and copy them to another device. Back up `.env` separately, especially `AUTH_SECRET`.
 
-## GitHub settings (earlier flow)
+Prepare the backup mount once so the container's `node` user can write it:
 
-Used only if Actions are turned back on:
+```sh
+mkdir -p backups
+docker compose exec --user root api chown node:node /backups
+docker compose exec --user root api chmod 700 /backups
+```
 
-- Variable `APP_ORIGIN`: `https://linkables.app`
-- Variable `IOS_SHORTCUT_URL` (optional): the iCloud link to the Shortcut.
-- Secret `MIGRATION_DATABASE_URL`: Supabase's session pooler URL (port 5432).
-- Secrets `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`: the production project's
-  URL and public anon key, baked into the web build.
+Create a new snapshot without stopping the app:
 
-## Supabase
+```sh
+docker compose exec api node_modules/.bin/tsx src/maintenance/cli.ts backup-current /backups/library-2026-10-27.db
+```
 
-Authentication → URL Configuration: Site URL `https://linkables.app`, and add
-`https://linkables.app/**` to Redirect URLs.
+Use a new filename for each backup. The command refuses existing destinations,
+includes committed WAL pages, checks database integrity and foreign keys, and
+publishes the result only after validation. `backup-current` reads the running
+API container's `DATABASE_URL`, so it backs up the selected database after a
+migration or restore. Copy the snapshot off the host. On a
+host where your UID differs from the container's UID 1000, use Docker to copy it
+to a directory you own:
 
-## Google OAuth
+```sh
+docker compose cp api:/backups/library-2026-10-27.db ./library-offsite.db
+```
 
-Nothing to change for a new app origin. Google only sees Supabase's callback
-(`https://<project-ref>.supabase.co/auth/v1/callback`) as the redirect URI; the
-app's own address is checked by Supabase's Redirect URLs above.
+Rehearse restoration into a new database before replacing a live file:
 
-## Day to day
+```sh
+docker compose exec api node_modules/.bin/tsx src/maintenance/cli.ts restore /backups/library-2026-10-27.db /data/restored.db
+docker compose exec api node_modules/.bin/tsx src/maintenance/cli.ts check /data/restored.db
+```
 
-- Deploy: merge to main. The server picks it up within about 5 minutes.
-- Build, update and roll back: use the scripts in `/srv/build` on the server;
-  they are not in this repo.
-- Add another site: add its site block to `/etc/caddy/Caddyfile` and run
-  `sudo systemctl reload caddy`.
+To use the restored database, stop the app, set `DATABASE_URL=file:/data/restored.db`
+in the checkout's `.env`, and run `docker compose up -d`. Keep the file under
+`/data` so it persists in the data volume. The compose file passes this variable
+to the API; its default is `file:/data/linkables.db`. Keep the original database
+until sign-in, link counts, collections, search, and a test save all work. A
+restored session works only with the corresponding auth secret and an unexpired
+session; users can sign in again if needed.
+
+Do not overwrite an active database, copy its live WAL and database separately,
+or restore over an existing file. The tools deliberately require a new path.
+
+## Upgrade and roll back
+
+1. Make a verified backup and save the current source commit and `.env`.
+2. Check out the release you want to run.
+3. Run `docker compose up -d --build`.
+4. Check `docker compose ps`, sign in, and exercise saving and search.
+
+The API applies pending SQLite migrations before listening. For a rollback across
+an incompatible migration, restore the matching database backup to a new path
+and run the previous source release. Do not expect an old image to understand a
+new schema. No CI job migrates your database remotely or updates your instance.
+
+## Optional mail
+
+Private collection shares that verify a recipient's email need a configured mail
+provider. The current adapter uses Resend. Personal accounts, link saving, public
+token shares, and account deletion work without it. Setting `RESEND_API_KEY`
+and `MAIL_FROM` enables viewer mail. `MAIL_FROM` is a plain sender email address
+on a domain you verify with Resend. Set `OWNER_EMAIL` as well to receive access
+requests and optional account-deletion notices. There are no default sender or
+owner addresses. An existing private share never becomes
+public because mail is unavailable.
+
+## Operations
+
+```sh
+docker compose logs -f api
+docker compose ps
+docker compose stop
+```
+
+The default log driver rotates logs. SQLite belongs on local disk, not an NFS
+share. Run one API container against a database file. The default compose file
+builds locally on ARM64 or AMD64 and needs no registry login.

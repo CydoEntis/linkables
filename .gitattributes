@@ -1,4 +1,6 @@
 apps/api/drizzle/** text eol=lf
+apps/api/sqlite/** text eol=lf
+*.sh text eol=lf
 # Fixtures are compared byte for byte in tests, so a CRLF checkout must not rewrite them.
 apps/api/src/**/fixtures/** text eol=lf
 apps/api/test/fixtures/** text eol=lf

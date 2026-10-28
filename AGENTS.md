@@ -2,14 +2,15 @@
 
 Save any URL, find it later, share it when needed. The plan, scope and phase
 order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
-`CONTEXT.md`. Tickets are in Plane (project `linkables`, LNK-1 onward).
+`CONTEXT.md`. The old Plane backlog describes the retired hosted product. Current work follows
+explicit owner requests and GitHub issues.
 
 ## Dev Deck
 
-- **Stack:** TypeScript on Node. Vite + React SPA (web and PWA), Chrome MV3
-  extension (Phase 2), one Node API on Hono (also runs the worker loop), Postgres
-  via Drizzle on Supabase (Postgres + Auth). Web UI: Tailwind CSS v4 + shadcn/ui,
-  Lucide icons; screens follow `docs/design/`. Source: ADR-0001, ADR-0002, ADR-0006.
+- **Stack:** TypeScript on Node 24. Vite + React SPA (web and PWA), Chrome and
+  Firefox extensions, one Node API on Hono (also runs the worker loop), local
+  SQLite via Drizzle/libSQL, and Better Auth local password accounts. Web UI: Tailwind CSS v4 + shadcn/ui,
+  Lucide icons; screens follow `docs/design/`. Source: ADR-0001, ADR-0006, ADR-0009. ADR-0009 replaces hosted auth and database requirements.
 - **House style:** the Dev Deck conventions apply (code-style, commits,
   contract): vertical slice, colocation, functions split by job, DRY/KISS,
   WHY-not-WHAT comments, and its definition of done. The developer plugin's
@@ -21,8 +22,9 @@ order live in `docs/PLANNING.md`; decisions are in `docs/adr/`; terms are in
   then the Dev Deck conventions, then the playbook.
 - **Commits:** `feat(scope): ...` / `fix(scope): ...`, one logical change per
   commit, no `git add -A`, no ticket IDs in commit messages.
-- **Verify:** `pnpm verify` (typecheck + lint + test). DB tests need
-  `docker compose up -d` and `TEST_DATABASE_URL` (README).
+- **Verify:** `pnpm verify` (typecheck + lint + test). Database tests create temporary
+  local SQLite files. Run the relevant Playwright flows and container smoke test
+  for changes to clients, authentication, deployment, or persistence.
 
 ## Layout
 
@@ -59,9 +61,12 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - Validate every request body, query and external response with Zod at the
   boundary; trust the types inside.
 - All data access goes through the API and is scoped to the signed-in user's
-  `sub`. No query returns another user's rows (plan Rule 3). Every new route gets
+  local account ID. No query returns another user's rows (plan Rule 3). Every new route gets
   a two-user test and an entry in `apps/api/test/authz.db.test.ts`.
-- Every route needs a JWT except `GET /health`, `POST /access-requests`,
+- Business routes require a valid local session (HttpOnly cookie or bearer token).
+  `POST /auth/sign-in` is public and rate-limited. `GET /auth/session` and
+  `POST /auth/sign-out` validate their own session. There is no public signup.
+  Other public routes are `GET /health`, `POST /access-requests`,
   `GET /shared/:token`, `POST /shared/:token/code` and
   `POST /shared/:token/verify`. The request-access form is public because the people
   filling it in have no account yet; it only inserts, answers every request the
@@ -102,20 +107,19 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - Anything that fetches a user-supplied URL goes through the SSRF-guarded
   fetcher (ADR-0003, `apps/api/src/metadata/fetcher.ts`). Never call `fetch` on a
   saved URL directly; never weaken the guard to make a test pass. The fetcher
-  never forwards `X-Request-Id` or `traceparent` to saved URLs. The three other
+  never forwards `X-Request-Id` or `traceparent` to saved URLs. The two other
   outbound clients are `apps/api/src/access/notify-owner.ts`, which posts to
   Resend's fixed API host, `apps/api/src/sharing/send-viewer-code.ts`, which
   posts the one-time code of a private share to the same fixed host (the
   recipient is the only part a viewer chooses, and only if the owner listed it;
-  no saved URL, no collection name in the mail), and
-  `apps/api/src/extension-sessions/supabase-admin.ts`, which calls only the
-  configured `SUPABASE_URL`'s auth admin API with the optional
-  `SUPABASE_SECRET_KEY` (never logged), never a saved URL. All three are
-  allowlisted by path in `eslint.config.js`.
+  no saved URL, no collection name in the mail). Both are optional, use the
+  operator's configured sender, and are allowlisted by path in `eslint.config.js`.
 - Logs never contain personal data such as a requester's or viewer's email
   address, or a one-time code.
-- The test auth path (`AUTH_TEST_JWKS`, the committed test key pair) works only
-  with `NODE_ENV=test`. Never add another way around token verification.
+- Authentication tests use local accounts and real sessions. Never add an auth
+  bypass, accept the historical test JWTs, or infer library ownership from Tailscale.
+- The web and extension builds contain no instance credentials or fixed server
+  address. Changing an extension's server clears its session and query cache.
 - Logs never contain a URL's query string or fragment; use the redacting logger.
 - Migrations are Drizzle migrations, committed, never edited after merge. They
   run before the new image goes live, so each one must still work with the
@@ -133,23 +137,18 @@ The API follows the Dev Deck contract (`conventions/contract.md`):
 - Tests: Vitest beside the source; DB integration tests run serially; one test
   per behaviour, named after it.
 
-## Working a ticket
+## Working a change
 
-The Dev Deck pipeline (planner → builder → reviewer) is used for every ticket.
-Plane is the ticket source, not `.plan/`:
+Use the planner ? builder ? blind reviewer pipeline. For an explicitly authorized
+change, record scope and verification in the existing plan and implement only that
+change. Keep scratch execution notes in gitignored .plan/. Do not select tickets
+from the historical hosted-service backlog.
 
-1. **Pick:** the lowest-numbered Phase 1 ticket in Backlog or Todo whose
-   `Blocked by:` tickets are all Done. Skip tickets marked `[owner]`; those are
-   the owner's. Blockers live only in the ticket body's `Blocked by:` line;
-   never create native Plane relations (this Plane cannot remove them).
-2. **Start:** move it to In Progress and branch from `main` as
-   `lnk-<n>-<short-slug>`.
-3. **Plan:** Phase 1 tickets are already planned. The planner copies the Plane
-   ticket into `.plan/tickets.md` (scratch, gitignored) and adds only an
-   implementation note. It does not change scope. If the ticket is wrong or
-   impossible as written, stop and report instead of improvising.
-4. **Build and review:** builder test-first; reviewer blind against the ticket's
-   Verify line and this file.
-5. **Finish:** open a PR to `main` named `P1-xx <ticket title>`, linking the
-   Plane ticket. After merge, move the ticket to Done and update any
-   `not yet:` marker in `docs/PLANNING.md` that the ticket made true.
+Preserve the source database until migration, backup restoration, and the running
+replacement are verified. Database maintenance commands require new destinations
+and must not print personal data or credentials. The retirement procedure is in
+docs/self-hosting-migration.md.
+
+Open-source releases use AGPL-3.0-only and retain third-party notices. Never
+commit local databases, backups, passwords, API keys, or generated instance
+configuration. Never add AI attribution to commits or PRs.

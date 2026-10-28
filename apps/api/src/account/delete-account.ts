@@ -1,3 +1,4 @@
+import { user } from "../auth/schema";
 import { eq } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { collection, savedLink } from "../db/schema";
@@ -10,5 +11,6 @@ export async function deleteAccountData(db: Db, userId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.delete(collection).where(eq(collection.userId, userId));
     await tx.delete(savedLink).where(eq(savedLink.userId, userId));
+    await tx.delete(user).where(eq(user.id, userId));
   });
 }

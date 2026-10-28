@@ -1,6 +1,6 @@
 # ADR-0005: One long-running container for the API and worker; static SPA
 
-**Status:** accepted (2026-10-21); host settled 2026-10-23, moved 2026-10-24 (see Updates)
+**Status:** superseded by [ADR-0009](0009-self-hosted-sqlite-local-accounts.md) for the self-hosted target. Historical decision follows.
 
 ## Problem
 

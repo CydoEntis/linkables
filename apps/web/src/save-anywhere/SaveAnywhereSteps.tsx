@@ -90,28 +90,25 @@ function AndroidSteps({ onThisDevice }: { onThisDevice: boolean }) {
 }
 
 function IphoneSteps({ shortcutUrl }: { shortcutUrl: string | undefined }) {
-  if (!shortcutUrl) {
-    return (
-      <>
-        <Step>The iPhone shortcut is coming soon.</Step>
-        <Note>Until then, open linkables and paste a link to save it.</Note>
-      </>
-    );
-  }
   return (
     <>
-      <Step>Add the Save to linkables shortcut, then tap Share, then Save to linkables.</Step>
-      <a
-        href={shortcutUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={buttonVariants({ size: "xl", className: "gap-2" })}
-      >
-        Add the shortcut
-        <ExternalLink aria-hidden className="size-[18px]" />
-      </a>
+      <Step>Create a shortcut for this server</Step>
+      <Note>Set it up once in Apple Shortcuts to save the first shared URL to this linkables instance.</Note>
       <ShortcutGuide />
+      {shortcutUrl ? (
+        <details>
+          <summary className="min-h-11 cursor-pointer py-2 text-[14.5px] font-semibold text-primary">Use an existing iCloud shortcut</summary>
+          <div className="mt-2 flex flex-col gap-3">
+            <a href={shortcutUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "xl", className: "gap-2" })}>
+              Add the shortcut
+              <ExternalLink aria-hidden className="size-[18px]" />
+            </a>
+            <Note>Check that its URL action uses this server&apos;s address shown above.</Note>
+          </div>
+        </details>
+      ) : null}
       <Note>The shortcut opens linkables in your default browser (usually Safari), so sign in to linkables there once. The home-screen app keeps its own sign-in.</Note>
+      <Note>To install the app on iPhone or iPad, open this instance in Safari, tap Share, then Add to Home Screen. Keep Tailscale connected if your server needs it.</Note>
     </>
   );
 }

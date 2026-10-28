@@ -1,16 +1,21 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
+import { serializeClient } from "./serialized-client";
 
-// prepare: false because Supabase's transaction pooler cannot hold prepared
-// statements across the transactions it multiplexes onto one connection.
-// onnotice: the default console.log bypasses the redacting logger, and notices
-// (e.g. a stop-word-only search) are informational.
 export function createDb(databaseUrl: string) {
-  const sql = postgres(databaseUrl, { prepare: false, onnotice: () => {} });
-  return { db: drizzle(sql, { schema }), close: () => sql.end() };
+  if (!databaseUrl.startsWith("file:")) throw new Error("DATABASE_URL must be a local SQLite file: URL");
+  if (databaseUrl !== "file::memory:") {
+    const path = databaseUrl.startsWith("file://") ? fileURLToPath(databaseUrl) : databaseUrl.slice(5);
+    mkdirSync(dirname(path), { recursive: true });
+  }
+  const { client, close } = serializeClient(createClient({ url: databaseUrl, concurrency: 1 }));
+  const ready = client.executeMultiple("PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL;");
+  return { db: drizzle(client, { schema }), ready, close };
 }
 
 export type Db = ReturnType<typeof createDb>["db"];
-
 export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];

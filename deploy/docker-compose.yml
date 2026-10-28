@@ -1,28 +1,4 @@
-# Production stack on the server, run from /srv/linkables (see deploy/README.md).
-# CI publishes both images on every green push to main; the server's update
-# timer pulls them, so CI never connects to the server.
-name: linkables
-
-# Docker's default json-file logs never rotate and would fill the server's disk.
-x-logging: &logging
-  driver: local
-
-services:
-  api:
-    image: ghcr.io/cydoentis/linkables-api:main
-    env_file: .env
-    init: true
-    logging: *logging
-    restart: unless-stopped
-    # No published port: only the web container's proxy talks to it.
-
-  web:
-    image: ghcr.io/cydoentis/linkables-web:main
-    depends_on:
-      - api
-    restart: unless-stopped
-    logging: *logging
-    ports:
-      # Localhost only: Docker's published ports bypass ufw, so binding to all
-      # interfaces would expose this. Caddy on the host proxies HTTPS to it.
-      - "127.0.0.1:8080:8080"
+# Compatibility entry point for Docker Compose 2.20+. Run from a source checkout.
+include:
+  - path: ../docker-compose.yml
+    project_directory: ..

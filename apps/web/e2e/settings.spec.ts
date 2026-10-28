@@ -21,7 +21,7 @@ test.describe("at 1280 px", () => {
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Account" })).toContainText(user.email);
-    await expect(page.getByRole("main").getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", "https://chromewebstore.google.com/detail/linkables/dckjkoommfddaimpjbghbomojdkhaoai");
+    await expect(page.getByRole("main").getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", "/extension");
     await expect(page.getByRole("heading", { level: 3, name: "Install the app" })).toBeVisible();
     await expect(page.getByText("In Chrome or Edge, use the install icon in the address bar.", { exact: false })).toBeVisible();
     await expect(page.getByRole("link", { name: "All the ways to save" })).toHaveAttribute("href", "/save-from-anywhere");

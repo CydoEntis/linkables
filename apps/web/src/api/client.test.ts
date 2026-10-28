@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { readAccessToken } from "../auth/access-token";
-import { signOut, supabase } from "../auth/supabase";
+import { signOut } from "../auth/session";
 import { storeSession, stubAuthServer } from "../test/session";
 import { ApiError, NETWORK_ERROR } from "@linkables/shared/api-client";
 import { createApiClient } from "./client";
@@ -26,7 +26,7 @@ function setup(fetchImpl: typeof fetch, accessToken = "token-1") {
   const fetchSpy = vi.fn(fetchImpl);
   const api = createApiClient({
     baseUrl: API_URL,
-    getAccessToken: () => readAccessToken(supabase),
+    getAccessToken: () => readAccessToken(),
     onUnauthenticated,
     fetch: fetchSpy,
   });
@@ -44,6 +44,27 @@ afterEach(() => {
 });
 
 describe("api client", () => {
+  it("rejects a response from a session that changed while the request was pending", async () => {
+    let finish: (response: Response) => void = () => undefined;
+    const pending = new Promise<Response>((resolve) => { finish = resolve; });
+    let token = "old-token";
+    const fetchSpy = vi.fn(() => pending);
+    const onUnauthenticated = vi.fn(() => Promise.resolve());
+    const client = createApiClient({
+      baseUrl: API_URL,
+      getAccessToken: () => Promise.resolve(token),
+      isCurrentSession: (sent) => sent === token,
+      onUnauthenticated,
+      fetch: fetchSpy,
+    });
+    const reading = client.request("/me", meSchema);
+    await vi.waitFor(() => { expect(fetchSpy).toHaveBeenCalledOnce(); });
+    token = "new-token";
+    finish(jsonResponse({ ok: true, data: { id: "old-user" }, meta: meta() }));
+    await expect(reading).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(onUnauthenticated).not.toHaveBeenCalled();
+  });
+
   it("calls VITE_API_URL under /api/v1", async () => {
     const { api, fetchSpy } = setup(okMe);
     await api.request("/me", meSchema);
@@ -140,3 +161,4 @@ describe("keepalive requests", () => {
     expect(new Headers(fetchSpy.mock.calls[0]?.[1]?.headers).get("Authorization")).toBe("Bearer fresh-token");
   });
 });
+

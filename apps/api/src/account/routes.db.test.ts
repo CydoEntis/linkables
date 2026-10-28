@@ -1,181 +1,74 @@
-import { failureEnvelopeSchema, successEnvelopeSchema } from "@linkables/shared/http";
-import { count, eq, sql } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
-import { mintToken } from "../../test/auth/tokens";
-import { captureLogger, createTestApp, TEST_SUPABASE_URL, testUsers, type TestUser } from "../../test/app";
+import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { createTestApp } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
-import type { NotifyAccountDeleted } from "../access/notify-owner";
+import { PASSWORD, TEST_AUTH } from "../../test/auth/local";
+import { createLocalAuth } from "../auth/local-auth";
+import { provisionUser } from "../auth/provision";
+import { user } from "../auth/schema";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
 
 const { db, close } = connectTestDb();
-const { a, b } = await testUsers();
-
 afterAll(close);
-beforeEach(() => truncateAll(db));
+let a: { id: string; headers: { Authorization: string } };
+let b: { id: string; headers: { Authorization: string } };
+const localAuth = createLocalAuth(db.$client, TEST_AUTH);
 
-const NOW = Date.UTC(2026, 9, 25, 12);
-const A_EMAIL = "sam@example.com";
-const A_TOKEN = "Shared_Token-For-Delete-0123456_";
+beforeEach(async () => {
+  await truncateAll(db);
+  await db.delete(user);
+  const account = async (email: string) => {
+    const person = await provisionUser(db.$client, TEST_AUTH, { id: randomUUID(), email, name: email, password: PASSWORD });
+    const signedIn = await localAuth.api.signInEmail({ body: { email, password: PASSWORD } });
+    return { id: person.id, headers: { Authorization: `Bearer ${signedIn.token}` } };
+  };
+  a = await account("a@example.com");
+  b = await account("b@example.com");
+});
 
-function deleteAccount(app: ReturnType<typeof createTestApp>, headers: Record<string, string>) {
-  return app.request("/api/v1/me", { method: "DELETE", headers });
-}
+function app() { return createTestApp({ db, localAuth, auth: TEST_AUTH, notifyAccountDeleted: undefined }); }
 
-async function withEmail(user: TestUser, email: string) {
-  const token = await mintToken({ sub: user.id, supabaseUrl: TEST_SUPABASE_URL, claims: { email } });
-  return { Authorization: `Bearer ${token}` };
-}
-
-// Each user saves the same page, files it in a shared collection, and has a second empty one.
-async function seedUser(userId: string, shareToken: string, resourceId: string) {
-  const [link] = await db
-    .insert(savedLink)
-    .values({ userId, resourceId, originalUrl: "https://example.com/page", note: "a note", pinned: true })
-    .returning();
-  const [shared, empty] = await db
-    .insert(collection)
-    .values([
-      { userId, name: "Trip", shareToken },
-      { userId, name: "Later" },
-    ])
-    .returning();
-  if (link === undefined || shared === undefined || empty === undefined) throw new Error("seed failed");
-  await db.insert(collectionItem).values({ collectionId: shared.id, savedLinkId: link.id });
-}
-
-async function seedBoth() {
-  const [page] = await db.insert(resource).values({ canonicalUrl: "https://example.com/page", title: "Page" }).returning();
-  if (page === undefined) throw new Error("no resource");
-  await seedUser(a.id, A_TOKEN, page.id);
-  await seedUser(b.id, "Shared_Token-For-Other-0123456__", page.id);
-}
-
-async function userTables(): Promise<string[]> {
-  const rows = await db.execute<{ table_name: string }>(sql`
-    select table_name from information_schema.columns
-    where table_schema = 'public' and column_name = 'user_id'
-    order by table_name`);
-  return rows.map((row) => row.table_name);
-}
-
-// Rows per table with a user_id column, read from the catalog so a table added
-// later is counted without this test knowing its name.
-async function rowsPerUserTable(userId: string): Promise<Record<string, number>> {
-  const counts: Record<string, number> = {};
-  for (const table of await userTables()) {
-    const [row] = await db.execute<{ n: number }>(
-      sql`select count(*)::int as n from ${sql.identifier(table)} where user_id = ${userId}`,
-    );
-    counts[table] = row?.n ?? 0;
+async function seed() {
+  const [page] = await db.insert(resource).values({ canonicalUrl: "https://example.com/page" }).returning();
+  if (!page) throw new Error("Resource fixture missing");
+  for (const owner of [a,b]) {
+    const [link] = await db.insert(savedLink).values({ userId: owner.id, resourceId: page.id, originalUrl: page.canonicalUrl }).returning();
+    const [folder] = await db.insert(collection).values({ userId: owner.id, name: "Reading" }).returning();
+    if (!link || !folder) throw new Error("Library fixture missing");
+    await db.insert(collectionItem).values({ collectionId: folder.id, savedLinkId: link.id });
   }
-  return counts;
 }
 
-async function filingsOf(userId: string): Promise<number> {
-  const [row] = await db
-    .select({ n: count() })
-    .from(collectionItem)
-    .innerJoin(collection, eq(collection.id, collectionItem.collectionId))
-    .where(eq(collection.userId, userId));
-  return row?.n ?? 0;
-}
-
-describe("DELETE /me", () => {
-  it("answers 200 with no data", async () => {
-    const res = await deleteAccount(createTestApp({ db }), a.headers);
-
-    expect(res.status).toBe(200);
-    expect(successEnvelopeSchema(z.null()).parse(await res.json()).data).toBeNull();
+describe("local account deletion", () => {
+  it("deletes the caller's library and local identity without an email service", async () => {
+    await seed();
+    const response = await app().request("/api/v1/me", { method: "DELETE", headers: a.headers });
+    expect(response.status).toBe(200);
+    expect(await db.select().from(savedLink).where(eq(savedLink.userId, a.id))).toEqual([]);
+    expect(await db.select().from(collection).where(eq(collection.userId, a.id))).toEqual([]);
+    expect(await db.select().from(user).where(eq(user.id, a.id))).toEqual([]);
   });
 
-  it("empties every table with a user_id column for that user", async () => {
-    await seedBoth();
-    const before = await rowsPerUserTable(a.id);
-    expect(Object.keys(before).length).toBeGreaterThan(0);
-    // A table the seed leaves empty would pass below without proving anything.
-    for (const [table, n] of Object.entries(before)) expect(n, `seed rows in ${table}`).toBeGreaterThan(0);
-
-    await deleteAccount(createTestApp({ db }), a.headers);
-
-    const after = await rowsPerUserTable(a.id);
-    expect(Object.values(after).every((n) => n === 0), JSON.stringify(after)).toBe(true);
-    expect(await filingsOf(a.id)).toBe(0);
+  it("revokes the deleted account's sessions", async () => {
+    const api = app();
+    await api.request("/api/v1/me", { method: "DELETE", headers: a.headers });
+    expect((await api.request("/api/v1/me", { headers: a.headers })).status).toBe(401);
   });
 
-  it("leaves another user's rows and the shared page details alone", async () => {
-    await seedBoth();
-    const before = { rows: await rowsPerUserTable(b.id), filings: await filingsOf(b.id) };
-
-    await deleteAccount(createTestApp({ db }), a.headers);
-
-    expect({ rows: await rowsPerUserTable(b.id), filings: await filingsOf(b.id) }).toEqual(before);
-    expect(await db.select({ id: resource.id }).from(resource)).toHaveLength(1);
+  it("leaves the other user's library and sessions intact", async () => {
+    await seed();
+    const api = app();
+    const links = await db.select().from(savedLink).where(eq(savedLink.userId, b.id));
+    await api.request("/api/v1/me", { method: "DELETE", headers: a.headers });
+    expect(await db.select().from(savedLink).where(eq(savedLink.userId, b.id))).toEqual(links);
+    expect((await api.request("/api/v1/me", { headers: b.headers })).status).toBe(200);
+    expect(await db.select().from(resource)).toHaveLength(1);
   });
 
-  it("stops the user's shared collection links working", async () => {
-    await seedBoth();
-    const app = createTestApp({ db });
-
-    await deleteAccount(app, a.headers);
-
-    expect((await app.request(`/api/v1/shared/${A_TOKEN}`)).status).toBe(404);
-  });
-
-  it("emails the owner to delete the sign-in account, with the user's id and email", async () => {
-    const notifyAccountDeleted = vi.fn<NotifyAccountDeleted>().mockResolvedValue();
-    const app = createTestApp({ db, now: () => NOW, notifyAccountDeleted });
-
-    await deleteAccount(app, await withEmail(a, A_EMAIL));
-
-    expect(notifyAccountDeleted).toHaveBeenCalledExactlyOnceWith({ userId: a.id, email: A_EMAIL, at: new Date(NOW) });
-  });
-
-  it.each<[string, NotifyAccountDeleted | undefined, string]>([
-    ["Resend is not configured", undefined, "Resend is not configured"],
-    ["the owner's email fails", () => Promise.reject(new Error("Resend answered 500")), "owner email failed"],
-  ])("answers UPSTREAM and deletes nothing when %s, logging without naming the user", async (_case, notifyAccountDeleted, logged) => {
-    await seedBoth();
-    const before = await rowsPerUserTable(a.id);
-    const { logger, lines } = captureLogger();
-
-    const res = await deleteAccount(createTestApp({ db, logger, notifyAccountDeleted }), await withEmail(a, A_EMAIL));
-
-    expect(res.status).toBe(502);
-    expect(failureEnvelopeSchema.parse(await res.json()).error.code).toBe("UPSTREAM");
-    expect(await rowsPerUserTable(a.id)).toEqual(before);
-    expect(await filingsOf(a.id)).toBe(1);
-    expect(lines.join("\n")).toContain(logged);
-    for (const secret of [a.id, A_EMAIL]) expect(lines.join("\n")).not.toContain(secret);
-  });
-
-  it("refuses a fourth delete within the hour for the same user, without emailing again", async () => {
-    const notifyAccountDeleted = vi.fn<NotifyAccountDeleted>().mockResolvedValue();
-    let at = NOW;
-    const app = createTestApp({ db, now: () => at, notifyAccountDeleted });
-
-    for (let i = 0; i < 3; i += 1) expect((await deleteAccount(app, a.headers)).status).toBe(200);
-    const limited = await deleteAccount(app, a.headers);
-
-    expect(limited.status).toBe(429);
-    expect(failureEnvelopeSchema.parse(await limited.json()).error.code).toBe("RATE_LIMIT");
-    expect(notifyAccountDeleted).toHaveBeenCalledTimes(3);
-    expect((await deleteAccount(app, b.headers)).status).toBe(200);
-    at = NOW + 60 * 60 * 1000;
-    expect((await deleteAccount(app, a.headers)).status).toBe(200);
-  });
-
-  it("lets the user try again once the owner's email goes through", async () => {
-    await seedBoth();
-    const notifyAccountDeleted = vi
-      .fn<NotifyAccountDeleted>()
-      .mockRejectedValueOnce(new Error("Resend answered 500"))
-      .mockResolvedValue();
-    const app = createTestApp({ db, notifyAccountDeleted });
-
-    expect((await deleteAccount(app, a.headers)).status).toBe(502);
-    expect((await deleteAccount(app, a.headers)).status).toBe(200);
-
-    expect(Object.values(await rowsPerUserTable(a.id)).every((n) => n === 0)).toBe(true);
+  it("deletes locally even when an optional email notification fails", async () => {
+    const api = createTestApp({ db, localAuth, auth: TEST_AUTH, notifyAccountDeleted: () => Promise.reject(new Error("mail unavailable")) });
+    expect((await api.request("/api/v1/me", { method: "DELETE", headers: a.headers })).status).toBe(200);
+    expect(await db.select().from(user).where(eq(user.id, a.id))).toEqual([]);
   });
 });

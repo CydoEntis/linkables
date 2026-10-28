@@ -5,7 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp, testUsers, type TestUser } from "../../test/app";
 import { connectTestDb, truncateAll } from "../../test/db";
-import { collection, collectionItem, resource, savedLink } from "../db/schema";
+import { collection, collectionItem, resource, savedLink, timestampText } from "../db/schema";
 
 const { db, close } = connectTestDb();
 const { a, b } = await testUsers();
@@ -43,7 +43,7 @@ async function seed(user: TestUser, seeds: Seed[]): Promise<string[]> {
         originalUrl: urls[i] ?? "",
         titleOverride: s.titleOverride,
         pinned: s.pinned ?? false,
-        savedAt: sql`${s.savedAt ?? new Date(Date.UTC(2026, 0, 1) + i * 1000).toISOString()}::timestamptz`,
+        savedAt: sql`${timestampText(s.savedAt ?? new Date(Date.UTC(2026, 0, 1) + i * 1000).toISOString())}`,
       })),
     )
     .returning();

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "cn";
 import { useId, type ReactNode } from "react";
-import { signOut, supabase } from "../auth/supabase";
+import { signOut, readConnection, disconnectServer } from "../auth/session";
 import { GHOST_BUTTON } from "../ui";
 import { appUrl } from "./queries";
 import { useFollowTabs } from "./use-follow-tabs";
@@ -11,7 +11,7 @@ import { useShortcut } from "./use-shortcut";
 function useAccountEmail() {
   return useQuery({
     queryKey: ["panel", "account"],
-    queryFn: async () => (await supabase.auth.getSession()).data.session?.user.email ?? null,
+    queryFn: async () => (await readConnection())?.session?.user.email ?? null,
   }).data;
 }
 
@@ -51,6 +51,7 @@ export function ExtensionSettings({ onBack }: { onBack: () => void }) {
             Sign out
           </button>
         </Row>
+        <button type="button" onClick={() => void disconnectServer()} className={GHOST_BUTTON}>Change server</button>
       </Group>
       <a href={appUrl("/settings")} target="_blank" rel="noreferrer" className="self-start rounded-md px-1 text-[13px] font-semibold hover:text-primary">
         All settings in linkables ↗
@@ -102,3 +103,4 @@ function Row({ label, children }: { label: ReactNode; children: ReactNode }) {
     </div>
   );
 }
+

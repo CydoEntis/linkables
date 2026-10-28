@@ -40,7 +40,7 @@ test.describe("at 1440 px", () => {
   test("the sidebar's Chrome extension card stays dismissed", async ({ page }) => {
     await page.goto("/");
     const card = page.getByRole("region", { name: "Chrome extension" });
-    await expect(card.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", "https://chromewebstore.google.com/detail/linkables/dckjkoommfddaimpjbghbomojdkhaoai");
+    await expect(card.getByRole("link", { name: /^Add to Chrome/ })).toHaveAttribute("href", "/extension");
     await card.getByRole("button", { name: "Dismiss" }).click();
     await expect(card).toHaveCount(0);
     await page.reload();

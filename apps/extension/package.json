@@ -1,7 +1,7 @@
 {
   "name": "extension",
   "private": true,
-  "version": "0.3.2",
+  "version": "0.4.1",
   "type": "module",
   "scripts": {
     "build": "vite build",
@@ -9,6 +9,7 @@
     "release": "node scripts/release-zip.ts",
     "release:store": "vite build --mode store --outDir dist-store --emptyOutDir && node scripts/release-zip.ts store",
     "release:firefox": "vite build --mode firefox --outDir dist-firefox --emptyOutDir && web-ext lint --source-dir dist-firefox",
+    "release:firefox:source": "node scripts/release-zip.ts firefox",
     "check:firefox": "node scripts/check-firefox-xpi.ts",
     "sign:firefox": "node scripts/sign-firefox.ts",
     "store:images": "node store/render.ts",
@@ -22,7 +23,6 @@
     "@fontsource/unbounded": "5.3.0",
     "@hookform/resolvers": "5.9.1",
     "@linkables/shared": "workspace:*",
-    "@supabase/supabase-js": "2.118.0",
     "@tanstack/react-query": "5.104.5",
     "cn": "0.4.0",
     "lucide-react": "1.57.0",

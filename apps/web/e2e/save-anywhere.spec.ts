@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { Page, TestInfo } from "@playwright/test";
 import { API_URL, IOS_SHORTCUT_URL } from "./env";
 import { expect, test } from "./fixtures";
@@ -38,11 +39,13 @@ for (const width of WIDTHS) {
     test.describe("on iPhone", () => {
       test.use({ userAgent: USER_AGENTS.iphone, viewport: { width, height: 900 }, hasTouch: true });
 
-      test("leads with the shortcut and its three-step guide", async ({ page }, testInfo) => {
+      test("leads with current-origin manual shortcut setup and offers the optional iCloud shortcut", async ({ page }, testInfo) => {
         const lead = await openPage(page);
         await expect(lead).toHaveAccessibleName("On iPhone or iPad");
+        await expect(lead.getByRole("list", { name: "Create the iPhone shortcut" })).toBeVisible();
+        await expect(lead.getByText(`${new URL(page.url()).origin}/save?url=`)).toBeVisible();
+        await lead.getByText("Use an existing iCloud shortcut").click();
         await expect(lead.getByRole("link", { name: "Add the shortcut" })).toHaveAttribute("href", IOS_SHORTCUT_URL);
-        await expect(lead.getByRole("listitem")).toHaveCount(3);
         await expect(lead.getByText(/default browser \(usually Safari\), so sign in to linkables there once/)).toBeVisible();
         await shot(page, testInfo, `save-anywhere-iphone-${String(width)}`);
       });
@@ -144,7 +147,7 @@ test.describe("drag and drop at 1280 px", () => {
 
     await expect(page.getByText("Drop to save")).toBeHidden();
     await expect(page.getByRole("link", { name: /example\.test\/dropped/ })).toBeVisible();
-    const rows = await db.$client<{ original_url: string }[]>`select original_url from saved_link where user_id = ${user.id}`;
+    const rows = await db.all<{ original_url: string }>(sql`select original_url from saved_link where user_id = ${user.id}`);
     expect(rows.map((row) => row.original_url)).toEqual(["https://example.test/dropped"]);
   });
 

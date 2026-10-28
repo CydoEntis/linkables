@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { Db } from "../../api/src/db/client";
 import { collection, collectionItem, shareAllowedEmail } from "../../api/src/db/schema";
 import { hashCode } from "../../api/src/sharing/viewer-code";
@@ -22,16 +23,16 @@ async function privateTrip(db: Db, userId: string, links: SeededLink[]) {
 // The mail is not sent under test, so the code the page asked for is swapped for one the test knows.
 async function plantCode(db: Db, collectionId: string, email: string) {
   const { salt, hash } = await hashCode(KNOWN_CODE);
-  const updated = await db.$client`
+  const updated = await db.all(sql`
     update share_code set salt = ${salt}, code_hash = ${hash}
     where collection_id = ${collectionId} and email = ${email}
-    returning id`;
+    returning id`);
   expect(updated, "the page asked for a code").toHaveLength(1);
 }
 
 async function isPrivate(db: Db, collectionId: string) {
-  const [row] = await db.$client`select share_private from collection where id = ${collectionId}`;
-  return row?.share_private === true;
+  const [row] = await db.all<{ share_private: number }>(sql`select share_private from collection where id = ${collectionId}`);
+  return row?.share_private === 1;
 }
 
 test.describe("the owner", () => {
@@ -114,8 +115,8 @@ test.describe("a viewer", () => {
     await page.getByRole("button", { name: "Open collection" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Trip to Japan" })).toBeVisible();
 
-    await db.$client`delete from share_allowed_email where collection_id = ${col.id}`;
-    await db.$client`delete from share_viewer_session where collection_id = ${col.id}`;
+    await db.all(sql`delete from share_allowed_email where collection_id = ${col.id}`);
+    await db.all(sql`delete from share_viewer_session where collection_id = ${col.id}`);
     await page.reload();
 
     await expect(page.getByRole("heading", { name: "This collection is private" })).toBeVisible();

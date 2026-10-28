@@ -1,6 +1,6 @@
 # ADR-0002: Supabase for Postgres and Auth; authorization lives only in the API
 
-**Status:** accepted (2026-10-21)
+**Status:** superseded by [ADR-0009](0009-self-hosted-sqlite-local-accounts.md) for the self-hosted target. Historical decision follows.
 
 ## Problem
 

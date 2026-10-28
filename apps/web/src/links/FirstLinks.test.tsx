@@ -63,6 +63,6 @@ describe("FirstLinks on a phone", () => {
     await renderWithRouter(<FirstLinks />);
     const email = screen.getByRole("link", { name: "Email me the link" }).getAttribute("href") ?? "";
     expect(email).toMatch(/^mailto:\?subject=/);
-    expect(decodeURIComponent(email)).toContain(CHROME_WEB_STORE_URL);
+    expect(decodeURIComponent(email)).toContain(CHROME_WEB_STORE_URL ?? `${window.location.origin}/extension`);
   });
 });

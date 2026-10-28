@@ -5,7 +5,7 @@ FROM node:24-slim
 WORKDIR /app
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 # The API runs its TypeScript through tsx, a dev dependency, so dev deps stay.
@@ -13,8 +13,11 @@ RUN pnpm install --frozen-lockfile --filter api...
 
 COPY packages/shared packages/shared
 COPY apps/api apps/api
+COPY LICENSE /app/LICENSE
+RUN mkdir -p /data && chown node:node /data
 
 ENV NODE_ENV=production
+ENV DATABASE_URL=file:/data/linkables.db
 USER node
 WORKDIR /app/apps/api
 EXPOSE 3000

@@ -41,18 +41,16 @@ async function seedOneOfEach() {
   return { res, link, coll };
 }
 
-// Drizzle wraps the driver error in `cause`; 23505 is unique_violation.
+// Composite primary keys and unique indexes both enforce uniqueness.
 async function expectUniqueViolation(query: Promise<unknown>) {
-  await expect(query).rejects.toMatchObject({ cause: { code: "23505" } });
+  await expect(query).rejects.toMatchObject({ cause: { code: "SQLITE_CONSTRAINT" } });
 }
 
 describe("schema", () => {
-  it("enables row level security on every public table", async () => {
-    const rows = await db.execute<{ count: number }>(
-      sql`select count(*)::int as count from pg_tables where schemaname = 'public' and not rowsecurity`,
-    );
-
-    expect(rows[0]?.count).toBe(0);
+  it("enforces foreign keys for every database connection", async () => {
+    const rows = await db.all<{ foreign_keys: number }>(sql`pragma foreign_keys`);
+    expect(rows[0]?.foreign_keys).toBe(1);
+    await expect(db.insert(savedLink).values({ userId: USER_A, resourceId: USER_B, originalUrl: "https://example.com" })).rejects.toThrow();
   });
 
   it("stores one row in each table with the documented defaults", async () => {
@@ -145,12 +143,12 @@ describe("schema", () => {
   it("rejects a readable copy marked ok without an article", async () => {
     const res = await insertResource();
     await expect(db.insert(resourceReader).values({ resourceId: res.id, status: "ok" })).rejects.toMatchObject({
-      cause: { code: "23514" },
+      cause: { extendedCode: "SQLITE_CONSTRAINT_CHECK" },
     });
   });
 
   it("rejects an access request whose email is not lower case", async () => {
     // 23514 is check_violation.
-    await expect(db.insert(accessRequest).values({ email: "Sam@example.com" })).rejects.toMatchObject({ cause: { code: "23514" } });
+    await expect(db.insert(accessRequest).values({ email: "Sam@example.com" })).rejects.toMatchObject({ cause: { extendedCode: "SQLITE_CONSTRAINT_CHECK" } });
   });
 });

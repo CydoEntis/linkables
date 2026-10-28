@@ -7,7 +7,8 @@ import { zipFiles } from "./zip.ts";
 
 const root = join(import.meta.dirname, "..");
 const store = process.argv[2] === "store";
-const dist = join(root, store ? "dist-store" : "dist");
+const firefox = process.argv[2] === "firefox";
+const dist = join(root, firefox ? "dist-firefox" : store ? "dist-store" : "dist");
 
 function filesUnder(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true, recursive: true })
@@ -18,7 +19,7 @@ function filesUnder(dir: string): string[] {
 
 const { version } = JSON.parse(readFileSync(join(dist, "manifest.json"), "utf8")) as { version: string };
 const files = filesUnder(dist).map((path) => ({ name: relative(dist, path).split(sep).join("/"), data: readFileSync(path) }));
-const out = join(root, "release", `linkables-chrome-${store ? "store-" : ""}${version}.zip`);
+const out = join(root, "release", firefox ? `linkables-firefox-source-${version}.zip` : `linkables-chrome-${store ? "store-" : ""}${version}.zip`);
 mkdirSync(join(root, "release"), { recursive: true });
 writeFileSync(out, zipFiles(files));
 console.log(`Wrote ${relative(root, out)} (${String(files.length)} files)`);

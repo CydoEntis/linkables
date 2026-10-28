@@ -3,20 +3,23 @@ import { and, eq, sql } from "drizzle-orm";
 import type { Db, Tx } from "../db/client";
 import { collection, collectionItem, resource, savedLink } from "../db/schema";
 import { InternalError } from "../http/errors";
+import { z } from "zod";
 
 type LinkCollection = SavedLink["collections"][number];
+const linkCollectionsSchema = z.array(z.object({ id: z.uuid(), name: z.string() }));
 
 // A correlated subquery in the select list, so a page needs no extra round trip.
 // The collection is scoped to the caller, so a filing of the caller's link into
 // another user's collection never shows that collection's name.
 export function collectionsOf(userId: string) {
-  return sql<LinkCollection[]>`coalesce((
-    select json_agg(json_build_object('id', ${collection.id}, 'name', ${collection.name})
-      order by lower(${collection.name}), ${collection.id})
-    from ${collectionItem}
-    inner join ${collection} on ${collection.id} = ${collectionItem.collectionId}
-    where ${collectionItem.savedLinkId} = ${savedLink.id} and ${collection.userId} = ${userId}
-  ), '[]'::json)`;
+  return sql<string>`(
+    select json_group_array(json_object('id', id, 'name', name)) from (
+      select ${collection.id} as id, ${collection.name} as name from ${collectionItem}
+      inner join ${collection} on ${collection.id} = ${collectionItem.collectionId}
+      where ${collectionItem.savedLinkId} = ${savedLink.id} and ${collection.userId} = ${userId}
+      order by lower(${collection.name}), ${collection.id}
+    )
+  )`.mapWith((value: string): LinkCollection[] => linkCollectionsSchema.parse(JSON.parse(value)));
 }
 
 export function toSavedLink(

@@ -1,4 +1,4 @@
-import type { Session } from "@supabase/supabase-js";
+import type { Session } from "../auth/session";
 import { screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthStateContext } from "../auth/auth-state";
@@ -11,11 +11,11 @@ const { signOut, signOutEverywhere } = vi.hoisted(() => ({
   signOut: vi.fn<() => Promise<void>>(),
   signOutEverywhere: vi.fn<() => Promise<void>>(),
 }));
-vi.mock("../auth/supabase", () => ({ signOut, signOutEverywhere }));
+vi.mock("../auth/session", () => ({ forgetSession: signOutEverywhere }));
 vi.mock("../api/api", () => ({ api: { request: vi.fn() } }));
 
 const SIGNED_OUT: AuthState = { status: "signed-out", linkProblem: null, afterSignOut: true };
-const SIGNED_IN: AuthState = { status: "signed-in", session: { user: { email: "a@b.c" } } as Session };
+const SIGNED_IN: AuthState = { status: "signed-in", session: { user: { email: "a@b.c" } } as unknown as Session };
 
 function renderPage(auth: AuthState) {
   return renderWithRouter(
@@ -56,3 +56,5 @@ describe("AccountDeletedPage", () => {
     await waitFor(() => { expect(signOutEverywhere).toHaveBeenCalledOnce(); });
   });
 });
+
+

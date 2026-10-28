@@ -1,4 +1,4 @@
-import type { Session } from "@supabase/supabase-js";
+import type { Session } from "./session";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { EXTENSION_CONNECT_PATH } from "@linkables/shared/extension-sessions";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -6,15 +6,16 @@ import { afterEach, expect, it, vi } from "vitest";
 import { EXTENSION_GUIDE_PATH } from "../extension-guide/path";
 import { clearPendingSave, keepPendingSave, SAVE_PATH } from "../save/pending-save";
 import { AuthGate } from "./AuthGate";
+import { markAccountDeleted, forgetAccountDeleted } from "../settings/account-deleted";
+import { ACCOUNT_DELETED_PATH } from "../settings/path";
 
 const signedIn = vi.hoisted(() => ({ current: true }));
 
-vi.mock("./supabase", () => ({ returningFromSignIn: false }));
 vi.mock("../api/api", () => ({ api: { request: vi.fn() } }));
 vi.mock("./use-auth", () => ({
   useAuth: () =>
     signedIn.current
-      ? { status: "signed-in", session: { access_token: "token", user: { id: "user-1" } } as Session }
+      ? { status: "signed-in", session: { access_token: "token", user: { id: "user-1" } } as unknown as Session }
       : { status: "signed-out", linkProblem: null, afterSignOut: false },
 }));
 
@@ -22,7 +23,7 @@ function renderAt(path: string) {
   const rootRoute = createRootRoute({ component: AuthGate });
   const page = (routePath: string) => createRoute({ getParentRoute: () => rootRoute, path: routePath, component: () => <p>{routePath}</p> });
   const router = createRouter({
-    routeTree: rootRoute.addChildren([page("/"), page("/sign-in"), page(SAVE_PATH), page(EXTENSION_GUIDE_PATH), page(EXTENSION_CONNECT_PATH)]),
+    routeTree: rootRoute.addChildren([page("/"), page("/sign-in"), page(SAVE_PATH), page(EXTENSION_GUIDE_PATH), page(EXTENSION_CONNECT_PATH), page(ACCOUNT_DELETED_PATH)]),
     history: createMemoryHistory({ initialEntries: [path] }),
   });
   render(<RouterProvider router={router} />);
@@ -31,7 +32,15 @@ function renderAt(path: string) {
 
 afterEach(() => {
   clearPendingSave();
+  forgetAccountDeleted();
   signedIn.current = true;
+});
+
+it("keeps a successful deletion on its goodbye page when the session is revoked", async () => {
+  signedIn.current = false;
+  markAccountDeleted();
+  const router = renderAt("/");
+  await waitFor(() => { expect(router.state.location.pathname).toBe(ACCOUNT_DELETED_PATH); });
 });
 
 it("shows the extension install guide to a visitor who is not signed in", async () => {
@@ -62,3 +71,5 @@ it("brings a signed-out visit to the extension connect page back there after sig
   const router = renderAt("/sign-in");
   await waitFor(() => { expect(router.state.location.pathname).toBe(EXTENSION_CONNECT_PATH); });
 });
+
+

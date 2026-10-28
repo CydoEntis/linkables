@@ -1,48 +1,45 @@
 #!/usr/bin/env bash
-# Proves an API image boots against a real Postgres and refuses the test-auth
-# escape hatch in production. Usage: deploy/smoke-test.sh <image>
-# Needs SMOKE_DATABASE_URL pointing at a reachable, empty-or-migrated database.
 set -euo pipefail
 
-image="$1"
-db="${SMOKE_DATABASE_URL:?set SMOKE_DATABASE_URL}"
-port=3999
+image="${1:?supply an API image}"
 name="linkables-smoke-$$"
-
-env_args=(
-  -e "DATABASE_URL=$db"
-  -e "MIGRATION_DATABASE_URL=$db"
-  -e "SUPABASE_URL=https://example.supabase.co"
-  -e "CORS_ORIGINS=https://app.example.com"
-  -e "WORKER_ENABLED=true"
-  -e "PORT=$port"
-)
-
-cleanup() { docker rm -f "$name" "$name-jwks" >/dev/null 2>&1 || true; }
+volume="$name-data"
+port="${SMOKE_PORT:-3999}"
+origin="http://127.0.0.1:$port"
+cookie="$(mktemp)"
+cleanup() {
+  docker rm -f "$name" >/dev/null 2>&1 || true
+  docker volume rm "$volume" >/dev/null 2>&1 || true
+  rm -f "$cookie"
+}
 trap cleanup EXIT
+docker volume create "$volume" >/dev/null
 
-echo "migrating with the image's own drizzle-kit"
-docker run --rm --network host "${env_args[@]}" "$image" node_modules/.bin/drizzle-kit migrate
-
-echo "starting the API"
-docker run -d --name "$name" --network host "${env_args[@]}" "$image" >/dev/null
-for _ in $(seq 1 30); do
-  if curl -fsS "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
-    echo "health: 200"
-    break
-  fi
-  sleep 1
-done
-curl -fsS "http://127.0.0.1:$port/health" >/dev/null || { docker logs "$name"; echo "health never answered"; exit 1; }
-
-echo "checking the API refuses AUTH_TEST_JWKS in production"
-# Its own port, so a clash with the running container can't fake the failure.
-# timeout's 124 means it kept running, which is the failure we're guarding.
-status=0
-timeout 30 docker run --rm --name "$name-jwks" --network host "${env_args[@]}" -e "PORT=$((port + 1))" \
-  -e 'AUTH_TEST_JWKS={"keys":[]}' "$image" || status=$?
-if [ "$status" -eq 0 ] || [ "$status" -eq 124 ]; then
-  echo "container with AUTH_TEST_JWKS set did not exit non-zero (status $status)"
+start() {
+  docker run -d --name "$name" -p "127.0.0.1:$port:3000" -v "$volume:/data" \
+    -e NODE_ENV=production -e "APP_ORIGIN=$origin" \
+    -e AUTH_SECRET=smoke-only-secret-not-for-any-real-instance \
+    -e "DATABASE_URL=file:/data/$1" -e WORKER_ENABLED=false "$image" >/dev/null
+  for _ in $(seq 1 30); do
+    if curl -fsS "$origin/health" >/dev/null 2>&1; then return; fi
+    sleep 1
+  done
+  docker logs "$name"
+  echo "API never became healthy" >&2
   exit 1
-fi
-echo "smoke test passed"
+}
+
+start linkables.db
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$origin/api/v1/links")" = 401 ]
+printf '%s' 'smoke-password-only-12345' | docker exec -i "$name" node_modules/.bin/tsx src/auth/user-cli.ts --email smoke@example.test --name Smoke
+curl -fsS -c "$cookie" -H "Origin: $origin" -H 'Content-Type: application/json' \
+  -d '{"email":"smoke@example.test","password":"smoke-password-only-12345"}' "$origin/api/v1/auth/sign-in" >/dev/null
+curl -fsS -b "$cookie" -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com/smoke"}' "$origin/api/v1/links" >/dev/null
+docker exec "$name" node_modules/.bin/tsx src/maintenance/cli.ts backup-current /data/backup.db
+docker exec "$name" node_modules/.bin/tsx src/maintenance/cli.ts restore /data/backup.db /data/restored.db
+docker rm -f "$name" >/dev/null
+start restored.db
+curl -fsS -b "$cookie" "$origin/api/v1/links" | grep -q 'https://example.com/smoke'
+docker exec "$name" node_modules/.bin/tsx src/maintenance/cli.ts backup-current /data/after-restore-backup.db
+echo 'Fresh install, local sign-in, save, online backup and restored-session checks passed.'

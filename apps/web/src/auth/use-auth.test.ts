@@ -1,58 +1,22 @@
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
-import { act, renderHook } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
-import type { LinkProblem } from "./link-landing";
+import { renderHook, waitFor } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
+import { rememberSession } from "./session";
 import { useAuth } from "./use-auth";
+import { session } from "../test/session";
 
-type Listener = (event: AuthChangeEvent, session: Session | null) => void;
-
-const listeners = vi.hoisted(() => [] as Listener[]);
-const pendingLinkProblem = vi.hoisted(() => {
-  const holder: { resolve: (problem: LinkProblem | null) => void } = { resolve: () => undefined };
-  return holder;
-});
-
-vi.mock("./supabase", () => ({
-  supabase: {
-    auth: {
-      onAuthStateChange: (listener: Listener) => {
-        listeners.push(listener);
-        return { data: { subscription: { unsubscribe: vi.fn() } } };
-      },
-    },
-  },
-}));
-vi.mock("./link-landing", () => ({
-  readLinkProblem: () =>
-    new Promise<LinkProblem | null>((resolve) => {
-      pendingLinkProblem.resolve = resolve;
-    }),
-}));
-
-const session = { access_token: "token", user: { id: "user-1" } } as Session;
-
-function emit(event: AuthChangeEvent, value: Session | null) {
-  const listener = listeners.at(-1);
-  if (!listener) throw new Error("useAuth did not subscribe");
-  act(() => {
-    listener(event, value);
-  });
+function envelope(data: unknown) {
+  return new Response(JSON.stringify({ ok: true, data, meta: { requestId: crypto.randomUUID(), ms: 1, version: "v1" } }));
 }
+afterEach(() => { rememberSession(null); vi.unstubAllGlobals(); });
 
-it("clears a rejected token fragment from the URL when already signed in", () => {
-  window.history.replaceState(null, "", "/#access_token=a&refresh_token=b");
-  renderHook(() => useAuth());
-  emit("INITIAL_SESSION", session);
-  expect(window.location.hash).toBe("");
+it("restores the signed-in user from the cookie session endpoint", async () => {
+  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(envelope(session()))));
+  const { result } = renderHook(useAuth);
+  await waitFor(() => { expect(result.current.status).toBe("signed-in"); });
 });
 
-it("stays signed in when the landing check finishes after a sign-in", async () => {
-  const { result } = renderHook(() => useAuth());
-  emit("INITIAL_SESSION", null);
-  emit("SIGNED_IN", session);
-  await act(async () => {
-    pendingLinkProblem.resolve("expired");
-    await Promise.resolve();
-  });
-  expect(result.current.status).toBe("signed-in");
+it("shows a retry state when the server cannot be reached", async () => {
+  vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("offline"))));
+  const { result } = renderHook(useAuth);
+  await waitFor(() => { expect(result.current.status).toBe("unavailable"); });
 });

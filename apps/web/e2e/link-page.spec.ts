@@ -167,6 +167,26 @@ test.describe("at 1280 px", () => {
     await expect(page.getByRole("textbox", { name: "Note" })).toHaveValue("first thought, then reloaded");
   });
 
+  test("Undo restores row focus after the toast returns focus to the heading", async ({ page, seedLinks }) => {
+    await seedLinks([RUST]);
+    await page.goto("/");
+    const row = page.getByRole("link", { name: /^Rust by Example/ });
+    await openLinkPage(page, row);
+    await bar(page).getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "All links" })).toBeFocused();
+    await page.evaluate(() => {
+      // Sonner can restore its previous focus while the restored row takes focus.
+      const restoreToastFocus = (event: FocusEvent) => {
+        if (!(event.target instanceof HTMLElement) || !event.target.matches("[data-row-link]")) return;
+        document.removeEventListener("focusin", restoreToastFocus);
+        document.querySelector<HTMLElement>("main h1")?.focus();
+      };
+      document.addEventListener("focusin", restoreToastFocus);
+    });
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(row).toBeFocused();
+  });
+
   test("delete offers Undo and goes back, and deletes for real once the toast closes", async ({ page, seedLinks }) => {
     await seedLinks([RUST]);
     await page.goto("/");

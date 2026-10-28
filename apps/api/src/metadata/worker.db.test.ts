@@ -86,7 +86,7 @@ async function jobRow(id: number) {
       attempts: job.attempts,
       lockedUntil: job.lockedUntil,
       lastError: job.lastError,
-      runAfterSecondsAway: sql<number>`extract(epoch from ${job.runAfter} - now())::float8`,
+      runAfterSecondsAway: sql<number>`(julianday(${job.runAfter}) - julianday('now')) * 86400`,
     })
     .from(job)
     .where(eq(job.id, id));
@@ -96,7 +96,7 @@ async function jobRow(id: number) {
 function makeDue(jobId: number) {
   return db
     .update(job)
-    .set({ runAfter: sql`now() - interval '1 second'` })
+    .set({ runAfter: sql`strftime('%Y-%m-%dT%H:%M:%f000Z', 'now', '-1 second')` })
     .where(eq(job.id, jobId));
 }
 
@@ -126,7 +126,7 @@ describe("metadata worker", { timeout: 20_000 }, () => {
   it("re-runs a job whose lease was abandoned mid-run", async () => {
     const { resourceId } = await queue("https://example.com/abandoned", {
       attempts: 1,
-      lockedUntil: sql`now() - interval '1 second'`,
+      lockedUntil: sql`strftime('%Y-%m-%dT%H:%M:%f000Z', 'now', '-1 second')`,
     });
     const fetchHtml = vi.fn(articlePage);
 
@@ -139,7 +139,7 @@ describe("metadata worker", { timeout: 20_000 }, () => {
   });
 
   it("leaves a job alone while its lease is still held", async () => {
-    const { jobId } = await queue("https://example.com/leased", { attempts: 1, lockedUntil: sql`now() + interval '1 minute'` });
+    const { jobId } = await queue("https://example.com/leased", { attempts: 1, lockedUntil: sql`strftime('%Y-%m-%dT%H:%M:%f000Z', 'now', '+1 minute')` });
     const fetchHtml = vi.fn(articlePage);
 
     start({ fetchHtml });
@@ -195,7 +195,7 @@ describe("metadata worker", { timeout: 20_000 }, () => {
   it("fails a job whose lease expired on every attempt without fetching it again", async () => {
     const { resourceId, jobId } = await queue("https://example.com/crashy", {
       attempts: 3,
-      lockedUntil: sql`now() - interval '1 second'`,
+      lockedUntil: sql`strftime('%Y-%m-%dT%H:%M:%f000Z', 'now', '-1 second')`,
     });
     const fetchHtml = vi.fn(articlePage);
 
@@ -218,7 +218,7 @@ describe("metadata worker", { timeout: 20_000 }, () => {
       expect(lines.some((line) => line.includes("metadata job crashed"))).toBe(true);
     }, WAIT);
     const [row] = await db
-      .select({ attempts: job.attempts, held: sql<boolean>`${job.lockedUntil} > now()` })
+      .select({ attempts: job.attempts, held: sql<boolean>`${job.lockedUntil} > strftime('%Y-%m-%dT%H:%M:%f000Z', 'now')`.mapWith(Boolean) })
       .from(job)
       .where(eq(job.id, jobId));
     expect(row).toEqual({ attempts: 1, held: true });

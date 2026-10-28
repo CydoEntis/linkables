@@ -13,12 +13,15 @@
     "test": "pnpm -r test",
     "verify": "pnpm typecheck && pnpm lint && pnpm test",
     "e2e": "pnpm --filter web e2e",
-    "db:migrate": "pnpm --filter api db:migrate"
+    "db:migrate": "pnpm --filter api db:migrate",
+    "maintenance": "pnpm --filter api exec tsx src/maintenance/cli.ts",
+    "export:postgres": "pnpm --filter api exec tsx src/maintenance/export-postgres.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "eslint": "10.13.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.0"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }
